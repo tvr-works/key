@@ -15,6 +15,8 @@ Baseline: `main` at `957d561`, with Stable `0.2.0` compatibility.
 
 For v3, the folder determines where ciphertext lives. An iCloud Drive folder does not require iCloud Keychain mode. Mode remains a real v2 key-storage choice and can identify the key needed for retained v2 data. That old snapshot does not recover later v3 changes; see the [released continuity promise](security-continuity-recovery.md).
 
+Qualification on 2026-10-30 confirmed that creating a synchronizable legacy key with the current `.userPresence` policy is rejected by macOS. Retaining `icloud` for existing-key lookup does not establish that creating or switching to a new synchronized key works. See the [native diagnosis and remaining compatibility scope](release.md#legacy-icloud-keychain-diagnosis-2026-10-30); this finding does not authorize deleting mode metadata or weakening access control.
+
 ## Alternatives
 
 | Approach | Compatibility and maintenance | Decision |

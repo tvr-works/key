@@ -89,6 +89,8 @@ KEY_MIGRATION_QUALIFICATION_SCENARIOS=small \
 
 This creates only the qualification identity's disposable iCloud-Keychain record. It does not change a shipping product's mode or move its vault folder. Encrypted fixture files remain in the local temporary test directory; this test does not establish iCloud Drive delivery or second-Mac behavior.
 
+On macOS 27.0.1 this seed currently fails before upgrade: 0.2.0 combines a synchronizable Keychain item with `.userPresence` access-control constraints, which macOS rejects with `errSecParam` (`-50`). The [release diagnosis](release.md#legacy-icloud-keychain-diagnosis-2026-10-30) records the isolated native control results and Apple's validation rule. Do not remove user presence or substitute a less protected vault key to label this qualification as passing. Existing synchronized-key lookup/migration is a separate compatibility question; this failed seed does not exercise it.
+
 Use a fresh namespace prefix when macOS still retains Background Task
 Management history for a retired qualification install. This avoids resetting
 the machine-wide background-item database or disturbing Stable and Preview:
