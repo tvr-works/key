@@ -151,7 +151,7 @@ enum CLIHelp {
 
     For device-enrolled vaults, put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode does not control their synchronization or device access. Key retains that setting for compatibility and omits it from config list for these vaults.
 
-    Older vaults support keychain-mode values local and icloud for key storage. Use key migrate --help to learn about moving to the newer vault format.
+    For older vaults, keychain-mode selects an existing local or icloud key. Key cannot create or replace synchronized keys: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys remain readable and migratable. Use key migrate --help to prepare for migration; afterward, share the vault folder using your preferred file-sync provider.
 
     Config commands require existing configuration. Use init for a new vault or share to join an existing one; config set is not a setup command.
     """

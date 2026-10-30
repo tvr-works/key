@@ -1,5 +1,7 @@
 # Security Model Tiers
 
+This is a historical design comparison, not current setup guidance. New vaults use device enrollment; see the [README](../README.md). The synchronized-Keychain tier below is not available for creating new keys with Key's required user-presence protection: macOS rejects that combination. Existing synchronized records remain a compatibility/import concern, with the scope recorded in the [release qualification](release.md#existing-synchronized-key-compatibility-2026-10-30).
+
 This document is not a literal product roadmap. It is a transparent description of the security and portability tiers that `key` has today, plus the ones it could plausibly grow into over time.
 
 The goal is to make the tradeoffs explicit. "More sync" is not automatically "more secure," and "more secure" is not automatically "better UX." The current default is intentionally local-only. The later tiers describe ways to widen portability while changing the trust boundary in different ways.
