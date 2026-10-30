@@ -79,6 +79,16 @@ KEY_MIGRATION_QUALIFICATION_SCENARIOS="invalid small" \
   scripts/run-migration-qualification.sh
 ```
 
+The default legacy Keychain mode is `local`. Qualify the separate legacy iCloud-Keychain lookup with a fresh test identity:
+
+```sh
+KEY_MIGRATION_QUALIFICATION_SOURCE_MODE=icloud \
+KEY_MIGRATION_QUALIFICATION_SCENARIOS=small \
+  scripts/run-migration-qualification.sh
+```
+
+This creates only the qualification identity's disposable iCloud-Keychain record. It does not change a shipping product's mode or move its vault folder. Encrypted fixture files remain in the local temporary test directory; this test does not establish iCloud Drive delivery or second-Mac behavior.
+
 Use a fresh namespace prefix when macOS still retains Background Task
 Management history for a retired qualification install. This avoids resetting
 the machine-wide background-item database or disturbing Stable and Preview:

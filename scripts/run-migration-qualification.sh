@@ -8,6 +8,7 @@ qualification_run_id="$(date +%s)"
 namespace_prefix="${KEY_MIGRATION_QUALIFICATION_NAMESPACE_PREFIX:-migration-${qualification_run_id}}"
 seed_source="${run_root}/seed-source"
 seed_ref=v0.2.0
+source_mode="${KEY_MIGRATION_QUALIFICATION_SOURCE_MODE:-local}"
 scenario_text="${KEY_MIGRATION_QUALIFICATION_SCENARIOS:-invalid small large}"
 scenarios=(${=scenario_text})
 protected_before="${run_root}/protected-before.sha256"
@@ -25,6 +26,10 @@ if [[ ! "${namespace_prefix}" =~ '^[a-z0-9][a-z0-9-]{0,31}$' ]]; then
 fi
 if [[ "${KEY_MIGRATION_QUALIFICATION_REBUILD:-1}" != "1" ]]; then
   echo "installed upgrade qualification requires fresh 0.2.0 seed and current-source builds" >&2
+  exit 1
+fi
+if [[ "${source_mode}" != local && "${source_mode}" != icloud ]]; then
+  echo "qualification source mode must be local or icloud" >&2
   exit 1
 fi
 
@@ -129,6 +134,8 @@ select_v2_root() {
 
   mkdir -p "${root}"
   "${cli}" config set vault-dir "${root}"
+  wait_for_helper "${cli}" "${label}" "${diagnostic_path}"
+  "${cli}" config set keychain-mode "${source_mode}"
   wait_for_helper "${cli}" "${label}" "${diagnostic_path}"
 }
 
@@ -401,6 +408,7 @@ run_large_scenario() {
 snapshot_protected_state "${protected_before}"
 snapshot_protected_helper_registrations "${helper_registrations_before}"
 : > "${run_root}/summary.txt"
+echo "legacy source mode: ${source_mode}" >> "${run_root}/summary.txt"
 
 # Keep the old source isolated, with no checkout or change to the working branch.
 mkdir "${seed_source}"
