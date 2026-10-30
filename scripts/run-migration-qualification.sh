@@ -6,7 +6,8 @@ run_root="$(mktemp -d "${TMPDIR:-/tmp}/key-migration-qualification-run.XXXXXX")"
 helper_wait_seconds="${KEY_MIGRATION_QUALIFICATION_HELPER_WAIT_SECONDS:-120}"
 qualification_run_id="$(date +%s)"
 namespace_prefix="${KEY_MIGRATION_QUALIFICATION_NAMESPACE_PREFIX:-migration-${qualification_run_id}}"
-rebuild_apps="${KEY_MIGRATION_QUALIFICATION_REBUILD:-1}"
+seed_source="${run_root}/seed-source"
+seed_ref=v0.2.0
 scenario_text="${KEY_MIGRATION_QUALIFICATION_SCENARIOS:-invalid small large}"
 scenarios=(${=scenario_text})
 protected_before="${run_root}/protected-before.sha256"
@@ -22,8 +23,8 @@ if [[ ! "${namespace_prefix}" =~ '^[a-z0-9][a-z0-9-]{0,31}$' ]]; then
   echo "qualification namespace prefix must match ^[a-z0-9][a-z0-9-]{0,31}$" >&2
   exit 1
 fi
-if [[ "${rebuild_apps}" != "0" && "${rebuild_apps}" != "1" ]]; then
-  echo "qualification rebuild flag must be 0 or 1" >&2
+if [[ "${KEY_MIGRATION_QUALIFICATION_REBUILD:-1}" != "1" ]]; then
+  echo "installed upgrade qualification requires fresh 0.2.0 seed and current-source builds" >&2
   exit 1
 fi
 
@@ -88,10 +89,17 @@ qualification_paths() {
   local app="/Applications/Key Migration Qualification ${namespace}.app"
   local cli="${app}/Contents/MacOS/key"
 
-  if [[ ! -x "${cli}" || "${rebuild_apps}" == "1" ]]; then
-    KEY_MIGRATION_QUALIFICATION_NAMESPACE="${namespace}" \
-      "${script_dir}/install-migration-qualification-app.sh"
+  if [[ -e "${app}" || -e "${HOME}/Library/Application Support/Key Qualification ${namespace}" \
+    || -e "${HOME}/.key-qualification-${namespace}" ]] \
+    || launchctl print "gui/$(id -u)/work.tvr.key.agent.qualification.${namespace}" >/dev/null 2>&1
+  then
+    echo "qualification identity already exists; choose a fresh namespace prefix: ${namespace}" >&2
+    exit 1
   fi
+  # The current product intentionally cannot create an empty legacy vault.
+  # Seed through the released implementation, then upgrade this identity below.
+  KEY_MIGRATION_QUALIFICATION_NAMESPACE="${namespace}" \
+    "${seed_source}/scripts/install-migration-qualification-app.sh"
 
   open -n "${app}"
   wait_for_helper \
@@ -100,6 +108,17 @@ qualification_paths() {
     "${run_root}/${scenario}-helper.txt"
 
   reply=("${namespace}" "${app}" "${cli}")
+}
+
+upgrade_qualification_app() {
+  local namespace="$1"
+  local app="/Applications/Key Migration Qualification ${namespace}.app"
+  KEY_MIGRATION_QUALIFICATION_NAMESPACE="${namespace}" \
+    "${script_dir}/install-migration-qualification-app.sh"
+  open -n "${app}"
+  wait_for_helper "${app}/Contents/MacOS/key" \
+    "work.tvr.key.agent.qualification.${namespace}" \
+    "${run_root}/${namespace}-upgrade-helper.txt"
 }
 
 select_v2_root() {
@@ -216,6 +235,7 @@ run_invalid_scenario() {
   hash_v2_source "${root}" "${source_before}"
   cp "${config_path}" "${run_root}/invalid-config-before.toml"
 
+  upgrade_qualification_app "${namespace}"
   if "${cli}" migrate --check > "${run_root}/invalid-check.txt" 2>&1; then
     echo "invalid migration preflight unexpectedly succeeded" >&2
     exit 1
@@ -277,6 +297,11 @@ run_small_scenario() {
   hash_secret_values "${cli}" "${secret_names}" "${run_root}/small-values-before.sha256"
   cp "${config_path}" "${run_root}/small-v2-config.toml"
 
+  upgrade_qualification_app "${namespace}"
+  require_inventory "${cli}" "${inventory_before}" "${run_root}/small-inventory-upgrade.txt"
+  hash_secret_values "${cli}" "${secret_names}" "${run_root}/small-values-upgrade.sha256"
+  cmp "${run_root}/small-values-before.sha256" "${run_root}/small-values-upgrade.sha256"
+  cmp "${run_root}/small-v2-config.toml" "${config_path}"
   "${cli}" migrate --check > "${run_root}/small-check.txt"
   "${cli}" migrate --apply > "${run_root}/small-apply.txt"
   rg -q 'Entries migrated: 8 \(6 secrets, 2 TOTP entries\)' "${run_root}/small-apply.txt"
@@ -341,6 +366,11 @@ run_large_scenario() {
   hash_secret_values "${cli}" "${secret_names}" "${run_root}/large-values-before.sha256"
   cp "${config_path}" "${run_root}/large-v2-config.toml"
 
+  upgrade_qualification_app "${namespace}"
+  require_inventory "${cli}" "${inventory_before}" "${run_root}/large-inventory-upgrade.txt"
+  hash_secret_values "${cli}" "${secret_names}" "${run_root}/large-values-upgrade.sha256"
+  cmp "${run_root}/large-values-before.sha256" "${run_root}/large-values-upgrade.sha256"
+  cmp "${run_root}/large-v2-config.toml" "${config_path}"
   "${cli}" migrate --check > "${run_root}/large-check.txt"
   "${cli}" migrate --apply > "${run_root}/large-apply.txt"
   rg -q 'Entries migrated: 300 \(240 secrets, 60 TOTP entries\)' "${run_root}/large-apply.txt"
@@ -371,6 +401,13 @@ run_large_scenario() {
 snapshot_protected_state "${protected_before}"
 snapshot_protected_helper_registrations "${helper_registrations_before}"
 : > "${run_root}/summary.txt"
+
+# Keep the old source isolated, with no checkout or change to the working branch.
+mkdir "${seed_source}"
+git -C "${script_dir}/.." rev-parse "${seed_ref}^{commit}" > "${run_root}/seed-commit.txt"
+git -C "${script_dir}/.." rev-parse HEAD > "${run_root}/candidate-commit.txt"
+git -C "${script_dir}/.." diff --binary HEAD > "${run_root}/candidate-changes.patch"
+git -C "${script_dir}/.." archive "${seed_ref}" | tar -x -C "${seed_source}"
 
 for scenario in "${scenarios[@]}"; do
   case "${scenario}" in

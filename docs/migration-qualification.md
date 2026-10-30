@@ -10,10 +10,9 @@ Run the complete gate with:
 just test-migration-installed
 ```
 
-The gate rebuilds every scenario app from the current checkout by default so
-an older installed qualification binary cannot satisfy a newer source gate.
-Set `KEY_MIGRATION_QUALIFICATION_REBUILD=0` only for an intentional rerun of
-the exact installed binaries.
+Each run builds 0.2.0 from the local `v0.2.0` tag to create disposable legacy data, then replaces only that scenario's qualification app with a build from the current checkout. It checks retained configuration and secret values before migration. This exercises the upgrade path without asking the current product to create a legacy vault, which it no longer supports. The archived source, source revisions, and candidate working-tree patch stay in the run's evidence directory.
+
+Use a fresh qualification namespace for every run. Existing qualification identities are refused, and `KEY_MIGRATION_QUALIFICATION_REBUILD=0` is no longer supported: reusing a current binary cannot prove an upgrade from 0.2.0. These are signed Debug builds with separate identities, not a substitute for final release-artifact or real Stable-namespace qualification.
 
 macOS requests user presence when each disposable corpus first creates its
 local vault key and when migration creates its Secure Enclave identity. The
