@@ -76,6 +76,14 @@ Local evidence is under `.build/qualification-030-20261030/`, including `artifac
 
 Stop here until the owner is positioned for the second Mac. The next batch covers directory-based join/compare/approve/accept, independent reopen, and delayed/interrupted file delivery using disposable synced data. Keep the transient status error and unavailable legacy iCloud-Keychain fixture open for release review. Final version, shipping-identity tests, signed/notarized artifact, distribution checks, and publication remain separate gates; no release has been authorized or published by these tests.
 
+### Status-error diagnosis, 2026-10-30
+
+Controlled cancellation in the original isolated installed app reproduced the recovery-required message and exit 6. `V3VaultKeyHPKE.unwrap` caught the error raised while CryptoKit constructed its recipient (which invokes Secure Enclave key agreement) and replaced it with `cryptographicFailure`. The existing native authentication classifier therefore never received the cancellation. This reproduces the earlier symptom; it does not establish which button was pressed during the original ambiguous attempt.
+
+Recipient construction now preserves provider errors for the existing native boundary, following the recovery receiver's established behavior. Ciphertext opening still normalizes cryptographic failures, and key-length, identity, and manifest checks are unchanged. A regression using CryptoKit's actual HPKE recipient with a cancelling key provider failed before the change and passed afterward; all 53 focused HPKE, checkpoint-unlock, unlock-runtime, genesis-builder, and identity-store tests passed, as did SwiftFormat, SwiftLint, and whitespace checks.
+
+The rebuilt isolated app was tested against the same disposable vault. Approval returned healthy status; deliberate cancellation returned exit 7 and `The vault is locked. Unlock it to continue.` No repair or new vault was needed. This closes the reproduced cancellation-to-recovery error. Local evidence is under `.build/diagnosis-030-20261030/`; final release-artifact verification remains pending.
+
 ## Build the project
 
 ```bash
