@@ -6,7 +6,7 @@ Key is a secret manager for macOS, used from your terminal. It combines familiar
 
 ## Quick start
 
-The commands below work in released Stable `0.2.0`. The development build also supports [first-time vault setup](#unreleased-first-time-vault-setup), without first creating and migrating a Keychain-backed vault.
+The commands below work in released Stable `0.2.0`. The development build also supports [first-time vault setup](#unreleased-first-time-vault-setup), without first creating and migrating a Keychain-backed vault. Setup and CLI improvements are planned for [0.3.0](docs/release.md#030-release-preparation), which is still being tested for release; hardware recovery will remain disabled.
 
 After installing Key, add a secret from a secure prompt:
 

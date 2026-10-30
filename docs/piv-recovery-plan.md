@@ -1,6 +1,6 @@
 # PIV catastrophe recovery implementation plan
 
-Current checkpoint: 2026-10-27. This file owns status and remaining acceptance.
+Current checkpoint: 2026-10-29; signed qualification remains scoped to the 2026-10-27 record. This file owns status and remaining acceptance.
 The [contract](piv-recovery-contract.md) owns protocol/security requirements; the
 [qualification record](piv-recovery-signed-test.md) owns scoped results and artifact
 identities. The v3 roadmap links here rather than maintaining another status table.
@@ -46,6 +46,8 @@ or replace missing backups.
 
 ## Current status
 
+The implementation stack through PR #85 is merged. The [0.3.0 release checklist](release.md#030-release-preparation) covers setup/config and CLI improvements with recovery disabled. That release does not require completing this recovery matrix and does not qualify recovery for a later release.
+
 The main gated product path is implemented: explicit profile adoption, public
 token/credential/source review, registration prepare/export/finish, ordinary
 profile-3 reads/writes, token-free rotation, restore, exact resume and local release
@@ -87,10 +89,7 @@ every physical test before dependent coding or review can start.
 
 ## Next milestones
 
-1. **Current implementation review.** Consolidate native fixes/evidence into the
-   appropriate stacked PRs, update descriptions, publish and run CI. Obtain fresh
-   integrated AI review. Reuse established evidence; repeat a basic two-Mac restore
-   only for changed code or an unresolved question.
+1. **Integrated qualification.** The implementation PRs are merged. Before enabling recovery, close remaining integrated review and qualification against the final candidate. Reuse established evidence; repeat a basic two-Mac restore only for changed code or an unresolved question.
 2. **Lifecycle completion.** Device enrollment, reviewed revocation and replacement/rejoin product integration
    and recovery-key removal are implemented above #81 as focused review increments.
    Software tests cover compared admission, exact confirmation, stopped requests,

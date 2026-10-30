@@ -2213,42 +2213,25 @@ statuses and acceptance through Stable completion. `REC-801` through `REC-803`
 were the feasibility parent track; `REC-804` through `REC-815` track integrated
 implementation, qualification, adoption, and release.
 
-The [evidence summary](piv-feasibility-results.md) records one-token, two-Mac
-agreement/HPKE and public-anchor results, frozen-checkpoint source-only restore,
-and token-free ordinary read/edit/reopen with disposable entries. The experiments
-are archived locally, not supported product commands. No public prerelease
-was cut for this work. The latest private artifact was `0.2.0-piv-test.2 (21)`.
+The [feasibility evidence](piv-feasibility-results.md) records the early one-token, two-Mac experiments. The [signed qualification record](piv-recovery-signed-test.md) records later private Preview artifacts through build 25 and their tested scope. No public recovery prerelease was cut for this work.
 
-Current work is `REC-807`: an isolated epoch-key capsule is implemented and
-AI-reviewed; recipient contexts/wrappers, profile codecs, and boundary transcripts
-are implemented as internal domain components, alongside bounded anchored
-selection, complete current-snapshot verification, native public-reader and
-scoped agreement foundations with configured-policy checks. Owner-operated
-credential setup is selected; guarded anchor writes, hardware qualification, domain
-acceptance/review and product lifecycle integration remain. The
-[contract](piv-recovery-contract.md) and [review dispositions](piv-recovery-ai-review.md)
-record the single-approval
-experimental direction and historical-verification/alternative-lineage limits.
-Remaining 804 graph/platform/adoption decisions stay explicit in the tracker.
+As of 2026-10-29, the implementation stack through PR #85 is merged, including registration, adoption, ordinary writes, rotation, restore/resume, and device/recipient lifecycle commands. Recovery remains disabled in shipping Stable and ordinary Preview. The [PIV plan](piv-recovery-plan.md#remaining-acceptance-matrix) owns the remaining integrated review, independent backup-token, lifecycle, platform, compatibility, and release qualification. Merged implementation does not establish those results.
 
-Protected token administration, independent backup recovery, authenticated
-resume, supported-product/OS qualification, and opt-in adoption are later gates.
-This does not change the released continuity promise or authorize hardware
-operations, credential changes, real-vault activation, installation, or release.
+The [contract](piv-recovery-contract.md) and [review dispositions](piv-recovery-ai-review.md) record the single-approval experimental direction and historical-verification/alternative-lineage limits. This work does not change the released continuity promise or authorize hardware operations, credential changes, real-vault activation, installation, or release.
 
 ## Immediate Next Action
 
-Review config simplification and explicit v3 initialization, as selected on 2026-09-05. Continue observing ordinary Stable use. Any artifact or code correction must use a new version and build; do not replace the published `v0.2.0` tag or asset.
+Complete the [0.3.0 release checklist](release.md#030-release-preparation) for the merged setup/config and CLI wording work, with recovery disabled. Signed setup, upgrade, two-Mac joining, and exact-artifact qualification remain open. Continue observing ordinary Stable use. Any artifact or code correction must use a new version and build; do not replace the published `v0.2.0` tag or asset.
 
 ### Post-0.2.0 work packages
 
-These config and v2-retirement stages do not implement catastrophe recovery or commit to a release version. The existing two-Mac continuity promise remains the released contract.
+The merged setup/config and warning work is planned for 0.3.0 after qualification. Later v2-retirement stages have no assigned release version. The existing two-Mac continuity promise remains the released contract.
 
 | ID | Status | Exit criteria |
 |---|---|---|
-| `CFG-801` | Implemented locally; review pending | Model Keychain-backed v2 and device-enrolled v3 selections explicitly. Read existing Stable configs, retain v2 local/iCloud key lookup and migration, and make config output describe the selected model without presenting keychain mode as a v3 choice. Preserve detection of changes to the selected directory and vault identity while the helper runs. |
+| `CFG-801` | Merged in PR #67; release qualification pending | Model Keychain-backed v2 and device-enrolled v3 selections explicitly. Read existing Stable configs, retain v2 local/iCloud key lookup and migration, and make config output describe the selected model without presenting keychain mode as a v3 choice. Preserve detection of changes to the selected directory and vault identity while the helper runs. |
 | `CFG-802` | Planned; scoped to v2 retirement | Simplify persisted v3 configuration while retaining source-mode information in a bounded legacy migration/rollback path, not a permanent v3 sidecar by default. Cover local/iCloud sources, interrupted migration, helper restart, root changes, old writers, and the supported legacy access route at each retirement stage. Keep `vault_id` under verified workflow ownership. |
-| `V2-801` | Warning and explicit init implemented locally; release qualification pending | Terminal v2 status and config listing warn on stderr without changing secret stdout, JSON, redirected output, or exit codes. `key init [directory]` creates a verified empty v3 vault in an explicitly selected empty directory or creates the missing final directory, without accessing a v2 key. Helper-owned no-overwrite selection and durable attempt refusal are implemented; automatic failed-init resume/cleanup is not. Signed-product and provider qualification remain pending. Existing v2 selections remain usable; no install-time migration or unqualified default switch. |
+| `V2-801` | Warning and explicit init merged in PR #67; release qualification pending | Terminal v2 status and config listing warn on stderr without changing secret stdout, JSON, redirected output, or exit codes. `key init [directory]` creates a verified empty v3 vault in an explicitly selected empty directory or creates the missing final directory, without accessing a v2 key. Helper-owned no-overwrite selection and durable attempt refusal are implemented; automatic failed-init resume/cleanup is not. Signed-product and provider qualification remain pending. Existing v2 selections remain usable; no install-time migration or unqualified default switch. |
 | `V2-802` | Pending `V2-801` and migration qualification | In a later announced minor, require explicit migration before ordinary v2 content writes. Preserve reads, unlock, diagnostics, and migration preparation. Enforce restrictions in the helper. Qualify both source modes, interruptions, hardware requirements, skipped releases, multi-Mac coordination, and the continuity/recovery decision before cutoff. |
 | `V2-803` | `1.0` target; qualification pending | Remove normal v2 operation and its ordinary config choices while retaining a narrow importer and documented legacy access path. Prove old installations can reach migration without the retired runtime and without source loss. Do not delete source files or Keychain material during an upgrade. |
 
