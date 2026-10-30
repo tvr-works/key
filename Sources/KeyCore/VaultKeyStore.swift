@@ -58,6 +58,11 @@ public final class VaultKeyStore: VaultKeyStoring, Sendable {
     }
 
     public func storeKey(_ keyData: Data, mode: KeychainMode, overwriteExisting: Bool) throws {
+        // Refuse before deletion: synchronized items cannot carry user-presence constraints.
+        guard mode == .local else {
+            throw AppError.legacyICloudKeyCreationUnsupported
+        }
+
         if overwriteExisting {
             try deleteKeyIfPresent(mode: mode)
         }
@@ -65,7 +70,7 @@ public final class VaultKeyStore: VaultKeyStoring, Sendable {
         var accessControlError: Unmanaged<CFError>?
         guard let accessControl = SecAccessControlCreateWithFlags(
             nil,
-            accessibilityClass(for: mode),
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             .userPresence,
             &accessControlError
         ) else {
@@ -157,15 +162,6 @@ public final class VaultKeyStore: VaultKeyStoring, Sendable {
         query[kSecAttrAccessGroup as String] = accessGroup
         query[kSecAttrSynchronizable as String] = mode == .icloud
         return query
-    }
-
-    private func accessibilityClass(for mode: KeychainMode) -> CFString {
-        switch mode {
-        case .local:
-            return kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        case .icloud:
-            return kSecAttrAccessibleWhenUnlocked
-        }
     }
 
     private func makeAuthenticationContext() -> LAContext {
