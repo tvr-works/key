@@ -390,6 +390,58 @@ grep -q '^preview$' "${signing_verification_log}"
 [[ "$(grep -c '^stapler$' "${gatekeeper_verification_log}")" -eq 2 ]]
 [[ "$(grep -c '^spctl$' "${gatekeeper_verification_log}")" -eq 2 ]]
 
+# Test the public-release gate using actual zipped bundle plists. Private signed
+# qualification remains separate; these fixtures do not contact native services.
+for fixture_variant in stable preview; do
+  if [[ "${fixture_variant}" == stable ]]; then
+    fixture_version=0.2.0
+    fixture_app_name=Key.app
+    fixture_helper_name='Key Agent'
+    fixture_zip_name=Key-v0.2.0.zip
+  else
+    fixture_version=0.2.0-alpha.2
+    fixture_app_name='Key Preview.app'
+    fixture_helper_name='Key Preview Agent'
+    fixture_zip_name=Key-Preview-v0.2.0-alpha.2.zip
+  fi
+  set_artifact_project_version "${fixture_version}" 11
+  for fixture_component in app helper; do
+    for fixture_setting in false true invalid; do
+      recovery_package="${artifact_fixture_root}/recovery-${fixture_variant}-${fixture_component}-${fixture_setting}"
+      recovery_zip="${recovery_package:h}/${recovery_package:t}-zip/${fixture_zip_name}"
+      mkdir -p "${recovery_package}" "${recovery_zip:h}"
+      create_test_product_bundle "${fixture_variant}" \
+        "${recovery_package}/${fixture_app_name}" "${fixture_version}"
+      if [[ "${fixture_variant}" == stable ]]; then
+        mkdir -p "${recovery_package}/completions"
+        touch "${recovery_package}/completions/_key"
+      fi
+      recovery_info="${recovery_package}/${fixture_app_name}/Contents/Info.plist"
+      if [[ "${fixture_component}" == helper ]]; then
+        recovery_info="${recovery_package}/${fixture_app_name}/Contents/Helpers/${fixture_helper_name}.app/Contents/Info.plist"
+      fi
+      fixture_type=bool
+      if [[ "${fixture_setting}" == invalid ]]; then fixture_type=string; fi
+      /usr/libexec/PlistBuddy \
+        -c "Add :KeyExperimentalRecoveryEnabled ${fixture_type} ${fixture_setting}" \
+        "${recovery_info}"
+      (cd "${recovery_package}" && /usr/bin/zip -qry "${recovery_zip}" .)
+      fixture_result=0
+      KEY_SCRIPT_TEST_PATH="${artifact_verifier_bin}:${PATH}" \
+      PATH="${artifact_verifier_bin}:${PATH}" \
+        "${artifact_verifier}" "v${fixture_version}" "${recovery_zip}" \
+        >"${recovery_package:h}/recovery-gate-result" 2>&1 || fixture_result=$?
+      if [[ "${fixture_setting}" == false ]]; then
+        [[ "${fixture_result}" == 0 ]]
+      else
+        [[ "${fixture_result}" != 0 ]]
+        grep -q 'public release artifact must keep experimental recovery disabled' \
+          "${recovery_package:h}/recovery-gate-result"
+      fi
+    done
+  done
+done
+
 set_artifact_project_version "0.2.0" "11"
 if KEY_SCRIPT_TEST_PATH="${artifact_verifier_bin}:${PATH}" \
   PATH="${artifact_verifier_bin}:${PATH}" \

@@ -98,13 +98,36 @@ struct KeyRecoveryRoutingTests {
     #expect(host.handle(.recovery(action)).errorMessage?.contains("not enabled") == true)
   }
 
-  @Test(arguments: [KeyProductIdentity.stable, .preview])
-  func liveProductsKeepRecoveryDisabled(identity: KeyProductIdentity) throws {
+  @Test(arguments: [
+    RuntimeConfiguration(productIdentity: .stable),
+    RuntimeConfiguration(productIdentity: .preview),
+    RuntimeConfiguration(productIdentity: .stable, experimentalRecoveryEnabled: true),
+  ])
+  func liveProductsKeepRecoveryDisabled(configuration: RuntimeConfiguration) throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     let host = KeyServiceHost.live(
       keyStore: MemoryVaultKeyStore(), configStore: .init(homeDirectoryURL: root),
-      runtimeConfiguration: .init(productIdentity: identity))
-    #expect(host.handle(.recovery(Self.restore)).errorMessage?.contains("not enabled") == true)
+      runtimeConfiguration: configuration)
+    let requests: [KeyServiceRequest] = [
+      .recovery(Self.restore), .recovery(Self.resume), .recovery(Self.abandon),
+      .recoveryReview(.tokens), .recoveryReview(.credential(tokenID: "token")),
+      .recoveryReview(.source(path: "/backup", tokenID: "token")),
+      .recoveryRegistration(.status), .recoveryRegistration(.pending),
+      .recoveryRegistration(.prepare(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.resumeExport(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.finish(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.adopt),
+      .recoveryRegistration(.resumeAdoption(operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")),
+      .recoveryRotation(.rotate),
+      .recoveryRotation(.resume(operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")),
+      .recoveryRecipientRemoval(.review(recipientID: Self.recipient)),
+      .recoveryRecipientRemoval(.remove(
+        recipientID: Self.recipient, confirmationToken: String(repeating: "a", count: 64),
+        pendingOperationID: nil, acknowledgesProtectionLoss: true)),
+    ]
+    for request in requests {
+      #expect(host.handle(request).errorMessage?.contains("not enabled") == true)
+    }
     #expect(!FileManager.default.fileExists(atPath: root.path))
   }
 

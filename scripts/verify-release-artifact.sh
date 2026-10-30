@@ -91,6 +91,17 @@ require_value() {
   fi
 }
 
+# Public releases must not inherit the opt-in used by private PIV test builds.
+# Keep this at the publication boundary: private signed qualification artifacts
+# may enable recovery, but neither public channel is qualified to do so yet.
+for product_info in "${app_info}" "${helper_info}"; do
+  recovery_setting="$(plist_value "${product_info}" KeyExperimentalRecoveryEnabled)"
+  if [[ -n "${recovery_setting}" && "${recovery_setting}" != false ]]; then
+    echo "public release artifact must keep experimental recovery disabled: ${product_info}" >&2
+    exit 1
+  fi
+done
+
 app_marketing_version="$(plist_value "${app_info}" CFBundleShortVersionString)"
 helper_marketing_version="$(plist_value "${helper_info}" CFBundleShortVersionString)"
 app_build_version="$(plist_value "${app_info}" CFBundleVersion)"
