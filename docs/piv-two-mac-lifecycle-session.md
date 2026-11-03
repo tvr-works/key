@@ -2,7 +2,7 @@
 
 Prepared on 2026-11-03 after independent recovery with both keys and ordinary editing/reopening of a recovered vault passed. This is the concrete Q2 session in the [qualification runbook](piv-recovery-qualification.md). Preparation does not count as enrollment or lifecycle qualification. Keep the work on `codex/prepare-0.3.0` in local commits without pushing.
 
-Current preparation status: ready for the live session. After the owner refreshed Xcode sign-in, the Air's normal build30 retry passed in 32.02 seconds. The signed artifact was verified and installed only at the fresh qualification path. Its helper registered, status refused with “No vault is configured,” configuration remained absent, and the helper was stopped through its own lock command. Existing apps, support records, helper states and source files remained unchanged. The original provisioning failure and verifier-command correction remain recorded; neither required a product change or signing bypass. No invitation, enrollment, vault authentication or hardware operation has begun.
+Current session status: [compared enrollment passed](piv-recovery-signed-test.md#two-mac-enrollment-2026-11-03) on the original disposable source using Mini Preview27 and isolated Air build30. Both Macs verified the existing secrets, authenticator and unchanged recovery registrations. The Air selected the correct source only at acceptance. The enrollment head is `Ze59_XIu_3VVq5ZsDZQItNIO3JHPErSg9qp24Qw1wFo`; its new active device ID is `bL5KxnrX7YklHeQSFBQ7m073oBNg76cWlmC3ahxYS0o`. Ordinary delivery checks are in progress. Conflicts, revocation, same-app rejoin and final-history recovery have not begun.
 
 ## Apps and protected state
 

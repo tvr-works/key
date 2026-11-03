@@ -92,6 +92,18 @@ The verified artifact from `8f4c2b55b2b22f6579a6abbbdd44aaafa29d1213` was instal
 
 The Air is ready for the later Q2 session, not qualified for its live lifecycle outcomes. Full evidence is retained on the Air in `q2-air-build30-verification-installation-corrected.json`, `q2-air-preparation-summary-20261103.json` and the preparation directory's `build30-full-bundle-hashes.json`; a copy of the returned readiness summary is retained on the Mini under `.build/piv-lifecycle-prep-20261103/air-ready-summary.json`. Private build30 is now used; the next candidate must use at least build31, subject to checking for newer private builds. No push or release occurred.
 
+## Two-Mac enrollment, 2026-11-03
+
+The owner authorized enrollment on the original disposable vault, with normal Mac approval on both machines and both YubiKeys disconnected. The Mini used the verified private Preview27; the Air used the verified isolated build30. Both preflights matched the original 38 published files and head `GPFsg_TJzAa-64IEPydtJO_FSGwykfn5niWWfeZICsI`, the sole Mini owner and both active recovery recipients. The Air had no selected vault or pending setup before joining.
+
+One invitation and one Air join request were created. Independent comparisons matched the complete code `6acc-b3f2-987c-0911-31bf`, names `Tim’s Mac mini` and `MacBook Air lifecycle test`, vault ID, device identities and signed invitation/request file hashes. The new Air identity is `bL5KxnrX7YklHeQSFBQ7m073oBNg76cWlmC3ahxYS0o`. The Air remained unconfigured through comparison. Its metadata harness initially expected `requests/` instead of the actual `join-requests/<invitation>/` path; reading the already saved request corrected the evidence without repeating a native join or comparison.
+
+The Mini approved the matched request successfully. Its authenticated checks then reported two active Macs, four current entries, no conflicts or pending operations, and both unchanged recovery registration records. Exact secret bytes and independently computed TOTP matched. The approved head is `Ze59_XIu_3VVq5ZsDZQItNIO3JHPErSg9qp24Qw1wFo`, with 17 manifests and 26 encrypted entry versions. All original published files and the Mini configuration remained unchanged.
+
+The Air accepted exactly once, exiting successfully after 23.579 seconds and selecting that original vault path in its isolated configuration. Authenticated status and device inventory agreed with the Mini. All three secret hashes matched without newline normalization. The Mini independently verified the Air's TOTP fingerprint against the retained fixture seed and exact read interval; the comparator also passed public reference vectors. Both full recovery recipient descriptors and the recovery generation were unchanged. A second harness correction counted the captured device list rather than expecting a nonexistent `activeDeviceCount` JSON field; no acceptance, unlock, status or inventory command was repeated for that correction. No product failure was observed in this enrollment.
+
+Enrollment is passed for these private artifacts. Concurrent edits, revocation, same-app rejoin and recovery of the resulting history remain separate Q2 outcomes. Mini evidence is retained under `.build/piv-two-mac-enrollment-20261103/`, including the exact comparison, approval, `enrolled.json`, `air-enrolled-summary.json` and independent TOTP result. Air evidence includes `q2-air-enrollment-request-20261103.json`, `q2-air-enrollment-acceptance-20261103.json` and `q2-air-joined-vault-verification-20261103.json` under its chat evidence directory. No hardware operation, push or release occurred.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,

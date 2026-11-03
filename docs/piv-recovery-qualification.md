@@ -43,7 +43,7 @@ Use separate fresh destination namespaces for independent restores. Transfer onl
 
 ## Connected sessions and acceptance
 
-The [two-Mac lifecycle session](piv-two-mac-lifecycle-session.md) gives the current Q2 app/fixture boundaries, compared enrollment sequence, controlled concurrent-write procedure and exact same-app revocation/rejoin path. Preparation has not enrolled the Air or opened a new invitation.
+The [two-Mac lifecycle session](piv-two-mac-lifecycle-session.md) gives the current Q2 app/fixture boundaries, compared enrollment sequence, controlled concurrent-write procedure and exact same-app revocation/rejoin path. [Compared enrollment passed](piv-recovery-signed-test.md#two-mac-enrollment-2026-11-03) with both original recovery recipients retained. Ordinary delivery checks are in progress; the remaining Q2 lifecycle outcomes are still open.
 
 Each row is a test outcome, not a separate PR. Reuse build25's retained native observations where the implementation and question are unchanged. Before dispatch, name the exact operation and whether the owner should approve or cancel; wait for readiness before opening an authentication prompt. Stop on unexpected selection, policy, PIN state or identity. Never automatically retry a failed hardware operation.
 
