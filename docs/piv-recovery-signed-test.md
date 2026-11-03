@@ -104,6 +104,14 @@ The Air accepted exactly once, exiting successfully after 23.579 seconds and sel
 
 Enrollment is passed for these private artifacts. Concurrent edits, revocation, same-app rejoin and recovery of the resulting history remain separate Q2 outcomes. Mini evidence is retained under `.build/piv-two-mac-enrollment-20261103/`, including the exact comparison, approval, `enrolled.json`, `air-enrolled-summary.json` and independent TOTP result. Air evidence includes `q2-air-enrollment-request-20261103.json`, `q2-air-enrollment-acceptance-20261103.json` and `q2-air-joined-vault-verification-20261103.json` under its chat evidence directory. No hardware operation, push or release occurred.
 
+### Ordinary delivery and reopening
+
+After acceptance, the Mini added `lifecycle/enrollment-mini` and the Air received it through the original iCloud folder. Its exact 77 bytes, including embedded and final line breaks, matched. The Air then added `lifecycle/enrollment-air`; the Mini received and verified its exact 98 bytes in the same way. Each Mac made one new-entry mutation, with no overwrites or manual transfer of vault objects. Both new entries survived normal lock and authenticated reopening through fresh helpers on both Macs.
+
+The final common head is `kNoWRIWK_fenjVHcal1vyqRwxk_23Q_PT-ZlS3O4GvQ`, with 19 manifests, 28 encrypted entry versions and six current entries. Both Macs reported ready status, no conflicts and no pending operations. The original secret hashes and independently verified TOTP remained correct. Both recovery recipients and the device roster were preserved. All older published objects, the Mini configuration, both Q1 recovered destinations and the frozen Q1 source were unchanged; all 332 Mini Stable checks passed, and the Air's protected apps/support records matched their baselines. Both test helpers were locked and stopped at completion. No hardware operation occurred.
+
+This passes enrollment, ordinary bidirectional iCloud delivery and reopening for the tested artifacts. It does not qualify concurrent-write merging, conflict resolution, revocation, same-app rejoin or recovery of the final history. Final shipping-identity qualification also remains separate. Mini evidence includes `mini-delivery.json`, `air-delivery-summary.json`, both Air TOTP verification results, `mini-delivery-reopened.json`, `final.json`, `mini-preservation.json` and `session-result.json` under the enrollment evidence directory. The Air's full delivery and reopening record is `q2-air-enrollment-narrow-delivery-20261103.json`. No product code change was needed; work was committed locally without pushing.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
