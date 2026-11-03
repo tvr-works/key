@@ -226,6 +226,29 @@ With only the backup key connected, public review still recognized the retained 
 
 Q3 is passed for the recorded Preview27 owner and build32 recovery artifacts. The evidence proves continuing remaining-key recovery after one removal, informed last-key removal, loss of recovery wrappers on the continuing history, and continued Mac access after later edits. It does not claim revocation of older copies or a private-key operation during the public refusal checks. Final records include `last-removal-decline-result.json`, `remove-last.log`, `no-recipient-reopened.json`, `backup-final-refusal-summary.json`, `key-after-last-review.json`, `preservation-result.json` and `session-result.json`. The Air was left locked with its earlier Q2 checkpoint; its cached two-key roster is not the current continuing state. No push or release occurred.
 
+## Initial-restore deadline diagnosis, 2026-11-03
+
+Private Preview Debug build33, namespace `timeout-1103`, was built from `516867c` with request-stage and Mac key-opening timing logs. The logs contain elapsed times and stage/outcome labels, without PINs, key material, entry contents, vault paths or identifiers. The timeout and authentication policies were unchanged. The source was the retained thirteen-entry one-key snapshot at `c8a1eba571ab4b5e28806b967a67f583ea60cf52ebab4646d586cde6e5b64370`; its 102 published files and all earlier fixtures were preserved. The continuing shared fourteen-entry source with zero recovery keys was not used for restore.
+
+With the owner watching and only the unchanged backup key connected, one initial restore again exhausted the 90-second request deadline. It returned exit 1 after 93.125 seconds. The request entered the workflow with 89.993 seconds remaining, so queue waiting did not consume the budget. Source authentication completed at 7.900 seconds. All five Mac key-opening operations returned success, taking 3.315, 2.117, 3.075, 3.832 and 3.432 seconds. The last started at 89.444 seconds and returned successfully at 92.876 seconds, when the next scope check refused further progress.
+
+| Measured initial-restore work | Seconds |
+|---|---:|
+| Workflow entry through authenticated source | 7.900 |
+| Five successful Mac key openings, including approval | 15.771 |
+| Other work after source authentication | 69.205 |
+| Workflow entry through deadline refusal | 92.876 |
+
+This reproduction establishes that the shared whole-request budget can expire despite successful, prompt approvals. It does not establish why each earlier uninstrumented attempt failed. The intervals between key openings include repeated public token reads, source-history and entry verification, destination verification, publication and local trust/configuration work. The current measurements do not separate those costs or isolate CPU, storage, device I/O and scheduling. The code repeatedly invokes `revalidateToken()` and `V3RecoverySnapshotVerifier.revalidate` through the restore scope, including inside nested publication/trust/selection/finalization checks. Preserve the security invariants while profiling that work; do not remove checks based on the elapsed totals alone.
+
+The timed-out attempt had already selected destination vault `79673355-6a8d-4df9-b03e-4007fce0f279`. An explicit resume was initially refused in 0.046 seconds because the helper needed to restart after configuration selection; it requested no authentication. The diagnostic app's normal lock stopped that helper. With the owner's renewed resume readiness still current, the exact saved attempt then completed in 32.566 seconds. Its two Mac key openings succeeded in 2.484 and 2.166 seconds. Configuration and every saved support/destination file remained byte-for-byte identical across resume; ownership cleanup completed without a replacement identity or re-encryption.
+
+With both keys disconnected, all twelve exact secrets and independent TOTP checks passed before and after a normal lock and fresh-helper reopen. Status reported thirteen entries, no conflicts and no pending work. The final destination head is `99dc7f2046292143c78b77ed91578bf67697556a0902bc1c202eaa2c32d806b2`, with fresh Mac authority and no inherited recovery registration. The diagnostic helper finished normally locked and stopped. Backup credential, certificate, anchor, policies and retry metadata matched before/after; the original key remained disconnected. All 332 Stable checks, twenty protected roots and the installed build33 bundle hashes matched.
+
+The four focused recovery suites passed all 55 tests when run serially, including interruption, exact resume, cancellation and configuration boundaries. The initial concurrent run missed three five-second queue-test synchronization windows; those tests passed serially. Formatting, strict lint, whitespace checks and the signed build passed. The signed build includes the final admission-budget log added after the Swift test binary was compiled; no deadline, scope or authentication behavior changed with that additional log.
+
+Evidence is retained under `.build/piv-timeout-diagnosis-20261103/`: build/signing records, `timing-analysis.json`, original unified logs and CLI progress, exact saved-attempt hashes, the refused and successful resume records, both content verifications, public key records, preservation results and both automated-test logs. Before release, implement and qualify a full-restore deadline policy that accommodates measured work, keeps hardware authentication bounded, and aligns the client reply timer with the service budget. Recheck lock/disconnect/late-completion refusal and a complete initial restore, not only resume. The final duration and any validation optimization remain undecided; this diagnostic session changed no limits and did not push or release.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
