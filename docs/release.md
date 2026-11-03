@@ -24,6 +24,8 @@ Existing configured vaults do not need to run init or migrate. Legacy vault read
 
 ### Recovery stays disabled
 
+The owner is evaluating PIV for 0.3.0. The [November 2 reconciliation](piv-recovery-plan.md#release-reconciliation-2026-11-02) identifies reusable evidence, remaining signed/hardware checks and the source/signing changes needed for public enablement. The checklist below remains the current recovery-disabled candidate scope until that separate decision and work are complete.
+
 Merged recovery implementation is included in the source but is not an enabled 0.3.0 capability. Stable rejects experimental enablement; ordinary Preview leaves it off. The helper must refuse recovery review, registration/adoption, rotation, removal, restore, and resume without creating configuration. Recovery help may describe gated commands; its presence is not a promise that they are available.
 
 The public ZIP verifier rejects an experimental recovery setting other than absent or false in either the host app or helper. Private signed recovery test builds remain separate from public release artifacts. Do not repoint an ordinary 0.3.0 app at an experimental recovery-capable vault. Preserve that vault and its matching private test installation while recovery qualification continues.

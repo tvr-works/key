@@ -1,6 +1,6 @@
 # PIV catastrophe recovery implementation plan
 
-Current checkpoint: 2026-10-29; signed qualification remains scoped to the 2026-10-27 record. This file owns status and remaining acceptance.
+Current checkpoint: 2026-11-02. The release reconciliation below separates current software evidence from signed hardware results through build 25 and later implementation changes. This file owns status and remaining acceptance.
 The [contract](piv-recovery-contract.md) owns protocol/security requirements; the
 [qualification record](piv-recovery-signed-test.md) owns scoped results and artifact
 identities. The v3 roadmap links here rather than maintaining another status table.
@@ -46,7 +46,7 @@ or replace missing backups.
 
 ## Current status
 
-The implementation stack through PR #85 is merged. The [0.3.0 release checklist](release.md#030-release-preparation) covers setup/config and CLI improvements with recovery disabled. That release does not require completing this recovery matrix and does not qualify recovery for a later release.
+The implementation stack through PR #85 is merged. The current [0.3.0 release candidate](release.md#030-release-preparation) keeps recovery disabled. The owner is evaluating including PIV in 0.3.0; that would require closing the remaining acceptance below and reviewing explicit product enablement. This reconciliation changes neither the shipping gates nor the release scope by itself.
 
 The main gated product path is implemented: explicit profile adoption, public
 token/credential/source review, registration prepare/export/finish, ordinary
@@ -79,13 +79,56 @@ package is newly declared qualified/released by this consolidation.
 | `REC-811` Restore/resume | Verified snapshot to fresh vault; encrypted preparation and exact authenticated resume; signed separate-process reads passed. | Complete durable-phase/failure matrix and restored-vault ordinary mutation acceptance. |
 | `REC-812` CLI/helper | Gated workflow, progress/touch UI, configured runtime and scoped native results recorded. | Helper/concurrency/history acceptance and signed UX review of the completed lifecycle routes. |
 | `REC-813` Backup/physical lifecycle | Primary/backup software fixtures; one physical credential tested in recorded cases. | Two independently generated physical keys and the lifecycle matrix below. |
-| `REC-814` Security/release qualification | Earlier integrated AI review/fixes, historical full regression/CI pass and exact signed/notarized build25 installs. | Fresh review/CI on latest changes, full regression, compatibility/provider and exact-candidate release checks. |
+| `REC-814` Security/release qualification | Earlier integrated AI review/fixes, signed/notarized build25 installs, and full local regression on `d562c90`: 1,849 passed, one optional migration-scale test skipped, zero failed. | Final integrated review, hosted product/CodeQL checks, migration scale, compatibility/provider and exact enabled-candidate release checks. Current local regression does not qualify a hardware or shipping artifact. |
 | `REC-815` Adoption/publication | Explicit gated adoption implemented and exercised on disposable data. | Supported upgrade/migration/rollback qualification, real-vault opt-in gate and authorized publication. |
 
 Dependencies: 805 depends on 804; 806 on 805; 807 on 804; 808 on 805/806/807;
 809 on 805/808; 810 on 805/808/809; 811 on 806; 812 on 807–811; 813 on 812;
 814 on 812/813; 815 on 814. These identify contracts, not a requirement to finish
 every physical test before dependent coding or review can start.
+
+## Release reconciliation, 2026-11-02
+
+The main recovery implementation is present. The remaining work is principally signed integration, hardware lifecycle and release qualification, plus explicit product enablement and any fixes those checks uncover. The package table and acceptance matrix are acceptance obligations, not a list of features still to implement. There is no technical version-number requirement to defer PIV to 0.4.0; including it in 0.3.0 would hold that release until these obligations pass.
+
+### Evidence we can retain
+
+- The [signed ledger](piv-recovery-signed-test.md#completed-signed-cases), E02–E04 and E15–E16, records registration, actual source-only recovery on both Macs, recovery after edits and rotation, exact secret/TOTP reads, and token-free reopening. These establish a working physical recovery path with one credential. They do not establish two independent backup keys or the subsequently added device lifecycle commands.
+- E05–E14 already cover specific PIN/touch cancellation, incomplete-reservation release, saved-preparation resume, missing touch, unplug, deadline, late PIN and CLI-disconnect cases. Reuse these scoped results. Do not schedule the entire matrix again merely because the release number changes.
+- The `d562c90` local xUnit reports contain 1,850 cases, one skipped and no failures. Inspected passing suites include [mixed lifecycle integration](../Tests/KeyCoreTests/V3RecoveryLifecycleIntegrationTests.swift), [enrollment](../Tests/KeyCoreTests/V3RecoveryEnrollmentProductTests.swift), [revocation](../Tests/KeyCoreTests/V3RecoveryDeviceRevocationProductTests.swift), [replacement](../Tests/KeyCoreTests/V3RecoveryDeviceReplacementProductTests.swift), [recipient removal](../Tests/KeyCoreTests/V3RecoveryRecipientRemovalProductTests.swift), [registration](../Tests/KeyCoreTests/V3RecoveryRegistrationServiceTests.swift) and [restore completion](../Tests/KeyCoreTests/V3RecoveryRestoreCompletionServiceTests.swift). These use software identities/providers; they are not new physical PIV passes. The mixed lifecycle fixture explicitly uses domain materialization for recipient addition, rather than proving hardware possession.
+- The ordinary two-Mac iCloud and setup-cancellation checks in the [release record](release.md#two-mac-enrollment-and-sync-2026-10-30) are complete for the recovery-disabled format. They provide useful shared-infrastructure evidence, but do not qualify recovery-profile enrollment, removal, conflicts or provider delivery.
+
+Build25 source is `85ee569b0487dfcf78fa4e186295c8c63f394fcc`. Comparing it with the reconciled candidate while ignoring whitespace found no changes in `PIVRecoveryAgreement.swift`, `PIVRecoveryTokenReader.swift`, or the `V3RecoveryRestore*.swift` files. This supports retaining their narrow native observations; it is not proof that their integrated callers are unchanged. Registration ownership/budget checks, runtime session continuity, lifecycle composition and the enrollment/revocation/replacement/removal product routes changed afterward. Final signed checks must target those changed paths and their integration with restoration.
+
+This reconciliation inspected the committed ledger, source, tests and the local November 2 xUnit reports. The ledger's Mini raw `tmp/piv-recovery/` directory is absent from this checkout; those historical raw records were not reopened. Retain their committed evidence IDs and source identities, and retrieve the original records when a result needs revalidation. Do not manufacture a replacement pass or rerun hardware merely to recreate a missing local path.
+
+### Remaining work grouped into test sessions
+
+These groups organize the existing acceptance matrix; they do not waive its outcomes or imply a fixed count of commands, prompts or days. The owner confirmed on November 2 that a second physical YubiKey is available. Its model, firmware, credential state and suitability have not been inspected, and no provisioning is authorized by this reconciliation.
+
+| Group | Existing evidence | Concrete remaining result / dependency |
+|---|---|---|
+| Independent recovery keys | One physical key recovers on both Macs; software fixtures cover multiple recipients. | Inspect the second key's compatibility and agree on owner-run external setup. Register independently generated keys with distinct anchors, keeping the other key absent as appropriate. After edits and rotation, recover independently with each key from its own registration point using encrypted source files and a fresh destination, without source-Mac credentials. |
+| Macs, recovery keys and conflicts | Product commands and mixed lifecycle software tests pass. Build25 covers ordinary edits and rotation. | In a signed recovery-enabled app, enroll another Mac, exchange edits, revoke it, verify refusal, then replace its credentials and rejoin through the reviewed workflow. Exercise automatic merge and explicit conflict choices. Remove a recovery recipient and verify continuing recovery with the remaining key; separately verify the last-key warning and loss of recovery on that continuing history. Retain the documented old-copy/alternative-lineage limits. |
+| Life after a restore | Real token-free reads and fresh-helper reopening passed; the new vault has no inherited registration. | Edit the restored vault, reopen it without the token, explicitly register recovery again, then recover the new vault a second time and compare its current contents. One of the independent-key sessions can supply the first restore. Anchor reuse or hardware writes require a separately reviewed external setup plan; do not overwrite a retained test registration for convenience. |
+| Interrupted setup and host behavior | Specific native cancellation/resume cases passed; software tests exercise durable phases, stopped sessions and late replies. | Qualify the changed registration/adoption/rotation and lifecycle paths through signed CLI/helper interruption and exact resume. Cover helper restart and competing clients at the native boundary where software evidence alone does not prove behavior. Map each case to existing coverage first; do not repeat every software phase manually. |
+| Credential, compatibility and delivery | Reader tests accept an expired self-issued certificate as a public-key container; policy/key-change rejection and generic authentication refusal have software coverage. Current discovery tests reject unsupported recovery-profile adoption. | Close same-key certificate renewal/native selection, changed-key/reset invalidation and wrong-PIN/blocked-token classification at the appropriate boundary. Simulate destructive/error cases; do not exhaust physical retry counters or reset retained keys. Test actual released-old-binary refusal on a disposable adopted source, coordinated upgrade/retained-source rollback, and missing/partial recovery-profile files on the supported provider path. Current-code parser tests alone do not establish an old binary's behavior. |
+| Product and release | Source, guide and private signed/notarized Preview artifacts exist. Current local regression, style and script checks pass. | Review the integrated format/security contract and supported OS/token/capacity promises; close the public PIN-dialog policy; implement reviewed Stable/Preview enablement and signing changes; update user setup/backup/resume instructions. Run current-source hosted checks, migration scale and exact signed/notarized enabled-artifact installation/adoption checks in disposable state before publication. |
+
+### Decisions and product changes still required
+
+The current support target says macOS 26+ and compatible Yubico firmware 5.3+, but physical evidence covers two arm64 Macs on macOS 27.0.1 and one YubiKey 5C NFC on firmware 5.8.0. Freeze a support claim backed by the chosen qualification scope; do not silently treat a target range as a tested matrix. The format/schema and capacity promise also remain experimental until reviewed. Existing budget tests cover enforcement, not a user-facing capacity commitment.
+
+The leftover system PIN dialog is a known unresolved UI limitation, not an untested discovery. The owner accepted manual Cancel for private Preview only. A public beta/Stable policy still needs an explicit disposition: fix it, or review and accept the documented workaround for that release. Cancellation refuses late publication; that does not establish automatic dialog dismissal. Do not reopen the same diagnostics without new evidence or a changed approach.
+
+Public enablement requires actual source/configuration work. [RuntimeConfiguration](../Sources/KeyCore/RuntimeConfiguration.swift) restricts recovery to explicitly opted-in Preview. [KeyServiceHost](../Sources/KeyCore/KeyServiceHost.swift) constructs the recovery routes from that gate. The [Stable helper entitlements](../Config/KeyLaunchAgentHelper.entitlements) omit the smartcard entitlement present in [Preview](../Config/KeyPreviewLaunchAgentHelper.entitlements), and the [release verifier](../scripts/verify-release-artifact.sh) rejects opt-in public ZIPs. A reviewed release change must align runtime admission, app/helper metadata, signing/provisioning validation, artifact verification, tests and documentation. Removing the ZIP check alone would not enable Stable recovery. None of these protections changed during this reconciliation.
+
+### Recommended order
+
+1. Review the integrated changes since build25 and settle the intended support/format and PIN-dialog policies. Map changed paths to the retained evidence and prepare one fresh isolated signed candidate and explicit disposable fixtures. Retrieve historical raw evidence only where needed to settle an affected case.
+2. Qualify the second key and independent recovery, then combine the Mac/key lifecycle, conflicts and restored-vault checks into coherent sessions. Attach the remaining interruption/provider cases to the operations they actually exercise. Credential administration remains owner-run and separately scoped.
+3. Resolve findings in incremental local commits, then review public enablement as a distinct change. Reuse this branch's ordinary-vault results where behavior is unchanged; run relevant regressions for new changes and final-source release checks.
+4. Decide whether 0.3.0 will wait for those results or proceed with the recovery-disabled scope and its remaining shipping-artifact checks. No PIV version assignment, hardware operation, real-vault adoption, push or publication follows automatically from this assessment.
 
 ## Next milestones
 
@@ -97,8 +140,8 @@ every physical test before dependent coding or review can start.
    a distinct acknowledgment that recovery will be unavailable. The
    [user guide](recovery-user-guide.md) describes the gated flows. Signed two-Mac
    lifecycle qualification remains open. Close the matrix below with a second independently
-   provisioned physical key. Its acquisition/provisioning is an owner prerequisite;
-   scope hardware actions separately.
+   provisioned physical key. The owner reports a second key is available; compatibility and
+   owner-run provisioning remain to be established. Scope hardware actions separately.
 3. **Release/adoption qualification.** Freeze supported format/platform promises,
    finish regression/compatibility gates and user instructions, then qualify the
    exact release artifact and explicit adoption. Real-vault enablement follows

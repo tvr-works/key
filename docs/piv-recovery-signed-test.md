@@ -6,6 +6,8 @@ native-test boundary, not a claim that the entire feature is qualified.
 owns security guarantees. Use disposable data only. No test result authorizes
 another authentication, hardware write, reset, installation or real-vault use.
 
+The [November 2 reconciliation](piv-recovery-plan.md#release-reconciliation-2026-11-02) compares this historical native evidence with later source changes and current software tests. It records no additional PIV hardware pass; the original build identities and limitations below remain intact.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
