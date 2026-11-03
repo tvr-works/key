@@ -13,6 +13,21 @@ struct KeyRecoveryRoutingTests {
     source: "/backup", destination: "/new-vault", tokenID: "selected-token",
     recipientID: recipient)
 
+  @Test(arguments: [restore, resume])
+  func removedRecipientRestoreExplainsRefusalWithoutRetry(action: KeyRecoveryRequest) {
+    let state = State()
+    let host = makeHost(state: state) { _, _ in
+      state.incrementCalls()
+      throw V3RecoveryValidationError.recipientRevoked
+    }
+    let response = host.handle(.recovery(action))
+    #expect(response.exitCode == EXIT_FAILURE)
+    #expect(response.errorMessage?.contains(
+      "This recovery key was removed from this version of the vault.") == true)
+    #expect(response.errorMessage?.contains("V3RecoveryValidationError") == false)
+    #expect(state.calls == 1 && !state.configured)
+  }
+
   private static let abandon = KeyRecoveryRequest.abandon(source: "/backup", destination: "/new-vault",
     sourceVaultID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5000", operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")
 

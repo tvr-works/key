@@ -502,6 +502,9 @@ public final class KeyServiceHost {
     private func respond(_ operation: () throws -> KeyServiceResponse) -> KeyServiceResponse {
         do { return try operation() }
         catch let error as AppError { return .failure(error) }
+        catch V3RecoveryValidationError.recipientRevoked {
+            return .failure(AppError.operationRefused("This recovery key was removed from this version of the vault. Check recovery registration status on a Mac that still has access."))
+        }
         catch { return .failure(error.localizedDescription) }
     }
 
