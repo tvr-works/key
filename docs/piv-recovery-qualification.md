@@ -2,7 +2,7 @@
 
 This runbook covers the next qualification sessions on `codex/prepare-0.3.0`. The [plan](piv-recovery-plan.md) owns release gates and the [signed ledger](piv-recovery-signed-test.md) owns physical results. Preparing an app or a test case does not mark that case passed. Keep Stable, the existing experimental Preview installation, and retained hardware registrations unchanged during preparation.
 
-Update, 2026-11-03: the owner completed [second-key credential setup](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03), then authorized [continuing the existing disposable vault](piv-recovery-signed-test.md#backup-registration-preparation-2026-11-03). Its archived files and matching retained Mac checkpoint were recovered into a new working folder; private notarized Preview27 completed registration prepare/export. The second key is a YubiKey 5C NFC on firmware 5.8.0 with the required reported policies and matching certificate. Anchor import and finish are pending. The alternatives below explain the fixture decision; the existing-vault route is now selected.
+Update, 2026-11-03: the owner completed [second-key credential setup](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03), then authorized [continuing the existing disposable vault](piv-recovery-signed-test.md#backup-registration-preparation-2026-11-03). Its archived files and matching retained Mac checkpoint were recovered into a new working folder. Private notarized Preview27 completed prepare/export, owner-run anchor import and [registration activation](piv-recovery-signed-test.md#backup-registration-activation-2026-11-03) with native PIN and touch. Both keys are registered with no pending setup. The second key is a YubiKey 5C NFC on firmware 5.8.0 with the required reported policies and matching certificate. Independent recovery remains pending. The alternatives below explain the fixture decision; the existing-vault route is now selected.
 
 ## Build a separate test app
 
@@ -61,7 +61,7 @@ For each case retain the source commit/patch, app identity/build/hash, Mac OS/ar
 
 ## Release decisions still needed
 
-Recommend starting the support promise with the actually qualified Mac/token combinations, then expanding it only with evidence. The existing macOS 26+ and firmware 5.3+ target is broader than the recorded macOS 27.0.1/arm64 and one firmware 5.8.0 YubiKey result. The second key matches that model/firmware, but has not yet completed product registration or recovery. No support policy is changed by this recommendation.
+Recommend starting the support promise with the actually qualified Mac/token combinations, then expanding it only with evidence. The existing macOS 26+ and firmware 5.3+ target is broader than the recorded macOS 27.0.1/arm64 and firmware 5.8.0 YubiKey results. The second key matches that model/firmware and has completed product registration, but independent recovery remains pending. No support policy is changed by this recommendation.
 
 The remaining system PIN dialog needs a public-release disposition. Manual Cancel was accepted for private Preview; that is not approval for the public beta or Stable. Keep the stopped-request refusal, document the limitation clearly, and decide whether the public release accepts it or requires a fix. Do not weaken authentication or invent a provider-level dismissal claim.
 
