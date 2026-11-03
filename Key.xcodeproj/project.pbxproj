@@ -1338,7 +1338,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXECUTABLE_NAME = KeyHost;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/Key-Info.plist";
+				INFOPLIST_FILE = "$(KEY_APP_INFO_PLIST_FILE)";
+				KEY_APP_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/Key-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1473,7 +1474,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 9Q355KSV85;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/KeyLaunchAgentHelper-Info.plist";
+				INFOPLIST_FILE = "$(KEY_HELPER_INFO_PLIST_FILE)";
+				KEY_HELPER_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/KeyLaunchAgentHelper-Info.plist";
 				EXECUTABLE_NAME = "Key Agent";
 				ENABLE_HARDENED_RUNTIME = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1519,7 +1521,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				EXECUTABLE_NAME = "Key Agent";
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/KeyLaunchAgentHelper-Info.plist";
+				INFOPLIST_FILE = "$(KEY_HELPER_INFO_PLIST_FILE)";
+				KEY_HELPER_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/KeyLaunchAgentHelper-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1645,7 +1648,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				EXECUTABLE_NAME = KeyHost;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/Key-Info.plist";
+				INFOPLIST_FILE = "$(KEY_APP_INFO_PLIST_FILE)";
+				KEY_APP_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/Key-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1873,7 +1877,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				EXECUTABLE_NAME = KeyPreviewHost;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/Key-Info.plist";
+				INFOPLIST_FILE = "$(KEY_APP_INFO_PLIST_FILE)";
+				KEY_APP_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/Key-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1901,7 +1906,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXECUTABLE_NAME = KeyPreviewHost;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/Key-Info.plist";
+				INFOPLIST_FILE = "$(KEY_APP_INFO_PLIST_FILE)";
+				KEY_APP_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/Key-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1976,7 +1982,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				EXECUTABLE_NAME = "Key Preview Agent";
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/KeyLaunchAgentHelper-Info.plist";
+				INFOPLIST_FILE = "$(KEY_HELPER_INFO_PLIST_FILE)";
+				KEY_HELPER_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/KeyLaunchAgentHelper-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -2005,7 +2012,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXECUTABLE_NAME = "Key Preview Agent";
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "Config/KeyLaunchAgentHelper-Info.plist";
+				INFOPLIST_FILE = "$(KEY_HELPER_INFO_PLIST_FILE)";
+				KEY_HELPER_INFO_PLIST_FILE = "$(PROJECT_DIR)/Config/KeyLaunchAgentHelper-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

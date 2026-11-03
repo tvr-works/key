@@ -1,0 +1,66 @@
+# Preparing the remaining recovery tests
+
+This runbook covers the next qualification sessions on `codex/prepare-0.3.0`. The [plan](piv-recovery-plan.md) owns release gates and the [signed ledger](piv-recovery-signed-test.md) owns physical results. Preparing an app or a test case does not mark that case passed. Keep Stable, the existing experimental Preview installation, and retained hardware registrations unchanged during preparation.
+
+## Build a separate test app
+
+The existing qualification builder supports Preview and an explicit recovery opt-in. For preparation, disable installation:
+
+```sh
+KEY_MIGRATION_QUALIFICATION_PRODUCT=preview \
+KEY_MIGRATION_QUALIFICATION_RECOVERY=1 \
+KEY_MIGRATION_QUALIFICATION_INSTALL=0 \
+KEY_MIGRATION_QUALIFICATION_NAMESPACE=piv-prep-1103 \
+  scripts/install-migration-qualification-app.sh
+```
+
+Choose a new namespace for a new installed attempt. The example produces `.build/xcode-migration-qualification-preview-piv-prep-1103/Build/Products/PreviewDebug/Key Preview.app`. Build-only mode does not stop, install, register or launch an app. It does not inspect a token or request vault authentication. Xcode may refresh development signing profiles.
+
+Recovery qualification requires Preview and an explicitly supplied namespace. The builder refuses a namespace with an existing qualification app, support directory or default vault directory. It does not establish that all old Keychain records or macOS registration history are absent; use a newly allocated namespace, not one whose directories were deleted. Rebuilding an uninstalled artifact is allowed.
+
+The opt-in is supplied through temporary source plists before normal Xcode signing. The shipping plists, Stable runtime gate and public release verifier remain unchanged. App/helper bundle identifiers, helper services, support directory, default vault directory and Keychain service/account use the qualification namespace. As with migration qualification, the CLI signing identity and Keychain access group remain those of the base product. This is namespace isolation within the existing product architecture, not a separate macOS security principal.
+
+Before any installation, record the exact source revision and working-tree patch, Xcode/OS versions, build number, app/helper metadata, executable hashes and signature results. Verify the helper's smartcard entitlement and the embedded LaunchAgent's matching qualification service and signing identifier. Keep an explicit list of allowed app, vault and evidence paths on each Mac. Use the bundled CLI by its absolute path, never a shell alias for Stable or the existing Preview app.
+
+Installing and opening the app, registering its helper and performing the physical sessions are later steps. Do not run the migration runner against this recovery-enabled product. Development signing and Debug identity checks do not replace the final Developer ID, notarization, quarantine and shipping-identity checks.
+
+## Choose the fixtures before touching hardware
+
+The first YubiKey already holds a registration for the retained experimental recovery vault. Its credential and anchor are protected test state. A fresh app namespace does not isolate writes to a physical key: registering it to another vault would require changing that retained anchor.
+
+Two alternatives need an explicit decision before the independent-key session:
+
+- Continue the existing disposable recovery vault and add the independently generated backup there. Preserve the first key's credential and anchor. This changes the retained vault's recovery roster and needs authorization, an exact source-app/version plan, and a way for the current qualification app to obtain legitimate Mac enrollment. Do not copy private Mac credentials or silently replace the existing Preview app to make that work.
+- Keep the entire existing setup unchanged and use two otherwise available compatible keys for a new disposable vault. The newly arrived second key may supply one, after inspection; another unused compatible key would be needed for the other. Do not assume an uninspected key is empty or suitable.
+
+Until that decision is made, neither a two-key hardware fixture nor fresh-vault registration on the first key is ready. A one-key fresh fixture can cover some lifecycle work but cannot count as independent-backup qualification.
+
+For later inspection, connect only the intended second key and record its model, firmware, public credential/anchor state and reported policy using the documented read-only tools. Do not authenticate, generate/import a key, change PIN/PUK/management protection, overwrite an object, reset PIV or spend retry attempts during inventory. Present the exact external setup procedure after inspecting that state. Keep PINs and management secrets out of logs and command arguments.
+
+Use separate fresh destination namespaces for independent restores. Transfer only published encrypted source files: no source-Mac credentials, configuration, checkpoint/cache, setup intent, receipt or separately exported certificate. Preserve an inventory and hashes of every source used. Compare restored secret bytes including newlines, and verify TOTP against the fixture seed and actual read interval without logging secrets.
+
+## Connected sessions and acceptance
+
+Each row is a test outcome, not a separate PR. Reuse build25's retained native observations where the implementation and question are unchanged. Before dispatch, name the exact operation and whether the owner should approve or cancel; wait for readiness before opening an authentication prompt. Stop on unexpected selection, policy, PIN state or identity. Never automatically retry a failed hardware operation.
+
+| Case | Preparation and execution | Required evidence |
+|---|---|---|
+| Q1: Independent backup | Resolve the fixture decision; inspect and separately authorize external setup. Register the backup with the primary absent, using prepare/export/external import/finish. Disconnect both keys for edits, rotation and another edit. Restore once with each key, alone, into separate unconfigured destinations. | Distinct public keys and registration anchors; unchanged primary anchor; both recover the same current values from their own registration points without source-Mac private state. Record each source head, destination and artifact identity. |
+| Q2: Macs and conflicting edits | On the same authorized disposable lineage, use the current signed product to enroll the second Mac with exact comparison. Make independent edits; exercise automatic merge and explicit conflicting-value choices. Revoke the other Mac, then replace its credentials and rejoin through the reviewed workflow. | Matching compared identities/code; expected merged values; revoked identity refused on the delivered continuing history; new identity on rejoin; active recovery coverage retained. Recover the resulting current snapshot with an active key. |
+| Q3: Recovery-key removal | After Q1/Q2, retain clearly labelled earlier copies, then remove one recipient. On a disposable continuation, separately confirm removal of the last recipient. Keep hardware disconnected during removal. | Removed key has no wrapper for fresh keys on the continuing history; remaining key recovers current values. Last removal requires the explicit protection-loss acknowledgment and leaves no current recovery path. Earlier-copy access remains possible and is not a failure. Physical anchors remain unchanged. |
+| Q4: Life after restoration | Use a Q1 destination. Edit, lock and reopen it without a token. Separately review hardware allocation and external anchor installation before registering recovery on this new vault; then restore it again. | Fresh destination identity and no inherited registration; ordinary edits/reopen succeed; explicit new registration and second restore return the new values. Do not overwrite either retained Q1 anchor for convenience. |
+| Q5: Changed interruption paths | Map registration/adoption/rotation and device lifecycle durable phases to existing software tests first. Select native checks at changed CLI/helper boundaries: interrupted finish/publication, exact retry after helper restart, and competing clients. Use an announced stage, not an arbitrary sleep that may hit another operation. | Exact operation/candidate identity retained or safe refusal; no replacement authority generated on retry; no late session installation or publication after cancellation. Record files/checkpoints before and after, not just exit status. Only signal the verified disposable process. |
+| Q6: Credential lifecycle | Reuse software refusal/cancellation coverage. Simulate changed keys, absent/reset objects and provider refusal. If native same-key certificate renewal still needs qualification, use a separately authorized expendable credential and preserve its public key across renewal. | Certificate expiry/issuer is not recovery authority; public-key/anchor/policy mismatch refuses before private use. Native selection with a renewed same-key certificate works. Generic refusal and no retry are proven at their actual boundary; no claim to distinguish wrong PIN from blocked PIN. Never reset retained keys or exhaust counters. |
+| Q7: Old clients and file delivery | Prepare an isolated released-old-binary installation and disposable adopted source. Compare source hashes before/after refusal. Test coordinated upgrade and retained-source rollback. With recovery-profile data delivered through the supported provider path, withhold a required parent or current ciphertext and then finish delivery. | Actual old app refuses unsupported data without mutation; supported upgrade/rollback preserves its defined source. Missing required state refuses without stale fallback, then succeeds when complete. No claim that a sync provider exposes globally latest state. |
+
+Q3's removal and Q4's re-registration change the fixture's usable recovery paths. Schedule them after the retained two-key outcomes, preserve labelled encrypted sources, and agree on hardware allocation first. A copy of an earlier source is not proof of access to the current continuing history.
+
+For each case retain the source commit/patch, app identity/build/hash, Mac OS/architecture, public token identity, announced action, observed prompts, exit/result, exact state changes and unresolved limits. A software provider pass is not a native pass; a signed Debug pass is not a shipping-artifact pass. Earlier evidence IDs remain valid only at their recorded scope.
+
+## Release decisions still needed
+
+Recommend starting the support promise with the actually qualified Mac/token combinations, then expanding it only with evidence. The existing macOS 26+ and firmware 5.3+ target is broader than the recorded macOS 27.0.1/arm64 and one firmware 5.8.0 YubiKey result. The second key's model/firmware remain unknown. No support policy is changed by this recommendation.
+
+The remaining system PIN dialog needs a public-release disposition. Manual Cancel was accepted for private Preview; that is not approval for the public beta or Stable. Keep the stopped-request refusal, document the limitation clearly, and decide whether the public release accepts it or requires a fix. Do not weaken authentication or invent a provider-level dismissal claim.
+
+Complete the final integrated format/security and capacity review before freezing the public format. Then align Stable/Preview runtime enablement, metadata, entitlements/provisioning, release verifier and documentation in a reviewable local commit. Hosted checks, the optional migration-scale gate, exact signed/notarized package qualification and publication follow the owner's push/release authorization. These remain part of the same substantive integration PR where practical.
