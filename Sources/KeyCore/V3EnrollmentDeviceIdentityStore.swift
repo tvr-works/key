@@ -2,6 +2,7 @@ import CryptoKit
 import Foundation
 internal import JSONCanonicalization
 import LocalAuthentication
+import OSLog
 import Security
 
 enum V3EnrollmentDeviceIdentityStoreError:
@@ -451,6 +452,17 @@ struct V3SecureEnclaveEnrollmentDeviceKeyOperations:
         wrappingKeyRepresentation: Data,
         reason: String
     ) throws -> Data {
+        let logger = Logger(
+            subsystem: Bundle.main.bundleIdentifier ?? "work.tvr.key",
+            category: "MacKeyTiming"
+        )
+        let started = ContinuousClock.now
+        var succeeded = false
+        logger.info("Mac vault-key opening started")
+        defer {
+            let elapsed = String(describing: started.duration(to: .now))
+            logger.info("Mac vault-key opening finished: success=\(succeeded, privacy: .public) elapsed=\(elapsed, privacy: .public)")
+        }
         guard !reason.isEmpty else {
             throw V3EnrollmentDeviceIdentityStoreError
                 .invalidIdentityRequest
@@ -466,11 +478,13 @@ struct V3SecureEnclaveEnrollmentDeviceKeyOperations:
                     reason: reason
                 )
             )
-            return try V3VaultKeyHPKE().unwrap(
+            let result = try V3VaultKeyHPKE().unwrap(
                 wrappedKey,
                 recipientPrivateKey: key,
                 context: context
             )
+            succeeded = true
+            return result
         } catch {
             throw v3EnrollmentKeyOperationError(for: error)
         }
