@@ -84,6 +84,14 @@ The current qualification script was invoked with PreviewDebug, recovery enabled
 
 The Air reported all three existing app bundles and their support records preserved, extracted tracked source unchanged and the new app/support/default-vault paths still absent. Its evidence is retained under that chat's `q2-build30-preparation-20261103T192937Z/` directory and `q2-air-build30-preparation.json`. The [session runbook](piv-two-mac-lifecycle-session.md) fixes the intended app/source boundaries, deterministic controlled-delivery conflict checks, reviewed revocation and same-app `REJOIN`. These are preparation records, not a Q2 pass. Build30 remains reserved; no push or release occurred.
 
+### Air preparation completed after account repair
+
+After the owner confirmed Xcode sign-in was repaired, the same normal automatic-signing build30 recipe passed in 32.02 seconds. Tracked source remained unchanged; no manual profile override, rebuilt product modification or re-signing bypass was used. Verification checked exact app/helper/CLI identities, deep signatures, actual public signing certificates, DER-backed entitlements, helper smartcard access, the Preview Keychain group, namespace/service constraints and every bundle file hash. The helper's development profile `139a71fa-d473-402d-a452-454d4e14e782` included the Air and matched the signing certificate. A read-only verifier command initially passed the optional certificate-extraction prefix incorrectly; correcting it to `--extract-certificates=prefix` allowed the existing artifact's checks to complete without another build.
+
+The verified artifact from `8f4c2b55b2b22f6579a6abbbdd44aaafa29d1213` was installed only at `/Applications/Key Preview Migration Qualification q2-lifecycle-air-1103.app`. Its own helper registered, ordinary status refused with “No vault is configured,” configuration remained absent, and its supported lock command stopped the helper. Existing Stable, Preview25 and prior qualification apps, support records, helper states and source inventory remained unchanged. The expected original Mini owner was rechecked in the source roster. No invitation, enrollment, vault authentication or YubiKey operation occurred.
+
+The Air is ready for the later Q2 session, not qualified for its live lifecycle outcomes. Full evidence is retained on the Air in `q2-air-build30-verification-installation-corrected.json`, `q2-air-preparation-summary-20261103.json` and the preparation directory's `build30-full-bundle-hashes.json`; a copy of the returned readiness summary is retained on the Mini under `.build/piv-lifecycle-prep-20261103/air-ready-summary.json`. Private build30 is now used; the next candidate must use at least build31, subject to checking for newer private builds. No push or release occurred.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
