@@ -112,6 +112,18 @@ The final common head is `kNoWRIWK_fenjVHcal1vyqRwxk_23Q_PT-ZlS3O4GvQ`, with 19 
 
 This passes enrollment, ordinary bidirectional iCloud delivery and reopening for the tested artifacts. It does not qualify concurrent-write merging, conflict resolution, revocation, same-app rejoin or recovery of the final history. Final shipping-identity qualification also remains separate. Mini evidence includes `mini-delivery.json`, `air-delivery-summary.json`, both Air TOTP verification results, `mini-delivery-reopened.json`, `final.json`, `mini-preservation.json` and `session-result.json` under the enrollment evidence directory. The Air's full delivery and reopening record is `q2-air-enrollment-narrow-delivery-20261103.json`. No product code change was needed; work was committed locally without pushing.
 
+## Concurrent edits and conflicts, 2026-11-03
+
+The owner authorized these tests after enabling Keep Downloaded on both Macs. The existing Mini Preview27 and enrolled Air build30 used independent local copies of the exact common head `kNoWRIWK_fenjVHcal1vyqRwxk_23Q_PT-ZlS3O4GvQ`: 19 manifests, 28 encrypted entry versions and six current entries. Only published encrypted objects and manifests were copied. Each app selected its local copy with `config set vault-dir`, retaining its own enrolled identity and local records. No global sync setting, Stable vault or hardware setup was changed.
+
+Each Mac added a different entry before either received the other branch: `lifecycle/mini-only` and `lifecycle/air-only`. Both branch manifests named the same original parent. Full encrypted inventories were exchanged through `Key Preview Vault/lifecycle-conflict-transfer-2026-11-03`, with file hashes, path checks, exact vault IDs and baseline inclusion verified before delivery. Existing immutable files were never replaced. This controls delivery to create reproducible competing histories; it does not test iCloud's natural conflict timing.
+
+On the Mini, the two-head union contained no entry conflicts. One ordinary `add lifecycle/merge-marker` published an automatic merge naming both branch heads, then saved the new entry. Both independent values, every original value and TOTP verified afterward; health was ready with nine entries and no pending work. The full authority and recovery metadata matched the baseline. Merge manifest `c9503a80a5d76db405b5645d1b66dae7d70f1529f678f10a37823a2f985f00de` names parents `2e09610aa09c7b3b8c1521e0ce8960d619faa6b266db6d9683beaa355dbdf610` and `b92ffc9999ddcdfcf2b0b426663913f6c1eb7614793c83758273cfd4d986d411`; the following ordinary save is `80dc1ee3bf1ccddb41ef6ab402281ef9d217fdb8b639c03e6e2962da79104ff7`.
+
+### Wording issue found before automatic merge
+
+An extra current-value read before merge publication refused with exit4 and “Saving changes is paused because Key cannot choose between them safely.” Inspection confirmed that the current read path refuses competing heads, while the mutation path can automatically merge disjoint edits. `conflict list --json` returned an empty list, and the next planned save successfully merged the histories. The read boundary was observed as implemented; the claim that saving is paused is misleading in this case. Review this shared error text before release without weakening read or mutation checks. No product code was changed during qualification. Evidence is in `.build/piv-two-mac-conflicts-20261103/premerge-read-observation.json`, alongside the runtime and mutation paths cited there.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
