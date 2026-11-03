@@ -2,7 +2,7 @@
 
 This runbook covers the next qualification sessions on `codex/prepare-0.3.0`. The [plan](piv-recovery-plan.md) owns release gates and the [signed ledger](piv-recovery-signed-test.md) owns physical results. Preparing an app or a test case does not mark that case passed. Keep Stable, the existing experimental Preview installation, and retained hardware registrations unchanged during preparation.
 
-Update, 2026-11-03: the owner completed [second-key credential setup](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03). It is a YubiKey 5C NFC on firmware 5.8.0 with the required reported policies and a matching certificate. Its recovery registration is still absent. The fixture decision below remains open.
+Update, 2026-11-03: the owner completed [second-key credential setup](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03), then authorized [continuing the existing disposable vault](piv-recovery-signed-test.md#backup-registration-preparation-2026-11-03). Its archived files and matching retained Mac checkpoint were recovered into a new working folder; private notarized Preview27 completed registration prepare/export. The second key is a YubiKey 5C NFC on firmware 5.8.0 with the required reported policies and matching certificate. Anchor import and finish are pending. The alternatives below explain the fixture decision; the existing-vault route is now selected.
 
 ## Build a separate test app
 
