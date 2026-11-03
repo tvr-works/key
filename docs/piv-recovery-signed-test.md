@@ -1,6 +1,6 @@
 # Signed Preview recovery qualification
 
-Current checkpoint: 2026-10-26. This is a scoped evidence ledger and remaining
+Installed-product checkpoint: 2026-10-26; backup-key preparation added 2026-11-03. This is a scoped evidence ledger and remaining
 native-test boundary, not a claim that the entire feature is qualified.
 [Plan](piv-recovery-plan.md) owns completion gates; [contract](piv-recovery-contract.md)
 owns security guarantees. Use disposable data only. No test result authorizes
@@ -9,6 +9,16 @@ another authentication, hardware write, reset, installation or real-vault use.
 The [November 2 reconciliation](piv-recovery-plan.md#release-reconciliation-2026-11-02) compares this historical native evidence with later source changes and current software tests. It records no additional PIV hardware pass; the original build identities and limitations below remain intact.
 
 The [November 3 preparation review](piv-recovery-plan.md#preparation-review-2026-11-03) and [next-session runbook](piv-recovery-qualification.md) add software coverage and a separately identified, uninstalled Debug candidate. They do not add a native result to this ledger or authorize changes to the retained first-key registration.
+
+## Backup-key preparation, 2026-11-03
+
+With the first key disconnected, the owner completed initial PIV setup on a second YubiKey 5C NFC, firmware 5.8.0, using YubiKey Manager 5.9.2 in their own Terminal. Initial public inspection found default PIN/PUK/management credentials, an empty slot 9d, no slot certificate and no recovery anchor. The owner changed PIN and PUK, generated a random AES192 management key with PIN-protected storage and touch, generated a P-256 credential in slot 9d with PIN/touch ALWAYS, and created its self-issued certificate with a new CHUID. Secrets were entered into vendor prompts, not supplied to Key or this chat.
+
+Subsequent public reads reported nondefault PIN/PUK/management credentials, management touch ALWAYS and PIN-protected storage, generated ECCP256 origin, and PIN/touch ALWAYS for slot 9d. The saved public key, slot metadata and certificate public key matched. Local public-key verification validated the certificate signature; the subject is `CN=Key Recovery Backup`, with validity from 2026-11-03 through 2036-10-31. CHUID is present and the recovery anchor remains absent. PIN/PUK counters were both 3/3 and unchanged during verification.
+
+This completes owner-operated credential preparation, not Key registration or recovery qualification. Reported generation origin is not independently verified attestation; public management flags do not prove secret custody or enforcement. No Key product authentication/agreement, anchor import, vault mutation or app installation occurred in this setup session. The first key remained disconnected and Stable was not accessed. The next gate is the explicit test-vault/current-app plan, then registration prepare/export, owner-run anchor installation and finish before either-key recovery tests.
+
+Local public inspection and setup verification records are retained in `.build/piv-second-key-inspection-20261103/public-inspection.json` and `.build/piv-second-key-setup-20261103/public-setup-verification.json`. The latter records public-key/certificate/CHUID hashes, exact certificate dates and observed policy. The saved `recovery-public.pem` contains only the public key; neither the certificate nor that file grants vault recovery by itself.
 
 ## Artifact identity and tested environment
 

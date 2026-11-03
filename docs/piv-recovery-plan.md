@@ -1,6 +1,7 @@
 # PIV catastrophe recovery implementation plan
 
 Current checkpoint: 2026-11-03. The release reconciliation below separates current software evidence from signed hardware results through build 25 and later implementation changes. This file owns status and remaining acceptance. The [preparation review](#preparation-review-2026-11-03) adds a two-registration regression, isolated build recipe and concrete test runbook; it records no new hardware pass.
+Later that day, the owner completed [second-key credential preparation](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03) on another YubiKey 5C NFC, firmware 5.8.0. Public verification passed; registration to a test vault and product recovery remain pending. Earlier references below to an uninspected second key describe the planning checkpoint, not its current state.
 The [contract](piv-recovery-contract.md) owns protocol/security requirements; the
 [qualification record](piv-recovery-signed-test.md) owns scoped results and artifact
 identities. The v3 roadmap links here rather than maintaining another status table.

@@ -2,6 +2,8 @@
 
 This runbook covers the next qualification sessions on `codex/prepare-0.3.0`. The [plan](piv-recovery-plan.md) owns release gates and the [signed ledger](piv-recovery-signed-test.md) owns physical results. Preparing an app or a test case does not mark that case passed. Keep Stable, the existing experimental Preview installation, and retained hardware registrations unchanged during preparation.
 
+Update, 2026-11-03: the owner completed [second-key credential setup](piv-recovery-signed-test.md#backup-key-preparation-2026-11-03). It is a YubiKey 5C NFC on firmware 5.8.0 with the required reported policies and a matching certificate. Its recovery registration is still absent. The fixture decision below remains open.
+
 ## Build a separate test app
 
 The existing qualification builder supports Preview and an explicit recovery opt-in. For preparation, disable installation:
@@ -31,11 +33,11 @@ The first YubiKey already holds a registration for the retained experimental rec
 Two alternatives need an explicit decision before the independent-key session:
 
 - Continue the existing disposable recovery vault and add the independently generated backup there. Preserve the first key's credential and anchor. This changes the retained vault's recovery roster and needs authorization, an exact source-app/version plan, and a way for the current qualification app to obtain legitimate Mac enrollment. Do not copy private Mac credentials or silently replace the existing Preview app to make that work.
-- Keep the entire existing setup unchanged and use two otherwise available compatible keys for a new disposable vault. The newly arrived second key may supply one, after inspection; another unused compatible key would be needed for the other. Do not assume an uninspected key is empty or suitable.
+- Keep the entire existing setup unchanged and use two otherwise available compatible keys for a new disposable vault. The prepared second key can supply one; another unused compatible key would be needed for the other. Inspect any additional key before planning setup.
 
 Until that decision is made, neither a two-key hardware fixture nor fresh-vault registration on the first key is ready. A one-key fresh fixture can cover some lifecycle work but cannot count as independent-backup qualification.
 
-For later inspection, connect only the intended second key and record its model, firmware, public credential/anchor state and reported policy using the documented read-only tools. Do not authenticate, generate/import a key, change PIN/PUK/management protection, overwrite an object, reset PIV or spend retry attempts during inventory. Present the exact external setup procedure after inspecting that state. Keep PINs and management secrets out of logs and command arguments.
+For any additional hardware, connect only the intended key and record its model, firmware, public credential/anchor state and reported policy using the documented read-only tools. Do not authenticate, generate/import a key, change PIN/PUK/management protection, overwrite an object, reset PIV or spend retry attempts during inventory. Present the exact external setup procedure after inspecting that state. Keep PINs and management secrets out of logs and command arguments.
 
 Use separate fresh destination namespaces for independent restores. Transfer only published encrypted source files: no source-Mac credentials, configuration, checkpoint/cache, setup intent, receipt or separately exported certificate. Preserve an inventory and hashes of every source used. Compare restored secret bytes including newlines, and verify TOTP against the fixture seed and actual read interval without logging secrets.
 
@@ -59,7 +61,7 @@ For each case retain the source commit/patch, app identity/build/hash, Mac OS/ar
 
 ## Release decisions still needed
 
-Recommend starting the support promise with the actually qualified Mac/token combinations, then expanding it only with evidence. The existing macOS 26+ and firmware 5.3+ target is broader than the recorded macOS 27.0.1/arm64 and one firmware 5.8.0 YubiKey result. The second key's model/firmware remain unknown. No support policy is changed by this recommendation.
+Recommend starting the support promise with the actually qualified Mac/token combinations, then expanding it only with evidence. The existing macOS 26+ and firmware 5.3+ target is broader than the recorded macOS 27.0.1/arm64 and one firmware 5.8.0 YubiKey result. The second key matches that model/firmware, but has not yet completed product registration or recovery. No support policy is changed by this recommendation.
 
 The remaining system PIN dialog needs a public-release disposition. Manual Cancel was accepted for private Preview; that is not approval for the public beta or Stable. Keep the stopped-request refusal, document the limitation clearly, and decide whether the public release accepts it or requires a fix. Do not weaken authentication or invent a provider-level dismissal claim.
 
