@@ -68,6 +68,14 @@ With both keys disconnected, the original-key destination passed the same exact 
 
 Q1 is now passed for these two independently generated YubiKey 5C NFC credentials on firmware 5.8.0, using the Mac mini on arm64 macOS 27.0.1 and the identified private Preview27/qualification28/qualification29 artifacts. Each key alone recovered the same current contents after post-registration edits and rotation, from its own unchanged original anchor, without supplying source-Mac authority to the destination namespace. This does not extend the OS/hardware support claim or replace final shipping-artifact and remaining lifecycle qualification. Evidence is in the same local directory, including `first-restore-result.json`, `first-timeout-support-files.json`, `first-resume-result.json`, both keys' before/after public inspections, each destination's ordinary/reopened verification and helper PID records, and `final-results.json`. No code change, push or release occurred in this test session.
 
+## Editing a recovered vault, 2026-11-03
+
+After Q1, the owner authorized editing a recovered vault and preparing the two-Mac lifecycle session, preserving Stable and both hardware keys. In the existing `piv-second-1103` build28 destination, vault `0deef174-80a1-4a93-ac03-8c05d8a2e3a9`, one secret was replaced with a synthetic multiline value containing a final newline. Exact piped output matched all bytes. The other two secrets retained their expected hashes, the authenticator code matched its retained seed within the measured read interval, and status remained ready with four entries and no conflicts or issues.
+
+The same checks passed after `lock` and a confirmed new helper process. Both hardware keys were absent throughout; no device authentication or hardware operation was requested. The selected vault ID/path, prior immutable published files, original recovery-enabled source, encrypted Q1 snapshot and other recovered destination remained unchanged. All 332 Stable file/helper-registration preservation checks passed. The edited destination was locked at completion. Local scripts, hashes and results are retained under `.build/piv-lifecycle-prep-20261103/`, including `recovered-edit-result.json` and the ordinary/reopened verification records.
+
+This closes Q4's ordinary edit/read/reopen portion. Registering recovery on the new vault and recovering it again remain separate work requiring a hardware-allocation plan that preserves both retained original anchors. It does not create or inherit recovery protection for the edited destination.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
