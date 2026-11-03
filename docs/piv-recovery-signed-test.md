@@ -76,6 +76,14 @@ The same checks passed after `lock` and a confirmed new helper process. Both har
 
 This closes Q4's ordinary edit/read/reopen portion. Registering recovery on the new vault and recovering it again remain separate work requiring a hardware-allocation plan that preserves both retained original anchors. It does not create or inherit recovery protection for the edited destination.
 
+## Two-Mac lifecycle preparation, 2026-11-03
+
+The owner authorized coordination with `key-piv-macbook-air` to prepare Q2. The Air's clean older checkout at `53bdb59` was left unchanged. A tracked-source archive from Mini commit `8f4c2b5`, SHA-256 `607272d990b6b1ab60532991c35d2bea00f4bae8c798e2b5ef848cfa106ad681`, and a build-only recipe were delivered through a fresh iCloud test-transfer folder. The Air verified the hash, archive member paths/types and source isolation before extraction. Its public source inspection saw the expected head, 16 manifests, 22 entry versions, four current entries and two recovery recipients. No source-Mac credentials, configuration, checkpoints or plaintext fixtures were transferred.
+
+The current qualification script was invoked with PreviewDebug, recovery enabled, installation disabled, namespace `q2-lifecycle-air-1103` and private build30. On arm64 macOS 27.0.1 (26A434), Xcode 27.2 (27B52), Swift 6.4.2, the build exited65 during provisioning after 31.746 seconds: account login was rejected and a development profile for `work.tvr.key.preview.xpc.qualification.q2-lifecycle-air-1103` was unavailable. An unrelated-looking CoreSimulator version warning was also recorded; it is not the established fatal signing error. The owner was asked to refresh the Air's Xcode account before a normal retry. No signing bypass, installation, launch, authentication, enrollment or token operation was performed.
+
+The Air reported all three existing app bundles and their support records preserved, extracted tracked source unchanged and the new app/support/default-vault paths still absent. Its evidence is retained under that chat's `q2-build30-preparation-20261103T192937Z/` directory and `q2-air-build30-preparation.json`. The [session runbook](piv-two-mac-lifecycle-session.md) fixes the intended app/source boundaries, deterministic controlled-delivery conflict checks, reviewed revocation and same-app `REJOIN`. These are preparation records, not a Q2 pass. Build30 remains reserved; no push or release occurred.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
