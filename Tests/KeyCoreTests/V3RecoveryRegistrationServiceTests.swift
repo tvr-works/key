@@ -567,6 +567,86 @@ struct V3RecoveryRegistrationServiceTests {
     #expect(f.checkpoints.value == f.core.checkpoint.canonicalBytes)
   }
 
+  @Test func sequentialIndependentRegistrationsRecoverAfterEditsAndRotation() throws {
+    guard #available(macOS 26.0, *) else { return }
+    let f = try Fixture()
+    defer { f.remove() }
+    let firstExport = try f.prepare()
+    f.card.anchor = firstExport.anchor
+    var firstKey = Data()
+    _ = try f.finish { _, key in firstKey = key }
+    let firstPublicReads = f.card.publicSessions
+
+    // Only the second software card is visible to this registration service.
+    // Both registrations use actual publication, not a pre-populated roster.
+    let card = try Card(publicKey: f.core.backupToken.publicKey.x963Representation)
+    let reader = PIVRecoveryTokenReader(inventory: Inventory(card: card), gate: PIVTokenOperationGate())
+    let provider = Provider(token: f.core.backupToken, card: card)
+    let agreement = PIVRecoveryAgreement(reader: reader, provider: provider)
+    let service = V3RecoveryRegistrationService(
+      vaultID: Core.vaultID, identity: f.core.owner, mutationOwner: f.mutationOwner,
+      objectStore: f.store, checkpointStore: f.checkpoints, registrationOwnershipStore: f.ownership,
+      transactionOwnershipStore: f.transactions, adoptionOwnershipStore: f.adoption,
+      reader: reader, agreement: agreement)
+    let candidate = try #require(try reader.candidates().first)
+    let secondExport = try service.prepare(observation: reader.read(candidate), currentVaultKey: firstKey)
+    card.anchor = secondExport.anchor
+    var secondKey = Data()
+    let second = try service.finish(
+      observation: reader.read(candidate), currentVaultKey: firstKey,
+      afterCheckpointAdvance: { _, key in secondKey = key })
+    #expect(firstKey != secondKey && firstExport.anchor != secondExport.anchor)
+    #expect(f.provider.requests == 1 && provider.requests == 1)
+    #expect(f.card.publicSessions == firstPublicReads && f.card.anchor == firstExport.anchor)
+    #expect(f.ownership.value == nil)
+
+    let envelope = try V3RecoveryManifestCodec().parseEnvelope(
+      Data(contentsOf: f.manifestURL(second.checkpoint.envelopeDigest)))
+    #expect(envelope.body.recovery.recipients.count == 2)
+    let session = V3DeviceWrappedVaultKeySessionStore()
+    try session.install(secondKey, vaultID: Core.vaultID, keyID: envelope.body.fields.keyID)
+    let cacheRoot = f.root.appendingPathComponent("local-cache")
+    try FileManager.default.createDirectory(at: cacheRoot, withIntermediateDirectories: true)
+    let cache = try V3CheckpointManifestFilesystemCache(rootHandle: VaultRootDirectoryHandle(opening: cacheRoot))
+    try cache.store(envelope.canonicalBytes, for: second.checkpoint)
+    let mutations = V3RecoveryVaultMutationService(
+      vaultID: Core.vaultID, session: session, objectStore: f.store, checkpointStore: f.checkpoints,
+      recoveryAnchorStore: f.transactions, registrationAnchorStore: f.ownership,
+      adoptionAnchorStore: f.adoption, cache: cache)
+    try mutations.edit(name: "fixture/secret", secret: "before rotation\n", type: .secret, operationID: .init())
+    let rotation = V3RecoveryKeyRotationService(
+      vaultID: Core.vaultID, identity: f.core.owner, session: session,
+      objectStore: f.store, checkpointStore: f.checkpoints, recoveryAnchorStore: f.transactions,
+      registrationAnchorStore: f.ownership, adoptionAnchorStore: f.adoption, cache: cache)
+    _ = try rotation.rotate(expectedCheckpoint: rotation.prepare().checkpoint, operationID: .init())
+    try mutations.edit(name: "fixture/secret", secret: "after rotation\n", type: .secret, operationID: .init())
+    let finalCheckpoint = try V3ManifestCheckpoint(canonicalBytes: #require(f.checkpoints.value))
+    session.invalidate()
+    let ownerUnwraps = f.core.owner.unwraps
+    #expect(f.provider.requests == 1 && provider.requests == 1)
+
+    // Each recovery uses its own original anchor and a single isolated provider.
+    for (tokenReader, tokenAgreement, tokenCard, exported) in [
+      (f.reader, f.agreement, f.card, firstExport.anchor),
+      (reader, agreement, card, secondExport.anchor),
+    ] {
+      let anchor = try V3RecoveryAnchorCodec().parseCanonical(exported)
+      let observation = try tokenReader.read(#require(try tokenReader.candidates().first))
+      let selection = try V3RecoveryHistorySelector(source: f.store).select(
+        anchor: anchor, credentialPublicKey: observation.publicKey)
+      let snapshot = try tokenAgreement.withReceiver(observation: observation) { receiver in
+        try V3RecoverySnapshotVerifier(source: f.store).open(selection, boundAnchor: anchor, receiver: receiver)
+      }
+      #expect(selection.head.digest == finalCheckpoint.envelopeDigest)
+      #expect(snapshot.entries.count == 2)
+      #expect(snapshot.entries.first { $0.name == "fixture/secret" }?.plaintext == "after rotation\n")
+      #expect(snapshot.entries.first { $0.name == "fixture/totp" }?.plaintext == "JBSWY3DPEHPK3PXP")
+      #expect(tokenCard.anchor == exported)
+    }
+    #expect(f.provider.requests == 2 && provider.requests == 2)
+    #expect(f.core.owner.unwraps == ownerUnwraps && !session.hasResidentKey)
+  }
+
   @Test func backupRegistrationRetainsExistingAnchorDepthBeforeSigning() throws {
     let f = try Fixture(backup: true)
     defer { f.remove() }
