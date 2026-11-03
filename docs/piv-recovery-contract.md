@@ -674,8 +674,8 @@ Late positive/duplicate results cannot revive approval, start a new touch/agreem
 step, install authority or publish. An already admitted native operation may
 finish, but its stopped result is discarded. No automatic retry.
 
-The host deadline is 90 seconds including queue time; client reply bound 120 seconds. The agreement
-scope's standalone default is 60 seconds; composed requests pass their existing deadline.
+Restore and resume have a five-minute host deadline, including queue time, and a five-minute-thirty-second client reply bound. Abandonment and other recovery commands retain their 90-second host and 120-second client bounds. One hardware authentication/agreement attempt has its own maximum of 90 seconds from the private-operation request, capped by the remaining host deadline. Completing hardware approval does not reset or shorten the host's remaining budget. The agreement scope's standalone default remains 60 seconds; composed requests pass their host deadline, and the adapter applies the hardware cap.
+
 These bounds stop caller waiting, not guaranteed native execution. Retain the
 worker/key/context and shared native gate until the actual framework callback/
 provider return and cleanup, including pending public begin/send callbacks.

@@ -159,7 +159,14 @@ public enum KeyRecoveryRequest: Codable, Equatable, Sendable {
   case abandon(
     source: String, destination: String, sourceVaultID: String, operationID: String)
 
-  static let maximumDurationSeconds = 90
+  /// Restore includes hardware approval, five independent Mac key openings and
+  /// durable publication/verification. Local abandonment keeps the shorter scope.
+  var maximumDurationSeconds: Int {
+    switch self {
+    case .restore, .resume: 300
+    case .abandon: KeyRecoveryRequestScope.defaultMaximumDurationSeconds
+    }
+  }
 
   var isInitialRestore: Bool {
     if case .restore = self { true } else { false }
@@ -240,6 +247,7 @@ public final class KeyServiceConnection: @unchecked Sendable {
 /// The composed service must use these exact cancellation/generation/deadline
 /// dependencies. No recovered key is installed in this authentication store.
 struct KeyRecoveryRequestScope: Sendable {
+  static let defaultMaximumDurationSeconds = 90
   let id = UUID()
   let cancellation = PIVRecoveryCancellation()
   let authentication: V3DeviceWrappedVaultKeySessionStore

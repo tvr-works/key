@@ -97,6 +97,16 @@ final class PIVRecoveryCancellation: @unchecked Sendable {
 /// qualification yet. The receiver cannot initiate an operation after its
 /// scope ends, or initiate a second operation, including after an error.
 final class PIVRecoveryAgreement: Sendable {
+  static let maximumAuthenticationDurationSeconds = 90
+
+  /// Bound one hardware operation independently of the longer restore. The
+  /// caller retains its original deadline for work after hardware completion.
+  static func authenticationDeadline(requestDeadline: DispatchTime, startedAt: DispatchTime)
+    -> DispatchTime
+  {
+    min(requestDeadline, startedAt + .seconds(maximumAuthenticationDurationSeconds))
+  }
+
   private let reader: PIVRecoveryTokenReader
   private let provider: any PIVRecoveryAgreementProviding
 
@@ -120,7 +130,8 @@ final class PIVRecoveryAgreement: Sendable {
     let scope = Scope()
     defer { scope.close(); progress?.close() }
     let receiver = try PIVHPKEReceiver(publicBytes: observation.publicKey) { [self] peer in
-      let attempt = Attempt(deadline: deadline)
+      let attempt = Attempt(deadline: Self.authenticationDeadline(
+        requestDeadline: deadline, startedAt: .now()))
       try scope.claim(attempt)
       try observation.keyMetadata.requireRecoveryPolicy()
       do { _ = try P256.KeyAgreement.PublicKey(x963Representation: peer) } catch {

@@ -340,7 +340,8 @@ public final class KeyServiceHost {
         guard let recovery else {
             return .failure("Recovery is not enabled in this product build.")
         }
-        return withRecoveryScope(connection: connection, flags: .barrier, progress: progress) { scope in
+        return withRecoveryScope(connection: connection, flags: .barrier, progress: progress,
+            maximumDurationSeconds: request.maximumDurationSeconds) { scope in
             try scope.requireCurrent()
             guard !restartPending else { return restarting() }
             try request.validate()
@@ -457,13 +458,14 @@ public final class KeyServiceHost {
     private func withRecoveryScope(
         connection: KeyServiceConnection?, flags: DispatchWorkItemFlags,
         progress: KeyRecoveryProgress? = nil,
+        maximumDurationSeconds: Int = KeyRecoveryRequestScope.defaultMaximumDurationSeconds,
         operation: (KeyRecoveryRequestScope) throws -> KeyServiceResponse
     ) -> KeyServiceResponse {
         let pending = recoveryLock.withLock { () -> KeyRecoveryRequestScope? in
             guard recoveryRequest == nil else { return nil }
             let scope = KeyRecoveryRequestScope(
                 authentication: recoveryAuthentication,
-                deadline: .now() + .seconds(KeyRecoveryRequest.maximumDurationSeconds), progress: progress)
+                deadline: .now() + .seconds(maximumDurationSeconds), progress: progress)
             recoveryRequest = scope
             return scope
         }

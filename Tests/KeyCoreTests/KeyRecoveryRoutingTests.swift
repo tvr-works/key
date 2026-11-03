@@ -40,8 +40,9 @@ struct KeyRecoveryRoutingTests {
     #expect(try JSONDecoder().decode(KeyServiceRequest.self, from: bytes) == request)
     #expect(KeyXPCClientRole.fullCLI.authorizes(request))
     #expect(!KeyXPCClientRole.utilityStatus.authorizes(request))
-    #expect(request.responseTimeoutSeconds == 120)
-    #expect(KeyRecoveryRequest.maximumDurationSeconds < 120)
+    #expect(request.responseTimeoutSeconds == (action.isAbandonment ? 120 : 330))
+    #expect(action.maximumDurationSeconds == (action.isAbandonment ? 90 : 300))
+    #expect(try #require(request.responseTimeoutSeconds) - action.maximumDurationSeconds == 30)
     #expect(request.requiresHelperShutdownAfterSuccess)
     let fields = String(decoding: bytes, as: UTF8.self)
     #expect(!fields.contains("secret") && !fields.contains("PIN") && !fields.contains("vaultKey"))
@@ -50,6 +51,23 @@ struct KeyRecoveryRoutingTests {
       for: request, helperName: "Key Agent", timeoutSeconds: 30
     ).localizedDescription
     #expect(action.isAbandonment ? message.contains("no vault was selected") : message.contains("Do not start another restore"))
+  }
+
+  @Test(arguments: [restore, resume, abandon])
+  func hostAdmitsTheRequestWithItsOwnBudget(action: KeyRecoveryRequest) throws {
+    let state = State()
+    let before = DispatchTime.now()
+    let host = makeHost(state: state) { _, scope in
+      state.scope = scope
+      state.configured = !action.isAbandonment
+      return .success()
+    }
+    #expect(host.handle(.recovery(action)).exitCode == EXIT_SUCCESS)
+    let after = DispatchTime.now()
+    let deadline = try #require(state.scope).deadline
+    let expected = action.isAbandonment ? 90 : 300
+    #expect(deadline >= before + .seconds(expected))
+    #expect(deadline <= after + .seconds(expected))
   }
 
   @Test(arguments: 0 ..< 9)
