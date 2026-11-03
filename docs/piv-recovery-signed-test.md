@@ -8,6 +8,8 @@ another authentication, hardware write, reset, installation or real-vault use.
 
 The [November 2 reconciliation](piv-recovery-plan.md#release-reconciliation-2026-11-02) compares this historical native evidence with later source changes and current software tests. It records no additional PIV hardware pass; the original build identities and limitations below remain intact.
 
+The [November 3 preparation review](piv-recovery-plan.md#preparation-review-2026-11-03) and [next-session runbook](piv-recovery-qualification.md) add software coverage and a separately identified, uninstalled Debug candidate. They do not add a native result to this ledger or authorize changes to the retained first-key registration.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
