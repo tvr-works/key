@@ -34,7 +34,7 @@ enum VaultUXServiceError: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .vaultIncomplete:
-            "Some newer vault files are unavailable on this Mac. Check file synchronization before retrying. To read the last complete version already verified on this Mac, use --allow-stale; the value may be out of date."
+            "Required vault files are unavailable on this Mac. Check that your sync provider has downloaded the vault files, then retry."
         case .contentConflict:
             "That entry has conflicting changes. Run `key conflict list`, then `key conflict show <conflict-id>` to review the versions."
         case .catchUpContentConflict:

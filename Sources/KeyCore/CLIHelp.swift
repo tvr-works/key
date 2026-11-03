@@ -190,7 +190,7 @@ enum CLIHelp {
     """
 
     static let read = """
-    --allow-stale explicitly allows reading the last complete version already verified on this Mac when newer files are unavailable or have competing edits. That value may be out of date. It does not bypass failed security checks.
+    --allow-stale allows reading the last complete version already verified on this Mac when newer files are unavailable or have competing edits. The files for that verified version must still be available on this Mac; this option cannot restore missing files. The value may be out of date. It does not bypass failed security checks.
 
     Examples:
       key get github/personal
