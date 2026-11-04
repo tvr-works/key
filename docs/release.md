@@ -28,7 +28,7 @@ The necessary remaining live work is one recovery-format partial-delivery case a
 
 Public Preview uses its own signed beta flag. Stable always refuses recovery. The ZIP verifier continues rejecting private-test opt-in and requires Boolean beta enablement in both Preview app and helper. The public beta accepts the documented manual-Cancel workaround for a lingering PIN dialog; Stable promotion needs a separate decision.
 
-Run current-source automated checks and hosted CI after authorized push, then qualify the final artifact before publication. Preserve Stable, existing Preview and both physical keys. Choose disposable installation state before any live command. Local commits do not authorize a push, tag, notarization upload, release or tap update. Build 36 is planned; check the ordinary Preview artifact ledger before signing. Separately namespaced qualification timestamp counters are not the public counter.
+Run current-source automated checks and hosted CI after authorized push, then qualify the final artifact before publication. Preserve Stable, existing Preview and both physical keys. Choose disposable installation state before any live command. Local commits do not authorize a push, tag, notarization upload, release or tap update. The local version commit prepares `0.3.0-beta.1`, build 36; check the ordinary Preview artifact ledger for intervening builds before signing. Separately namespaced qualification timestamp counters are not the public counter.
 
 ### Single-Mac checkpoint, 2026-10-29
 
