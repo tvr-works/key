@@ -281,6 +281,16 @@ The owner paused prompts before the second adoption attempt. That attempt and th
 
 Evidence: `.build/piv-mac-interruption-20261104/` retains artifact/install metadata, command dispatches/results, before/after object inventories, helper process records, exact-value verification and `session-result.json`. The [live-session plan](piv-interruption-compatibility-session.md) owns the remaining sequence. Q5 remains open beyond the completed boundary.
 
+### Exact adoption resume after cancellation, 2026-11-04
+
+After renewed readiness, the owner kept both YubiKeys disconnected and continued on the same build35 installation and disposable vault. Installed bundle and retained-vault hashes matched the preceding session, with no pending operation. The owner approved the initial authentication/signing prompts and cancelled `Verify Key vault format adoption` again. The new attempt, `ed668a2a-2acb-4302-99f1-1c4836d7d4e7`, retained one complete encrypted preparation. Configuration, original selected version and all previously saved files were unchanged; the earlier abandoned preparation remained intact.
+
+Normal lock/restart produced another helper process, whose pending selector named only this second operation. One explicit `recovery adopt --resume` with that original ID succeeded under normal Mac approvals, with no cleanup pending. It published exactly the saved candidate `d34a686a7185b02c0d935585a7fdbedba38bf385108984704379ce6c399997ce` and its two saved encrypted entries. Both preparation files and all older objects remained byte-identical, with no replacement candidate or configuration change. The vault now uses the recovery-capable format with no registered recovery keys.
+
+The first evidence comparison looked at the optional manifest cache before ordinary reopening and found its old entry. Inspection confirmed adoption advances durable trust while the unlock runtime refreshes that cache on access. The comparison was corrected to use authenticated fresh-helper reopening and the exact published candidate; no checkpoint reset, product repair or retry of adoption was needed. The original observation is retained locally. The fresh helper verified the original exact secret and independent TOTP result, two ready entries and no pending operation.
+
+The vault was normally locked again and its helper confirmed stopped. All 332 Stable checks and all 26 protected roots remained unchanged. No token inspection or operation was performed. Native cancellation followed by exact adoption resume is passed for this fixture, private build and platform. Rotation cancellation/concurrent clients and the other Q5 boundaries remain separate. Additional evidence in the same local root includes `after-cancel-b.json`, `resume-b-selection.json`, `resume-b-result.json`, `resume-publication-verification.json`, `resumed-b-verification.json`, helper process records and `resume-session-result.json`.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,
