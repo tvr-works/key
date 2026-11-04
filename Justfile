@@ -122,8 +122,8 @@ notarize archive_path:
   scripts/notarize-release.sh "{{archive_path}}"
 
 # Commit the release version on a PR branch or final stack layer before verification.
-bump-version tag:
-  scripts/bump-version.sh "{{tag}}"
+bump-version tag build:
+  scripts/bump-version.sh "{{tag}}" "{{build}}"
 
 # Build, notarize, staple, zip, and verify the product selected by the release tag.
 build-release tag:

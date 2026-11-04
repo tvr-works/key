@@ -169,7 +169,7 @@ The release commands are:
 
 ```bash
 just release <tag>
-just bump-version <tag>
+just bump-version <tag> <build-number>
 just build-release <tag>
 just publish-release <tag> <zip-path>
 just publish-homebrew <tag>
@@ -266,10 +266,10 @@ from current main:
 release_tag=v0.2.1
 git fetch origin
 git switch -c "release/${release_tag}" origin/main
-just bump-version "${release_tag}"
+just bump-version "${release_tag}" 36
 ```
 
-Replace the example tag with the intended version. A Preview release uses a
+Replace the example tag and build number with the intended release. Choose a build number above the numbers already used by signed candidates with the same application identity; consult the artifact ledger rather than incrementing only the checked-in number. Namespaced qualification apps have separate bundle identities. The script requires an explicit number and rejects numbers at or below the checked-in version. A Preview release uses a
 numbered prerelease such as `v0.3.0-beta.1`.
 
 The helper requires a clean PR branch and commits the marketing version and

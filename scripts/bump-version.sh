@@ -1,12 +1,17 @@
 #!/bin/zsh
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "usage: $0 <tag>" >&2
+if [[ $# -ne 2 ]]; then
+  echo "usage: $0 <tag> <build-number>" >&2
   exit 1
 fi
 
 tag="$1"
+new_build_version="$2"
+if [[ ! "${new_build_version}" =~ '^[1-9][0-9]{0,8}$' ]]; then
+  echo "build number must be an explicit positive integer of at most nine digits" >&2
+  exit 1
+fi
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 "${repo_root}/scripts/release-target.sh" "${tag}" >/dev/null
 project_file="${repo_root}/Key.xcodeproj/project.pbxproj"
@@ -31,7 +36,13 @@ marketing_version="${tag#v}"
 IFS=$'\t' read -r old_marketing_version old_build_version \
   <<< "$("${repo_root}/scripts/project-version.sh")"
 
-new_build_version="$(( old_build_version + 1 ))"
+if (( new_build_version <= old_build_version )); then
+  echo "build number ${new_build_version} must exceed checked-in build ${old_build_version}" >&2
+  exit 1
+fi
+# Private signed candidates can consume numbers without changing the project.
+# Require the maintainer to select an unused number from the artifact ledger;
+# incrementing only the checked-in version can silently reuse one.
 tmp_file="$(mktemp)"
 trap 'rm -f "${tmp_file}"' EXIT
 

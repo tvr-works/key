@@ -53,7 +53,7 @@ assert_rejected "v1.2.03"
 assert_rejected "v1.2.3-alpha.01"
 assert_rejected "v1.2.3+build.1"
 
-if "${repo_root}/scripts/bump-version.sh" "v0.2.0-preview.1" >/dev/null 2>&1; then
+if "${repo_root}/scripts/bump-version.sh" "v0.2.0-preview.1" 36 >/dev/null 2>&1; then
   echo "expected version bumping to reject an unsupported release tag" >&2
   exit 1
 fi
