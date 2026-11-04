@@ -1402,6 +1402,32 @@ struct V3RecoveryRegistrationServiceTests {
     }
   }
 
+  @Test(arguments: [false, true])
+  func configuredMacCancellationReturnsReadableAuthenticationFailure(rotation: Bool) throws {
+    guard #available(macOS 26.0, *) else { return }
+    let f = try Fixture()
+    defer { f.remove() }
+    let subject = try workflow(f)
+    f.core.owner.onUnwrap = { throw V3EnrollmentDeviceIdentityStoreError.authenticationCancelled }
+    let host = KeyServiceHost(
+      hasConfiguration: { true }, makeHandler: { { _ in .success() } },
+      initialize: { _ in "" },
+      registerRecovery: { try subject.handle($0, scope: $1) },
+      rotateRecovery: { try subject.rotate($0, scope: $1) })
+    let response = host.handle(rotation ? .recoveryRotation(.rotate) : .recoveryRegistration(.status))
+    #expect(response.exitCode != EXIT_SUCCESS && response.errorCode == .authenticationFailed)
+    #expect(response.errorMessage?.contains("authentication was cancelled") == true)
+    #expect(response.errorMessage?.contains("V3RecoveryVaultUnlockError") == false)
+    #expect(f.core.owner.unwraps == 1 && f.core.owner.signatures == 0)
+    #expect(f.provider.requests == 0 && f.card.publicSessions == 0)
+    #expect(f.checkpoints.value == f.core.checkpoint.canonicalBytes)
+    #expect(f.ownership.value == nil && f.transactions.value == nil && f.adoption.value == nil)
+    #expect(try Data(contentsOf: f.manifestURL(f.core.parent.digest)) == f.core.parent.canonicalBytes)
+    for entry in f.core.entries.values {
+      #expect(try Data(contentsOf: f.entryURL(entry)) == entry.canonicalBytes)
+    }
+  }
+
   private func requestScope() -> KeyRecoveryRequestScope {
     .init(authentication: .init(), deadline: .now() + 90)
   }

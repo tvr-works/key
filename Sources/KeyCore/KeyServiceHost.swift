@@ -427,7 +427,9 @@ public final class KeyServiceHost {
                 activeRecovery = scope.id
             }
             defer { recoveryLock.withLock { activeRecovery = nil } }
-            let response = try perform(scope)
+            // Configured recovery uses the same Mac-unlock runtime as ordinary
+            // access; preserve its readable errors and structured auth codes.
+            let response = try translatingV3RecoveryRuntimeErrors { try perform(scope) }
             try scope.requireCurrent()
             return response
         }
