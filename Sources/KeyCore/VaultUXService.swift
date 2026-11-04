@@ -36,23 +36,23 @@ enum VaultUXServiceError: Error, Equatable, LocalizedError {
         case .vaultIncomplete:
             "Required vault files are unavailable on this Mac. Check that your sync provider has downloaded the vault files, then retry."
         case .contentConflict:
-            "That entry has conflicting changes. Run `key conflict list`, then `key conflict show <conflict-id>` to review the versions."
+            "That entry has conflicting changes. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`, then `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict show <conflict-id>` to review the versions."
         case .catchUpContentConflict:
             "The latest vault changes need to be combined before Key can use them. Use --allow-stale only to read this Mac's last verified version; it may be out of date."
         case .securityConflict:
             "Vault history contains conflicting changes to device access or encryption keys. Key cannot safely choose between them. Keep vault files and local records intact for investigation."
         case .rollbackDetected:
-            "Vault history would move an entry back to an older revision. Key has blocked this rollback. Run `key status --verbose` to inspect the problem; keep vault files and local records intact."
+            "Vault history would move an entry back to an older revision. Key has blocked this rollback. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status --verbose` to inspect the problem; keep vault files and local records intact."
         case .recoveryRequired:
             "Key cannot safely continue with the available vault state. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
         case .deviceIdentityUnavailable:
-            "This Mac no longer has usable access credentials for this vault. A Mac that still has access must invite it again; see `key help share`. If no enrolled Mac survives, the vault is permanently inaccessible. The vault folder alone cannot restore access."
+            "This Mac no longer has usable access credentials for this vault. A Mac that still has access must invite it again; see `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`. If no enrolled Mac survives, the vault is permanently inaccessible. The vault folder alone cannot restore access."
         case .deviceRevoked:
-            "This Mac's access to the vault was removed. A Mac that still has access must invite it again; see `key help share`."
+            "This Mac's access to the vault was removed. A Mac that still has access must invite it again; see `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`."
         case .conflictNotFound:
-            "That conflict is no longer present. Run `key conflict list` again."
+            "That conflict is no longer present. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list` again."
         case .conflictVersionNotFound:
-            "That version is no longer part of the conflict. Run `key conflict list`, then review it again with `key conflict show <conflict-id>`."
+            "That version is no longer part of the conflict. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`, then review it again with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict show <conflict-id>`."
         case .expectedHeadsChanged:
             "The vault changed after you reviewed the conflict. No resolution was applied; review the current conflicts and try again."
         case .unavailableForCurrentFormat:

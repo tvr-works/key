@@ -410,7 +410,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
     func deviceInventory() throws -> V3VaultDeviceInventory {
         guard let vaultID = selectedVaultID else {
             throw AppError.operationRefused(
-                "This command needs a configured device-enrolled vault. Run `key status` to check this Mac's setup."
+                "This command needs a configured device-enrolled vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check this Mac's setup."
             )
         }
         let authority = try currentAuthenticatedDeviceAuthority(
@@ -500,7 +500,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
             "Vault: \(vaultID)",
             "Invitation: \(v3LowercaseHex(invitation.digest))",
             "Expires in 10 minutes.",
-            "On the other Mac, run `key share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`."
+            "On the other Mac, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`."
         ].joined(separator: "\n") + "\n"
     }
 
@@ -541,7 +541,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
             return comparisonText(
                 transcript,
                 heading: "Request sent again. This Mac still needs approval.",
-                next: "Compare this code on both Macs. The existing Mac can run `key share requests \(v3LowercaseHex(invitationDigest))`, then `key share compare \(vaultID) \(v3LowercaseHex(invitationDigest)) <request-id>`."
+                next: "Compare this code on both Macs. The existing Mac can run `\(KeyProductIdentity.currentProcess.cliExecutableName) share requests \(v3LowercaseHex(invitationDigest))`, then `\(KeyProductIdentity.currentProcess.cliExecutableName) share compare \(vaultID) \(v3LowercaseHex(invitationDigest)) <request-id>`."
             )
         }
         let identity = try loadOrCreateIdentity(
@@ -573,7 +573,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
         return comparisonText(
             transcript,
             heading: "Request sent. This Mac still needs approval.",
-            next: "Compare this code on both Macs. The existing Mac can run `key share requests \(v3LowercaseHex(invitationDigest))`, then `key share compare \(vaultID) \(v3LowercaseHex(invitationDigest)) <request-id>`."
+            next: "Compare this code on both Macs. The existing Mac can run `\(KeyProductIdentity.currentProcess.cliExecutableName) share requests \(v3LowercaseHex(invitationDigest))`, then `\(KeyProductIdentity.currentProcess.cliExecutableName) share compare \(vaultID) \(v3LowercaseHex(invitationDigest)) <request-id>`."
         )
     }
 
@@ -633,7 +633,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
         return comparisonText(
             transcript,
             heading: "Compare these details on both Macs.",
-            next: "Only if both Macs show this exact code and both Mac names, run `key share \(action) \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`."
+            next: "Only if both Macs show this exact code and both Mac names, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share \(action) \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`."
         )
     }
 
@@ -690,7 +690,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
             authorizationReason: "Approve the compared Mac for this vault.",
             operationID: operationID
         )
-        return "Enrollment approved. From the same vault folder, the other Mac can now run `key share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
+        return "Enrollment approved. From the same vault folder, the other Mac can now run `\(KeyProductIdentity.currentProcess.cliExecutableName) share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
     }
 
     func accept(
@@ -703,7 +703,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
         try validateScope()
         guard selectedVaultID == nil else {
             throw AppError.operationRefused(
-                "This Mac is already configured to use a vault. Run `key status` to check it."
+                "This Mac is already configured to use a vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check it."
             )
         }
         try requirePermittedJoiningVault(vaultID)

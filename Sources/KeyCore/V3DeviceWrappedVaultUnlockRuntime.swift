@@ -26,7 +26,7 @@ enum V3DeviceWrappedVaultUnlockRuntimeError:
         case .recoveryRequired:
             "Key cannot verify and open this Mac's last trusted vault state. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
         case .deviceIdentityUnavailable:
-            "This Mac no longer has usable access credentials for this vault. A Mac that still has access must invite it again; see `key help share`. If no enrolled Mac survives, the vault is permanently inaccessible. The vault folder alone cannot restore access."
+            "This Mac no longer has usable access credentials for this vault. A Mac that still has access must invite it again; see `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`. If no enrolled Mac survives, the vault is permanently inaccessible. The vault folder alone cannot restore access."
         case .deviceRevoked:
             "This Mac's access to the vault was removed. Use a Mac that still has access to invite it again."
         case .legacyAlphaProfile:

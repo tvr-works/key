@@ -117,7 +117,7 @@ struct V3DeviceWrappedEnrollmentOwnerWorkflow:
             "Vault: \(vaultID)",
             "Invitation: \(v3LowercaseHex(invitation.digest))",
             "Expires in 10 minutes.",
-            "On the other Mac, run `key share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`."
+            "On the other Mac, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`."
         ].joined(separator: "\n") + "\n"
     }
 
@@ -175,7 +175,7 @@ struct V3DeviceWrappedEnrollmentOwnerWorkflow:
         return comparisonText(
             transcript,
             heading: "Compare these details on both Macs.",
-            next: "Only if both Macs show this exact code and both Mac names, run `key share approve \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`."
+            next: "Only if both Macs show this exact code and both Mac names, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share approve \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`."
         )
     }
 
@@ -203,7 +203,7 @@ struct V3DeviceWrappedEnrollmentOwnerWorkflow:
             at: unixTime,
             operationID: operationID
         )
-        return "Enrollment approved. From the same vault folder, the other Mac can now run `key share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
+        return "Enrollment approved. From the same vault folder, the other Mac can now run `\(KeyProductIdentity.currentProcess.cliExecutableName) share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
     }
 
     func accept(
@@ -214,7 +214,7 @@ struct V3DeviceWrappedEnrollmentOwnerWorkflow:
         operationID _: VaultTransactionOperationID
     ) throws -> String {
         throw AppError.operationRefused(
-            "This Mac is already configured to use a vault. It cannot accept another invitation here. Run `key status` to check it."
+            "This Mac is already configured to use a vault. It cannot accept another invitation here. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check it."
         )
     }
 

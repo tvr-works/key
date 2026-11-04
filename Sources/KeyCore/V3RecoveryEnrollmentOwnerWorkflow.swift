@@ -78,7 +78,7 @@ struct V3RecoveryEnrollmentOwnerWorkflow: V3EnrollmentWorkflowServicing, Sendabl
     return [
       "Enrollment invitation created.", "Vault: \(vaultID)",
       "Invitation: \(v3LowercaseHex(invitation.digest))", "Expires in 10 minutes.",
-      "On the other Mac, run `key share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`.",
+      "On the other Mac, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share join \(v3LowercaseHex(invitation.digest)) --name <device-name>` from the existing vault folder, or add `--vault-dir <existing-folder>`.",
     ].joined(separator: "\n") + "\n"
   }
 
@@ -117,7 +117,7 @@ struct V3RecoveryEnrollmentOwnerWorkflow: V3EnrollmentWorkflowServicing, Sendabl
       "Existing Mac: \(transcript.invitation.invitingDevice.displayName)",
       "Joining Mac: \(transcript.joinRequest.joiningDevice.displayName)",
       "Comparison code: \(transcript.comparisonCode)",
-      "Only if both Macs show this exact code and both Mac names, run `key share approve \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`.",
+      "Only if both Macs show this exact code and both Mac names, run `\(KeyProductIdentity.currentProcess.cliExecutableName) share approve \(vaultID) \(v3LowercaseHex(invitationDigest)) \(transcript.comparisonCode)`.",
     ].joined(separator: "\n") + "\n"
   }
 
@@ -170,7 +170,7 @@ struct V3RecoveryEnrollmentOwnerWorkflow: V3EnrollmentWorkflowServicing, Sendabl
     }
     try validateScope()
     return
-      "Enrollment approved. From the same vault folder, the other Mac can now run `key share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
+      "Enrollment approved. From the same vault folder, the other Mac can now run `\(KeyProductIdentity.currentProcess.cliExecutableName) share accept \(vaultID) \(v3LowercaseHex(invitationDigest)) \(comparisonCode)`; when running elsewhere, add `--vault-dir <existing-folder>`.\n"
   }
 
   func join(invitationDigest: Data, deviceName: String, at unixTime: UInt64) throws -> String {

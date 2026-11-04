@@ -187,7 +187,7 @@ public final class KeyServiceHost {
                     guard !restartPending else { return restarting() }
                     try requireNoRecoveryPending()
                     guard try !hasConfiguration(), handler == nil else {
-                        throw AppError.operationRefused("Key already has a configuration or an active runtime. Init never replaces a vault. Run `key status`; use migration for v2 or enrollment for an existing v3 vault.")
+                        throw AppError.operationRefused("Key already has a configuration or an active runtime. Init never replaces a vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status`; use migration for v2 or enrollment for an existing v3 vault.")
                     }
                     let message = try initialize(path)
                     restartPending = true
@@ -268,7 +268,7 @@ public final class KeyServiceHost {
             return resolved(.share(action))
         }
         guard handler == nil, let enroll else {
-            throw AppError.operationRefused("Unconfigured enrollment is unavailable while a configured runtime is active. Run `key lock`, then retry.")
+            throw AppError.operationRefused("Unconfigured enrollment is unavailable while a configured runtime is active. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then retry.")
         }
         let response = try enroll(action, path)
         if case .accept = action, response.exitCode == EXIT_SUCCESS {
@@ -303,7 +303,7 @@ public final class KeyServiceHost {
                           == URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL.path
                     else { throw AppError.operationRefused("--vault-dir cannot switch this Mac to another vault.") }
                 } else if handler != nil {
-                    throw AppError.operationRefused("An unconfigured enrollment cannot reuse a configured runtime. Run `key lock`, then retry.")
+                    throw AppError.operationRefused("An unconfigured enrollment cannot reuse a configured runtime. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then retry.")
                 }
             }
             guard let invocation = try capability.prepare(action, path, scope) else {
@@ -346,7 +346,7 @@ public final class KeyServiceHost {
             guard !restartPending else { return restarting() }
             try request.validate()
             guard handler == nil else {
-                throw AppError.operationRefused("Recovery cannot run alongside a configured runtime. Run `key lock`, then explicitly resume the saved attempt after Key Agent restarts.")
+                throw AppError.operationRefused("Recovery cannot run alongside a configured runtime. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then explicitly resume the saved attempt after Key Agent restarts.")
             }
             if request.isInitialRestore {
                 try requireNoRecoveryPending()
@@ -513,6 +513,6 @@ public final class KeyServiceHost {
     }
 
     private func restarting() -> KeyServiceResponse {
-        .failure("The vault configuration changed and Key Agent is restarting. Run `key lock`, then `key status`; do not initialize another vault.")
+        .failure("The vault configuration changed and Key Agent is restarting. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then `\(KeyProductIdentity.currentProcess.cliExecutableName) status`; do not initialize another vault.")
     }
 }

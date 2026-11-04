@@ -2,55 +2,67 @@
 /// Keep paragraphs unwrapped; the renderer owns wrapping and column alignment.
 enum CLIHelp {
     static let recovery = """
-    Hardware recovery is available in the 0.3.0 Preview beta. Stable keeps it disabled. Use disposable data while beta qualification continues; adopting recovery changes the vault format and older apps will refuse it.
+    Hardware recovery is available in the 0.3.0 Preview beta and disabled in Stable. Use disposable data during the beta.
 
-    Restore requires the complete source vault files and a previously registered hardware recovery key. It creates a separate vault on an unconfigured Mac; it never replaces the source or this Mac's selected vault. The new vault has fresh Mac access and no recovery key registered until separately registered.
+    Before you need recovery, prepare the vault with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt, then register each recovery key with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register. Keep independent backup keys separately. Key does not set up or reset the physical keys; follow the hardware setup guide first.
 
-    key recovery tokens lists connected candidates without choosing one. Use key recovery review --source <directory> --token <token-id> for a public source/credential review and its complete recipient ID. Neither command requests PIN/touch, reads entry objects or saves a restore attempt. Review does not prove possession or restorable contents and is not approval to restore.
+    To recover, you need the encrypted vault files and a key previously registered for that vault. Start with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again for the new vault.
 
-    For restore/resume, specify --source, --destination, --token and --recipient exactly once. Paths may be absolute or relative to the current directory; Key never takes them from existing configuration. The token ID selects a connected device. The complete recipient ID identifies its recovery public key, not its certificate fingerprint. Neither selector is a secret or an approval.
+    Enter the YubiKey's PIN only in the macOS dialog, touch the key when it flashes, and approve the Mac prompts that follow. After a timeout or disconnection, click Cancel if the PIN dialog remains open. Key does not retry automatically.
 
-    Key does not set up, reset or write to the hardware key. Enter its PIN only in the macOS dialog and physically touch the key when it flashes. Cancel unexpected prompts. After timeout or disconnection, click Cancel if the macOS PIN dialog remains open; the expired operation cannot publish a result. Key does not automatically retry authentication or a failed restore.
-
-    After interruption or a lost reply, leave the source, destination, local records and configuration intact. Do not initialize, enroll, change vault-dir, delete state to force a retry or start another restore. See key recovery resume --help. The storage provider is responsible for delivering files; Key cannot prove it has supplied every newer file.
+    If interrupted, keep the source, destination and saved records intact. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help before another attempt. A recovery key cannot replace missing files, and Key cannot prove that your sync provider has delivered every newer file.
     """
 
     static let recoveryTokens = """
-    Available in the 0.3.0 Preview beta; disabled in Stable. List at most 64 public token candidates with exact token IDs and reader names. No candidate is automatically selected; no slot certificate, key metadata, anchor or private operation is read. An empty list is not proof of missing recovery protection.
+    List connected security keys and their token IDs without asking for a PIN or touch. Key does not select a key automatically or read its recovery setup. An empty list does not mean that your vault has no registered recovery keys.
 
-    Listing does not prove possession, compatibility, registration or restorable contents. Use the exact token ID with key recovery review --source <directory> --token <token-id>. Public observations may change if a key is removed or replaced; restore rechecks them independently. --json prints the same observations for scripts, not a readiness or approval signal.
+    Use the complete token ID with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id> to check a key's setup, or \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review --source <directory> --token <token-id> to check it against vault files. Listing a key does not prove that it supports recovery or is registered for your vault. --json prints the same public information for scripts.
     """
 
     static let recoveryAbandon = """
-    Gated local cancellation for a restore that stopped before complete encrypted preparation was saved. Supply the original --source and --destination, the complete source --vault-id and the original --operation ID shown by the incomplete-resume diagnostic. No hardware key, PIN, touch or Mac private-key operation is required.
+    Release a restore attempt that stopped before its complete encrypted preparation was saved. Use the original --source and --destination, plus the full --vault-id and --operation ID reported by resume. No hardware key or Mac authentication is needed.
 
-    Key verifies the exact locally owned reservation, original physical folders, absence of configuration and preparation, and an empty destination before releasing that reservation. Changed, missing or invalid records, another operation, any prepared restore, selected configuration or destination data cause refusal. Resume a completely prepared restore instead.
+    Key checks that this Mac still has the matching early attempt, the original folders, an empty destination, and no configured or fully prepared vault. It refuses changed, missing or invalid records. A fully prepared restore must be resumed instead.
 
-    This does not delete files, the empty destination or saved Mac credentials. Retained files alone grant no permission to resume. A later new restore must explicitly choose a new missing destination; abandonment never retries or starts one. After a failed or lost reply, preserve all state for inspection rather than deleting it or assuming completion.
+    This leaves files, the destination folder and saved Mac credentials intact. It does not start another restore. After successful abandonment, a new restore needs a different destination that does not exist. If the result is uncertain, preserve the records for investigation.
     """
 
     static let recoveryCredential = """
-    Gated public inspection of one explicitly selected token. Use the exact --token from recovery tokens. Reads the slot 9d credential, required reported P-256/generated/PIN-always/touch-always policy and anchor occupancy; returns the complete recipient ID even before registration. No PIN/touch, entry read, setup intent or token write is requested. Public metadata is not attestation or proof of possession, protected administration or recoverability.
+    Check one security key's public recovery setup without asking for a PIN or touch. Use the complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens.
+
+    Key reads the credential in PIV slot 9d, checks its reported key type and PIN/touch settings, and reports whether a recovery setup record (anchor) is present. The recipient ID identifies the recovery public key; it is not the certificate fingerprint.
+
+    This check does not change the key, register it, or prove that recovery will work. Public information cannot prove that hardware administration is protected or that the key will enforce PIN and touch. Registration and restore check the key again and require hardware approval.
     """
 
     static let recoveryRegistration = """
-    Available in the 0.3.0 Preview beta; disabled in Stable. Use disposable data during the beta. The configured vault must use the recovery-capable format; explicit adoption is separate.
+    Register a hardware key so it can recover this vault if your Macs are lost. Available in the Preview beta; disabled in Stable. Use disposable data during the beta. First run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt on the configured vault.
 
-    Set up slot 9d externally with vendor tools: P-256 generated on the token, PIN always and touch always. Secure PIV administration separately and retain the required recovery/admin credentials safely. Key does not provision, reset or write the token and cannot infer protected administration from public key metadata.
+    Prepare the physical key separately using the hardware setup guide. Key requires a P-256 key generated in PIV slot 9d, a matching certificate, and PIN-always and touch-always settings. Protect its administration credentials separately. Key does not provision, reset or write to the physical key.
 
-    Inspect recovery credential --token <token-id> for its complete recipient ID. Run register prepare with that --token, --recipient and --export-anchor <new-file>. Preparation creates one locally owned encrypted candidate and exports public commitments only. Install those exact bytes using the documented external vendor-tool procedure. Then register finish with the same token/recipient verifies the installed anchor and requests one possession operation before activation. Enter PIN only in the macOS dialog; touch the key when it flashes.
+    Inspect the key with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id>. Use the returned token and recipient IDs with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register prepare --export-anchor <new-file>. This saves the registration attempt and exports a public recovery setup file, called an anchor. Recovery is not active yet.
 
-    If preparation stopped before its anchor was ready for export, recovery pending shows its original registration operation ID. register abandon <operation-id> requires ABANDON confirmation and Mac approval; it releases only that early reservation, preserves all saved files, and never contacts the token. It refuses any export-ready or activated registration. After successful abandonment, a new prepare is a separate explicit action.
+    Install that exact file on the selected key using the documented vendor-tool procedure. Then run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient. Enter the key's PIN only in macOS and touch it when it flashes. Register each independent backup key separately.
 
-    After a failed export or interruption, preserve all state. register resume-export exports the same locally owned candidate to a new file; it does not replace setup or rewrite the token. Explicit finish rechecks the original candidate or exact committed state. register status authenticates local registration state without contacting a token; it is not a hardware qualification or provider-freshness claim. Never delete records to force another attempt.
+    If export fails, keep the saved records and use register resume-export with a new output filename. If setup stops, follow its resume instructions; do not delete records to start again. Use register status to check this Mac's saved registration state. This does not test the hardware key or prove that all files have synchronized.
+    """
+
+    static let recoveryRegistrationAbandon = """
+    Release a registration attempt that stopped before its recovery setup file was ready to export. Find its original operation ID with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending.
+
+    Type ABANDON and approve the Mac prompt. Key keeps the saved files and does not contact or change the physical key. This cannot remove an active recovery key or release an attempt already ready for export. Follow that attempt's resume-export or finish instructions instead.
+
+    After successful abandonment, starting registration again is a separate action. If the result is uncertain, keep the records intact; do not delete them to force a retry.
     """
 
     static let recoveryAdoption = """
-    Gated explicit format adoption, not registration or recovery. Preserve a backup and coordinate upgrades on every Mac before changing the format. Old clients must refuse the new profile. Adoption performs complete authenticated resealing and changes the selected checkpoint, but adds no token recipient. It never writes hardware or changes vault-dir.
+    Update this vault's format to support recovery keys. This does not register a key or make recovery available yet. Keep a complete backup and upgrade every participating Mac first: older apps cannot open the updated format.
 
-    Use --resume <complete-original-operation-id> only for the exact locally owned interrupted adoption. It never starts a replacement or adopts provider records. Preserve files and local records after interruption; do not delete ownership to retry. Check registration status after the helper restarts, then separately register a recovery key. This workflow requires an interactive terminal.
+    Approve the Mac prompts while Key rewrites and verifies the encrypted vault in the new format. The vault folder stays the same, and no hardware key is contacted. After completion, use \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register to add recovery keys.
 
-    If adoption stopped before its preparation was ready for publication and cannot resume, use --abandon <complete-original-operation-id>. Find the ID with recovery pending. Abandonment requires ABANDON confirmation and refuses any attempt already armed for publication. It preserves the vault format, checkpoint and saved files; it never changes a hardware key. After successful abandonment, a new adoption must be explicitly requested.
+    If interrupted, keep the vault files and saved records. Use --resume <operation-id> with the original ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending. Resume continues only that saved attempt.
+
+    If Key reports that preparation stopped too early to resume, use --abandon <operation-id>. This requires ABANDON confirmation and Mac approval. It preserves files and only releases an attempt that has not reached the stage where the format change can be saved. Later attempts must follow the resume path.
     """
 
     static let recoveryRecipientRemoval = """
@@ -62,72 +74,76 @@ enum CLIHelp {
     """
 
     static let recoveryRotation = """
-    Gated, explicit vault-key rotation for an already recovery-capable configured vault. This changes the encryption key and reseals the complete current contents while preserving device access and recovery recipients. It does not provision, read, write or authenticate a hardware token. Mac authentication is still required. Approve each prompt until the command finishes.
+    Change this vault's encryption key while keeping access for its enrolled Macs and registered recovery keys. The configured vault must already support recovery. Your hardware keys can stay disconnected.
 
-    Type ROTATE in an interactive terminal. After an interrupted or lost reply, preserve vault files and device-local ownership. Inspect status and recovery pending after helper restart. Use --resume <complete-original-operation-id> only for a readable locally pinned rotation, never to start replacement work. A missing intent requires inspection, not deletion or another rotation. No automatic retry is performed.
+    Keep a backup, type ROTATE, and approve each Mac prompt until the command finishes. Key rewrites the current encrypted contents with the new encryption key.
+
+    If interrupted, keep the vault files and this Mac's saved records. After the background service restarts, inspect \(KeyProductIdentity.currentProcess.cliExecutableName) status and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending. Use --resume <operation-id> to continue the original saved rotation. If required records are missing or invalid, keep them for investigation; do not delete them or start another rotation. Key does not retry automatically.
     """
 
     static let recoveryReview = """
-    Available in the 0.3.0 Preview beta; disabled in Stable. Provide --source and the exact --token from key recovery tokens once each. The source must already exist; Key never defaults to configured vault-dir. Review reads only the selected token's public P-256 credential, reported slot 9d policies and recognized recovery anchor, then checks bounded public history for a matching vault and one visible head.
+    Check whether the source vault's public history matches the selected recovery key. Use an existing --source folder and the complete --token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens. Key does not use your configured vault folder by default.
 
-    The reported policy must be generated-on-token with PIN always and touch always. Public metadata is not attestation, possession proof or proof that PIN/touch will be enforced in a later operation. An absent or unrecognized anchor, incompatible policy, missing history, competing heads or changed observations is refused without fallback.
+    This check reads the key's public credential, reported PIN/touch settings, recovery setup record (anchor), and available vault history. It refuses incompatible keys, missing required history, or competing versions. It does not ask for PIN or touch, read secret contents, create a destination, or change configuration.
 
-    Review never requests PIN/touch, opens entry objects, creates a destination, reads local ownership records, saves a pending attempt or changes configuration. It can inspect public source state on a configured Mac or while local restore ownership remains. A listed entry count is not secret-content verification, a complete backup or proof of provider freshness. Only a later explicit restore can authenticate contents with the hardware key; it rechecks everything independently.
-
-    --json prints the same public observations, with public-observation-only assurance, not readiness or restore approval. No private credential or confirmation token is returned. Keep unexpected state intact; no automatic retry or cleanup occurs.
+    Successful review does not prove that recovery will work, that the key will enforce PIN/touch, or that every newer file has arrived. Restore checks the source again and uses hardware approval to verify its contents. --json prints the same public information for scripts.
     """
 
     static let recoveryRestore = """
-    Available in the 0.3.0 Preview beta; disabled in Stable. See key recovery --help for prerequisites and limits.
+    Recover into a new vault on a Mac with no configured vault. Available in the Preview beta; disabled in Stable. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help for prerequisites.
 
-    Provide --name for this Mac's readable name, plus explicit --source, --destination, --token and --recipient. The source and destination parent must already exist. The destination itself must be missing, even if an existing folder is empty. Source and destination must be separate; Key refuses overlapping folders and never adopts, replaces or erases an existing destination.
+    Use --name for this Mac's name. Supply --source, --destination, --token and --recipient exactly once. Use the complete IDs from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review; the recipient ID is not a certificate fingerprint. These IDs are public identifiers, not secrets or approval to restore. Paths may be absolute or relative to the current directory.
 
-    Successful restore authenticates the selected source contents and required history, then creates and selects a new vault. The source is unchanged. The helper restarts before ordinary use. Keep the source and hardware key until you have checked the new vault. Recovery protection is not inherited by the new vault.
+    The source and destination parent must exist. The destination itself must not exist, even as an empty folder. Source and destination cannot overlap. Key leaves the source unchanged and selects the verified new vault for future commands.
 
-    If the command fails, times out or loses its reply, do not repeat restore automatically. Preserve all state and explicitly resume the exact attempt when possible. A failure before a complete saved preparation may require inspection instead of resume.
+    Enter the key's PIN in macOS, touch it when it flashes, then approve the Mac prompts until completion. The background service restarts afterward. Check the recovered entries and register recovery keys again for the new vault.
+
+    If interrupted, keep all files and saved records. Use \(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help before another attempt. If a PIN dialog remains open after timeout, click Cancel.
     """
 
     static let recoveryResume = """
-    Available in the 0.3.0 Preview beta; disabled in Stable. Resume is not a new restore or a general repair command.
+    Continue the restore attempt saved on this Mac. Use the original --source, --destination, --token and complete --recipient. Do not supply a new Mac name. Resume never starts a replacement restore or recreates missing files or credentials.
 
-    Provide the original --source, --destination, --token and complete --recipient. Do not supply a new Mac name. Key requires the exact locally owned attempt and existing folders, credentials, preparation and completion state. It never recreates missing state, adopts another attempt or falls back to restore. A completed attempt whose ownership records are cleared cannot be resumed again as proof of success.
+    If the background service is restarting, run \(KeyProductIdentity.currentProcess.cliExecutableName) lock, then \(KeyProductIdentity.currentProcess.cliExecutableName) status. Status alone does not finish an interrupted restore. Resume the saved attempt explicitly and approve its hardware and Mac prompts.
 
-    If the helper reports that it is restarting, run key lock, then key status. Status alone does not prove completion or clear saved ownership. Resume explicitly when a saved attempt remains. If no complete preparation was saved, resume explains the original source vault and operation IDs: inspect key recovery abandon --help for explicit release of that exact incomplete reservation. Changed, missing or invalid records still require inspection; do not delete records or folders to force a retry. No PIN or hardware operation is automatically retried.
+    If preparation stopped too early to resume, Key reports the original vault and operation IDs. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --help to release that incomplete attempt. Changed, missing or invalid records require investigation; keep them and the vault folders intact.
+
+    A completed attempt cannot be resumed once its saved operation records have been cleared. After a timeout, cancel any remaining PIN dialog before another attempt. Key does not retry automatically.
     """
 
     static let overview = """
-    Use key init for a new vault, or key share to join one from another Mac. Run key <command> --help for options and examples.
+    Use \(KeyProductIdentity.currentProcess.cliExecutableName) init for a new vault, or \(KeyProductIdentity.currentProcess.cliExecutableName) share to join one from another Mac. Run \(KeyProductIdentity.currentProcess.cliExecutableName) <command> --help for options and examples.
 
-    Help, version, and lock work before setup. Other commands need a configured vault, except the joining steps described in key share --help.
+    Help, version, and lock work before setup. Most other commands need a configured vault. Joining and Preview recovery have their own setup steps; see \(KeyProductIdentity.currentProcess.cliExecutableName) share --help and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
 
-    Keep at least two active enrolled Macs. If every enrolled Mac is lost, you cannot recover access from the vault folder alone. There is currently no password, cloud, or support fallback.
+    Keep at least two active enrolled Macs. If every enrolled Mac is lost, you cannot recover access from the vault folder alone. There is no password, cloud, or support override. Preview offers separately registered hardware recovery keys; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
     """
 
     static let initialize = """
     With no directory, Key uses your current directory. It must be empty, including hidden files. If the destination does not exist, Key creates it; the parent directory must already exist. Destination symlinks are refused.
 
     Examples:
-      key init
-      key init /path/to/NewVault
-      key init -- -vault
+      \(KeyProductIdentity.currentProcess.cliExecutableName) init
+      \(KeyProductIdentity.currentProcess.cliExecutableName) init /path/to/NewVault
+      \(KeyProductIdentity.currentProcess.cliExecutableName) init -- -vault
 
     Key checks that this Mac can reopen the new vault before saving its configuration. Init never replaces existing configuration or reinitializes a vault. If setup is interrupted, keep the files and local records intact and follow the error's instructions; do not delete them to force a retry.
 
-    To join a vault from another Mac, use key share --help, not init. An empty synced folder may still have files waiting to download.
+    To join a vault from another Mac, use \(KeyProductIdentity.currentProcess.cliExecutableName) share --help, not init. An empty synced folder may still have files waiting to download.
 
-    After setup: run key status, then key add <name>. Add another Mac before relying on this vault. If every enrolled Mac is lost, a backup of the vault folder alone cannot restore access.
+    After setup: run \(KeyProductIdentity.currentProcess.cliExecutableName) status, then \(KeyProductIdentity.currentProcess.cliExecutableName) add <name>. Add another Mac before relying on this vault. If every enrolled Mac is lost, a backup of the vault folder alone cannot restore access.
     """
 
     static let share = """
     On a Mac that already has access:
-      Run key share devices to find this Mac's recorded name.
-      Run key share invite --name "Existing Mac" using that exact name.
+      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share devices to find this Mac's recorded name.
+      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invite --name "Existing Mac" using that exact name.
       --name identifies this Mac, not the Mac you are inviting.
 
     On the joining Mac:
       Open the existing synced vault folder in your terminal. Do not run init.
-      Run key share invitations, then:
-      key share join <invitation-id> --name "New Mac"
+      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invitations, then:
+      \(KeyProductIdentity.currentProcess.cliExecutableName) share join <invitation-id> --name "New Mac"
       Here, --name is the name you want to give the joining Mac.
 
     Follow the commands printed on each Mac. Compare the exact code and both Mac names on the two screens. Stop if they differ. Approve on the existing Mac, then accept on the joining Mac. Only verified acceptance saves the joining Mac's vault configuration. Invitations expire after 10 minutes.
@@ -136,7 +152,7 @@ enum CLIHelp {
     With no configuration, joining commands use the current directory. Use --vault-dir on invitations/join/compare/accept to run elsewhere. Keep using the same folder and invitation for that attempt. A configured Mac uses its configured folder; --vault-dir cannot switch vaults. Joining never creates a folder. Wait for existing vault files to download.
 
     Removing access:
-    key share revoke shows a review and requires you to type REVOKE. The removed Mac cannot read the new vault or future changes, but keeps any secrets and older vault data it already obtained. A lost or revoked Mac rejoins through an invitation from a surviving Mac.
+    \(KeyProductIdentity.currentProcess.cliExecutableName) share revoke shows a review and requires you to type REVOKE. The removed Mac cannot read the new vault or future changes, but keeps any secrets and older vault data it already obtained. A lost or revoked Mac rejoins through an invitation from a surviving Mac.
 
     Keep at least two active enrolled Macs. If all are lost, the vault folder alone cannot restore access. There is no password, cloud, or support fallback.
     """
@@ -144,18 +160,18 @@ enum CLIHelp {
     static let joiningDirectory = """
     With no configuration, this command uses the current directory. Use --vault-dir to select the existing vault folder elsewhere. A configured Mac uses its configured folder; --vault-dir cannot switch vaults. Joining never creates a folder. Wait for existing vault files to download, and do not run init.
 
-    Keep using the same folder and invitation for this attempt. See key share --help for the full sequence.
+    Keep using the same folder and invitation for this attempt. See \(KeyProductIdentity.currentProcess.cliExecutableName) share --help for the full sequence.
     """
 
     static let config = """
     vault-dir is the folder Key uses for this vault. To correct its path after deliberately moving the complete vault:
-      key config set vault-dir /path/to/ExistingVault
+      \(KeyProductIdentity.currentProcess.cliExecutableName) config set vault-dir /path/to/ExistingVault
 
     The folder must already exist. This changes the path, not the vault's ID, and does not move files or join a different vault. Missing vault files or keys are errors; Key will not create replacements.
 
     For device-enrolled vaults, put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode does not control their synchronization or device access. Key retains that setting for compatibility and omits it from config list for these vaults.
 
-    For older vaults, keychain-mode selects an existing local or icloud key. Key cannot create or replace synchronized keys: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys remain readable and migratable. Use key migrate --help to prepare for migration; afterward, share the vault folder using your preferred file-sync provider.
+    For older vaults, keychain-mode selects an existing local or icloud key. Key cannot create or replace synchronized keys: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys remain readable and migratable. Use \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help to prepare for migration; afterward, share the vault folder using your preferred file-sync provider.
 
     Config commands require existing configuration. Use init for a new vault or share to join an existing one; config set is not a setup command.
     """
@@ -164,12 +180,12 @@ enum CLIHelp {
     Move an older Keychain-backed vault to the device-enrolled format. Migration never starts automatically; choose exactly one action.
 
     Examples:
-      key migrate --check
-      key migrate --apply
+      \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check
+      \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --apply
 
     --check verifies readiness without changing files or Keychain items. --apply creates a new copy, verifies it, and configures this Mac to use it.
 
-    Key retains the original files. Keep them while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. Other Macs are not migrated automatically; add them to the new vault using key share --help after installing a compatible release.
+    Key retains the original files. Keep them while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. Other Macs are not migrated automatically; add them to the new vault using \(KeyProductIdentity.currentProcess.cliExecutableName) share --help after installing a compatible release.
 
     Keep at least two active enrolled Macs. If all are lost, the new vault's files alone cannot restore access. No password, cloud, or support fallback is currently available.
 
@@ -183,22 +199,22 @@ enum CLIHelp {
     """
 
     static let conflict = """
-    Start with key conflict list, then key conflict show for each conflict. Use get or copy to inspect a particular secret version. Get prints the secret; copy uses the clipboard.
+    Start with \(KeyProductIdentity.currentProcess.cliExecutableName) conflict list, then \(KeyProductIdentity.currentProcess.cliExecutableName) conflict show for each conflict. Use get or copy to inspect a particular secret version. Get prints the secret; copy uses the clipboard.
 
     Resolve every current conflict together, with one choice for each conflict. If the vault changes during review, review the new conflicts before retrying.
 
     Choosing a version can discard another edit or keep a deletion. Review all versions first. Conflicts involving older revisions or device access cannot be bypassed with resolve. Keep vault files and local records intact if Key reports that it cannot safely continue.
 
     Example:
-      key conflict resolve conflict-a=version-a conflict-b=version-b
+      \(KeyProductIdentity.currentProcess.cliExecutableName) conflict resolve conflict-a=version-a conflict-b=version-b
     """
 
     static let read = """
     --allow-stale allows reading the last complete version already verified on this Mac when newer files are unavailable or have competing edits. The files for that verified version must still be available on this Mac; this option cannot restore missing files. The value may be out of date. It does not bypass failed security checks.
 
     Examples:
-      key get github/personal
-      key copy github/personal
+      \(KeyProductIdentity.currentProcess.cliExecutableName) get github/personal
+      \(KeyProductIdentity.currentProcess.cliExecutableName) copy github/personal
     """
 
     static let write = """
@@ -207,12 +223,12 @@ enum CLIHelp {
     --totp stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL.
 
     Examples:
-      key add github/personal
-      key edit --totp github/mfa
+      \(KeyProductIdentity.currentProcess.cliExecutableName) add github/personal
+      \(KeyProductIdentity.currentProcess.cliExecutableName) edit --totp github/mfa
     """
 
     static let unlock = """
-    Authenticate with macOS before running commands that need the vault key. Key normally asks when access is needed, so unlocking in advance is optional. Access expires after inactivity. Use key lock to end it immediately.
+    Authenticate with macOS before running commands that need the vault key. Key normally asks when access is needed, so unlocking in advance is optional. Access expires after inactivity. Use \(KeyProductIdentity.currentProcess.cliExecutableName) lock to end it immediately.
     """
 
     static let lock = """

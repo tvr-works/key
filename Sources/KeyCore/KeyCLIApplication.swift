@@ -56,7 +56,7 @@ public final class KeyCLIApplication {
             let directory = path.map {
                 URL(fileURLWithPath: $0, isDirectory: true, relativeTo: currentDirectory())
             } ?? currentDirectory()
-            io.writeStderr("Creating a new vault at '\(directory.standardizedFileURL.path)'. To use a vault from another Mac, join it with `key share` instead. If every enrolled Mac is lost, this vault cannot currently be recovered.\n")
+            io.writeStderr("Creating a new vault at '\(directory.standardizedFileURL.path)'. To use a vault from another Mac, join it with `\(KeyProductIdentity.currentProcess.cliExecutableName) share` instead. If every enrolled Mac is lost, this vault cannot currently be recovered.\n")
             response = try transport.send(.initializeVault(path: directory.standardizedFileURL.path))
             return try handle(response, for: command)
         case .migrationPreflight:
@@ -487,7 +487,7 @@ public final class KeyCLIApplication {
             io.writeStderr("Preserve the source, destination, files and local records. A failed or lost abandonment reply does not establish whether the reservation was released. Inspect the original attempt; no automatic retry or replacement restore was made.\n")
             return
         }
-        io.writeStderr("Leave source, destination, local records and configuration intact. Do not start another restore or delete state to retry. A failed or lost reply does not establish whether selection completed. Use `key recovery resume` with the exact original selectors if a saved attempt remains. Only an exact verified incomplete reservation can be explicitly released through `key recovery abandon`; otherwise preserve state for inspection. See `key recovery resume --help`.\n")
+        io.writeStderr("Leave source, destination, local records and configuration intact. Do not start another restore or delete state to retry. A failed or lost reply does not establish whether selection completed. Use `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume` with the exact original selectors if a saved attempt remains. Only an exact verified incomplete reservation can be explicitly released through `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon`; otherwise preserve state for inspection. See `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help`.\n")
     }
 
     private func sendRecovery(_ request: KeyServiceRequest) throws -> KeyServiceResponse {
@@ -940,10 +940,10 @@ public final class KeyCLIApplication {
             lines.append("Conflicts: \(status.conflictCount)")
             switch status.health {
             case .contentConflicted:
-                lines.append("Next: run `key conflict list`.")
+                lines.append("Next: run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`.")
             case .rollbackDetected:
                 lines.append(
-                    "Next: inspect with `key conflict list`. Keep vault files and local records intact; ordinary conflict resolution cannot accept this rollback."
+                    "Next: inspect with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`. Keep vault files and local records intact; ordinary conflict resolution cannot accept this rollback."
                 )
             case .ready, .incomplete, .securityConflicted,
                 .recoveryRequired:
@@ -952,7 +952,7 @@ public final class KeyCLIApplication {
         }
         switch status.health {
         case .incomplete:
-            lines.append("Next: check that your sync provider has downloaded the vault files, then run `key status` again.")
+            lines.append("Next: check that your sync provider has downloaded the vault files, then run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` again.")
         case .securityConflicted, .recoveryRequired:
             lines.append("Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check.")
         case .ready, .contentConflicted, .rollbackDetected:
@@ -977,7 +977,7 @@ public final class KeyCLIApplication {
     private func writeV2DeprecationWarning() {
         guard io.stdoutIsTTY else { return }
         io.writeStderr(
-            "Warning: this vault uses the older storage format (v2), which is deprecated. Reading and saving secrets still work. Run `key migrate --check` to check migration readiness without changing the vault. Before migrating, review `key help migrate` for other-Mac setup and recovery limits.\n"
+            "Warning: this vault uses the older storage format (v2), which is deprecated. Reading and saving secrets still work. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check` to check migration readiness without changing the vault. Before migrating, review `\(KeyProductIdentity.currentProcess.cliExecutableName) help migrate` for other-Mac setup and recovery limits.\n"
         )
     }
 
@@ -1068,11 +1068,11 @@ public final class KeyCLIApplication {
         switch conflict.summary.kind.resolutionPolicy {
         case .chooseVersion:
             lines.append(
-                "Resolve only after reviewing every conflict shown by `key conflict list`."
+                "Resolve only after reviewing every conflict shown by `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`."
             )
         case .recoveryRequired:
             lines.append(
-                "This older revision cannot be accepted with `key conflict resolve`. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
+                "This older revision cannot be accepted with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict resolve`. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
             )
         }
         io.writeStdout(lines.joined(separator: "\n") + "\n")

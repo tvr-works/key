@@ -8,6 +8,13 @@ public enum KeyProductVariant: String, CaseIterable, Sendable {
 /// These values deliberately do not include version 3 format identifiers. Stable
 /// and Preview are separate installed products that speak the same vault format.
 public struct KeyProductIdentity: Equatable, Sendable {
+    /// Product names for authored help and instructions. Resolve the containing
+    /// app bundle for embedded CLIs as well as the app and helper executables.
+    /// Never rewrite rendered output: it can contain user names or secrets.
+    static let currentProcess = RuntimeConfiguration.live(
+        bundle: KeyVersionInfo.currentProcessBundle()
+    ).productIdentity
+
     public let variant: KeyProductVariant
     public let appName: String
     public let appBundleIdentifier: String

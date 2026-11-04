@@ -4,6 +4,7 @@ set -euo pipefail
 # Pass a freshly built CLI. Every invocation below is help, version, or an
 # invalid command: none may request authentication or touch a real vault.
 cli="${1:?usage: help-tests.sh /path/to/built/key}"
+command_name="${cli:t}"
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/key-help-tests.XXXXXX")"
 trap 'rm -f -- "$scratch/stdout" "$scratch/stderr"; rmdir "$scratch"' EXIT
 
@@ -14,6 +15,11 @@ topics=(
   'conflict list' 'conflict show' 'conflict get' 'conflict copy' 'conflict resolve'
   'share devices' 'share invite' 'share invitations' 'share join' 'share requests'
   'share compare' 'share approve' 'share accept' 'share revoke'
+  recovery 'recovery tokens' 'recovery credential' 'recovery register'
+  'recovery register status' 'recovery register prepare' 'recovery register resume-export'
+  'recovery register finish' 'recovery register abandon' 'recovery adopt'
+  'recovery pending' 'recovery rotate' 'recovery remove-recipient'
+  'recovery review' 'recovery restore' 'recovery resume' 'recovery abandon'
 )
 
 for columns in 0 20 40 60 80 120 invalid; do
@@ -21,6 +27,11 @@ for columns in 0 20 40 60 80 120 invalid; do
     words=( ${=topic} )
     env COLUMNS="$columns" "$cli" "${words[@]}" --help >"$scratch/stdout" 2>"$scratch/stderr"
     [[ -s "$scratch/stdout" && ! -s "$scratch/stderr" ]]
+    # Product names must be correct before wrapping, including nested usage.
+    grep -q "^USAGE: ${command_name}\( \|$\)" "$scratch/stdout"
+    if [[ "$command_name" == key-preview ]]; then
+      ! grep -Eq '(^|[[:space:]`])key (init|help|recovery|share|status|lock|config|migrate|conflict|add|edit|get|copy|list|<command>)' "$scratch/stdout"
+    fi
     LC_ALL=C awk '
       /[[:cntrl:]]/ { exit 1 }
       /[[:blank:]]$/ { exit 1 }

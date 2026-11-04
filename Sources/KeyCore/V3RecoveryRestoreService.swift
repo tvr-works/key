@@ -14,7 +14,7 @@ enum V3RecoveryRestoreServiceError: Error, Equatable, LocalizedError {
     case .wrapperMismatch: "This Mac's saved restored-vault access did not match the prepared key. Preserve the attempt for inspection."
     case .noPendingRestore: "No locally owned restore attempt was found. No replacement restore was started."
     case .incompletePreparation(let vault, let operation):
-      "This restore stopped before complete encrypted preparation was saved and cannot be resumed. Source vault ID: \(vault). Restore operation ID: \(operation). Preserve its records. Use `key recovery abandon --help` to explicitly release only this incomplete attempt; do not delete state to retry."
+      "This restore stopped before complete encrypted preparation was saved and cannot be resumed. Source vault ID: \(vault). Restore operation ID: \(operation). Preserve its records. Use `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --help` to explicitly release only this incomplete attempt; do not delete state to retry."
     }
   }
 }

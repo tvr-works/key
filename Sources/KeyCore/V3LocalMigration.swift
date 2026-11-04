@@ -70,8 +70,8 @@ struct V3LocalMigrationReport: Equatable, Sendable {
             "Entries migrated: \(entryCount) (\(secretCount) \(secretCount == 1 ? "secret" : "secrets"), \(totpCount) \(totpCount == 1 ? "TOTP entry" : "TOTP entries")).",
             "This Mac now uses the migrated vault. Vault ID: \(vaultID).",
             "Your original vault files were kept unchanged. No files were removed.",
-            "Run `key status` after Key's background service restarts to check the migrated vault.",
-            "Other Macs still use the original vault. Later changes there are not copied into this one. Run `key help share` to add another Mac to the migrated vault."
+            "Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` after Key's background service restarts to check the migrated vault.",
+            "Other Macs still use the original vault. Later changes there are not copied into this one. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) help share` to add another Mac to the migrated vault."
         ].joined(separator: "\n") + "\n"
     }
 
@@ -80,10 +80,10 @@ struct V3LocalMigrationReport: Equatable, Sendable {
             "Migration completed.",
             "Entries migrated: \(entryCount) (\(secretCount) \(secretCount == 1 ? "secret" : "secrets"), \(totpCount) \(totpCount == 1 ? "TOTP entry" : "TOTP entries")).",
             "This Mac now uses the migrated vault. Vault ID: \(vaultID).",
-            "Key verified that this Mac can unlock the new vault. Run `key status` to check it.",
+            "Key verified that this Mac can unlock the new vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check it.",
             "Your original vault files were kept unchanged. No files were removed.",
             "Keep the original files while checking the migration. They do not receive later changes from the new vault and cannot restore access to it.",
-            "Other Macs are not migrated automatically. Install a compatible release on them, then use `key help share` to add at least one other Mac before relying on the new vault.",
+            "Other Macs are not migrated automatically. Install a compatible release on them, then use `\(KeyProductIdentity.currentProcess.cliExecutableName) help share` to add at least one other Mac before relying on the new vault.",
             "If every enrolled Mac is lost, a backup of the vault folder alone cannot restore access."
         ].joined(separator: "\n") + "\n"
     }

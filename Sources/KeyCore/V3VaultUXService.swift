@@ -34,7 +34,7 @@ struct V3ConflictResolutionPlanner: Sendable {
               Set(resolutionIDs) == Set(snapshot.selections.keys)
         else {
             throw AppError.operationRefused(
-                "Resolve every current conflict exactly once. Run `key conflict list` and provide one <conflict-id>=<version-id> choice for each result."
+                "Resolve every current conflict exactly once. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list` and provide one <conflict-id>=<version-id> choice for each result."
             )
         }
 

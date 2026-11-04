@@ -576,7 +576,7 @@ public final class KeyServiceHandler {
             return requestQueue.sync(flags: .barrier) {
                 guard !vaultRootChangePending else {
                     return .failure(
-                        "The vault directory changed and Key Agent is restarting. Run `key lock`, then retry the command."
+                        "The vault directory changed and Key Agent is restarting. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then retry the command."
                     )
                 }
                 let response = handleWithMutationOwnership(request)
@@ -590,7 +590,7 @@ public final class KeyServiceHandler {
         return requestQueue.sync {
             guard !vaultRootChangePending || request == .lock else {
                 return .failure(
-                    "The vault directory changed and Key Agent is restarting. Run `key lock`, then retry the command."
+                    "The vault directory changed and Key Agent is restarting. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then retry the command."
                 )
             }
             return handleWithMutationOwnership(request)
@@ -633,7 +633,7 @@ public final class KeyServiceHandler {
 
             switch request {
             case .initializeVault:
-                throw AppError.operationRefused("Key already has a configured vault. Init does not replace it. Run `key status` to check it or `key help migrate` for older-vault migration.")
+                throw AppError.operationRefused("Key already has a configured vault. Init does not replace it. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check it or `\(KeyProductIdentity.currentProcess.cliExecutableName) help migrate` for older-vault migration.")
             case .unlock:
                 if let vaultReader {
                     try vaultReader.unlock()
@@ -1214,7 +1214,7 @@ public final class KeyServiceHandler {
         else {
             keyStore.invalidate()
             throw AppError.operationRefused(
-                "The vault configuration changed while Key Agent was running. Run `key lock`, then retry the command."
+                "The vault configuration changed while Key Agent was running. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) lock`, then retry the command."
             )
         }
         do {
@@ -1300,7 +1300,7 @@ public final class KeyServiceHandler {
             if try vaultContainsEntries() {
                 throw missingVaultKeyForExistingVaultError()
             }
-            throw AppError.vaultKeyMismatch("The encryption key for this older vault is missing. Restore its existing Keychain key. To join a device-enrolled vault from another Mac, use `key help share`. Key will not create a replacement key.")
+            throw AppError.vaultKeyMismatch("The encryption key for this older vault is missing. Restore its existing Keychain key. To join a device-enrolled vault from another Mac, use `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`. Key will not create a replacement key.")
         }
     }
 
@@ -1422,7 +1422,7 @@ public final class KeyServiceHandler {
 
     private func waitingForICloudVaultKeyError() -> AppError {
         AppError.vaultKeyMismatch(
-            "No matching iCloud Keychain vault key is available yet for '\(entryStore.rootURL.path(percentEncoded: false))'. Run `key config set keychain-mode icloud` on a Mac that can already unlock this vault, then wait for iCloud Keychain sync to finish."
+            "No matching iCloud Keychain vault key is available yet for '\(entryStore.rootURL.path(percentEncoded: false))'. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) config set keychain-mode icloud` on a Mac that can already unlock this vault, then wait for iCloud Keychain sync to finish."
         )
     }
 
@@ -1482,7 +1482,7 @@ public final class KeyServiceHandler {
 
 private func v3ReadOnlyOperationError() -> AppError {
     AppError.operationRefused(
-        "This Mac already uses a device-enrolled vault. Migration is only for the older Keychain-backed format. Run `key status` to check the current vault."
+        "This Mac already uses a device-enrolled vault. Migration is only for the older Keychain-backed format. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check the current vault."
     )
 }
 

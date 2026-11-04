@@ -517,7 +517,7 @@ struct CLIParserTests {
         #expect(share.contains("Invitations expire after 10 minutes"))
         #expect(share.contains("lost or revoked Mac rejoins"))
         #expect(help.contains("cannot recover access from the vault folder alone"))
-        #expect(help.contains("no password, cloud, or support fallback"))
+        #expect(help.contains("no password, cloud, or support override"))
         #expect(!help.contains("v3"))
         #expect(share.contains("--name identifies this Mac, not the Mac you are inviting"))
         #expect(share.contains("Stop if they differ"))

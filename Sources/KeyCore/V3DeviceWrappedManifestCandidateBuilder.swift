@@ -28,9 +28,9 @@ enum V3DeviceWrappedContentMutationError:
         case .invalidEntryName:
             "The entry name is invalid. Use a name like github/personal with no leading or trailing spaces or slashes. Path parts cannot be empty, '.' or '..'."
         case .entryNotFound:
-            "The requested entry was not found. Run `key list` to see saved names."
+            "The requested entry was not found. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) list` to see saved names."
         case .entryExists:
-            "An entry already uses the destination name. Use `key edit` to replace its secret, or see `key help duplicate` and `key help rename` for overwrite options."
+            "An entry already uses the destination name. Use `\(KeyProductIdentity.currentProcess.cliExecutableName) edit` to replace its secret, or see `\(KeyProductIdentity.currentProcess.cliExecutableName) help duplicate` and `\(KeyProductIdentity.currentProcess.cliExecutableName) help rename` for overwrite options."
         case .unchangedName:
             "The new name is the same as the existing name."
         case .revisionOverflow:

@@ -158,7 +158,7 @@ public struct KeyConfigStore {
     }
 
     static var notInitializedError: AppError {
-        .operationRefused("No vault is configured on this Mac. To create a new vault, run `key init [directory]`. To join one from another Mac, run `key help share` for instructions. Do not use init for an existing vault.")
+        .operationRefused("No vault is configured on this Mac. To create a new vault, run `\(KeyProductIdentity.currentProcess.cliExecutableName) init [directory]`. To join one from another Mac, run `\(KeyProductIdentity.currentProcess.cliExecutableName) help share` for instructions. Do not use init for an existing vault.")
     }
 
     /// A fresh filesystem reader for cross-queue selection checks. Capture only
@@ -199,7 +199,7 @@ public struct KeyConfigStore {
 
     func requireUnconfigured() throws {
         guard try !hasConfiguration() else {
-            throw AppError.operationRefused("Key already has a configuration on this Mac. Init never replaces it. Run `key status` to check the vault. For an older vault, `key migrate --check` checks migration readiness without changing it.")
+            throw AppError.operationRefused("Key already has a configuration on this Mac. Init never replaces it. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check the vault. For an older vault, `\(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check` checks migration readiness without changing it.")
         }
     }
 
@@ -380,7 +380,7 @@ public struct KeyConfigStore {
         do {
             configRoot = try VaultRootDirectoryHandle(opening: paths.configDirectoryURL)
         } catch {
-            throw AppError.operationRefused("Cannot open the local enrollment records: \(error.localizedDescription) Start with `key share join` in the existing vault folder. Do not use init for an existing vault.")
+            throw AppError.operationRefused("Cannot open the local enrollment records: \(error.localizedDescription) Start with `\(KeyProductIdentity.currentProcess.cliExecutableName) share join` in the existing vault folder. Do not use init for an existing vault.")
         }
         let recordPath = "v3-enrollment-roots/\(v3LowercaseHex(invitationDigest)).json"
         let record = EnrollmentRootRecord(
