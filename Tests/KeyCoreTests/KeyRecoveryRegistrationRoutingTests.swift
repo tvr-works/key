@@ -10,6 +10,8 @@ struct KeyRecoveryRegistrationRoutingTests {
     .resumeExport(tokenID: "token", recipientID: recipient),
     .finish(tokenID: "token", recipientID: recipient), .adopt,
     .resumeAdoption(operationID: VaultTransactionOperationID().rawValue),
+    .abandonAdoption(operationID: VaultTransactionOperationID().rawValue),
+    .abandonRegistration(operationID: VaultTransactionOperationID().rawValue),
   ]
   private enum Stop: Error { case interrupted }
 

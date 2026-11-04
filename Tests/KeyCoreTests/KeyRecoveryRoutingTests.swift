@@ -13,6 +13,21 @@ struct KeyRecoveryRoutingTests {
     source: "/backup", destination: "/new-vault", tokenID: "selected-token",
     recipientID: recipient)
 
+  @Test(arguments: [restore, resume])
+  func removedRecipientRestoreExplainsRefusalWithoutRetry(action: KeyRecoveryRequest) {
+    let state = State()
+    let host = makeHost(state: state) { _, _ in
+      state.incrementCalls()
+      throw V3RecoveryValidationError.recipientRevoked
+    }
+    let response = host.handle(.recovery(action))
+    #expect(response.exitCode == EXIT_FAILURE)
+    #expect(response.errorMessage?.contains(
+      "This recovery key was removed from this version of the vault.") == true)
+    #expect(response.errorMessage?.contains("V3RecoveryValidationError") == false)
+    #expect(state.calls == 1 && !state.configured)
+  }
+
   private static let abandon = KeyRecoveryRequest.abandon(source: "/backup", destination: "/new-vault",
     sourceVaultID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5000", operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")
 
@@ -25,8 +40,9 @@ struct KeyRecoveryRoutingTests {
     #expect(try JSONDecoder().decode(KeyServiceRequest.self, from: bytes) == request)
     #expect(KeyXPCClientRole.fullCLI.authorizes(request))
     #expect(!KeyXPCClientRole.utilityStatus.authorizes(request))
-    #expect(request.responseTimeoutSeconds == 120)
-    #expect(KeyRecoveryRequest.maximumDurationSeconds < 120)
+    #expect(request.responseTimeoutSeconds == (action.isAbandonment ? 120 : 330))
+    #expect(action.maximumDurationSeconds == (action.isAbandonment ? 90 : 300))
+    #expect(try #require(request.responseTimeoutSeconds) - action.maximumDurationSeconds == 30)
     #expect(request.requiresHelperShutdownAfterSuccess)
     let fields = String(decoding: bytes, as: UTF8.self)
     #expect(!fields.contains("secret") && !fields.contains("PIN") && !fields.contains("vaultKey"))
@@ -35,6 +51,23 @@ struct KeyRecoveryRoutingTests {
       for: request, helperName: "Key Agent", timeoutSeconds: 30
     ).localizedDescription
     #expect(action.isAbandonment ? message.contains("no vault was selected") : message.contains("Do not start another restore"))
+  }
+
+  @Test(arguments: [restore, resume, abandon])
+  func hostAdmitsTheRequestWithItsOwnBudget(action: KeyRecoveryRequest) throws {
+    let state = State()
+    let before = DispatchTime.now()
+    let host = makeHost(state: state) { _, scope in
+      state.scope = scope
+      state.configured = !action.isAbandonment
+      return .success()
+    }
+    #expect(host.handle(.recovery(action)).exitCode == EXIT_SUCCESS)
+    let after = DispatchTime.now()
+    let deadline = try #require(state.scope).deadline
+    let expected = action.isAbandonment ? 90 : 300
+    #expect(deadline >= before + .seconds(expected))
+    #expect(deadline <= after + .seconds(expected))
   }
 
   @Test(arguments: 0 ..< 9)
@@ -98,13 +131,36 @@ struct KeyRecoveryRoutingTests {
     #expect(host.handle(.recovery(action)).errorMessage?.contains("not enabled") == true)
   }
 
-  @Test(arguments: [KeyProductIdentity.stable, .preview])
-  func liveProductsKeepRecoveryDisabled(identity: KeyProductIdentity) throws {
+  @Test(arguments: [
+    RuntimeConfiguration(productIdentity: .stable),
+    RuntimeConfiguration(productIdentity: .preview),
+    RuntimeConfiguration(productIdentity: .stable, experimentalRecoveryEnabled: true),
+  ])
+  func liveProductsKeepRecoveryDisabled(configuration: RuntimeConfiguration) throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     let host = KeyServiceHost.live(
       keyStore: MemoryVaultKeyStore(), configStore: .init(homeDirectoryURL: root),
-      runtimeConfiguration: .init(productIdentity: identity))
-    #expect(host.handle(.recovery(Self.restore)).errorMessage?.contains("not enabled") == true)
+      runtimeConfiguration: configuration)
+    let requests: [KeyServiceRequest] = [
+      .recovery(Self.restore), .recovery(Self.resume), .recovery(Self.abandon),
+      .recoveryReview(.tokens), .recoveryReview(.credential(tokenID: "token")),
+      .recoveryReview(.source(path: "/backup", tokenID: "token")),
+      .recoveryRegistration(.status), .recoveryRegistration(.pending),
+      .recoveryRegistration(.prepare(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.resumeExport(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.finish(tokenID: "token", recipientID: Self.recipient)),
+      .recoveryRegistration(.adopt),
+      .recoveryRegistration(.resumeAdoption(operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")),
+      .recoveryRotation(.rotate),
+      .recoveryRotation(.resume(operationID: "018f4d38-7d5a-7b20-b0f1-97d6e96c5001")),
+      .recoveryRecipientRemoval(.review(recipientID: Self.recipient)),
+      .recoveryRecipientRemoval(.remove(
+        recipientID: Self.recipient, confirmationToken: String(repeating: "a", count: 64),
+        pendingOperationID: nil, acknowledgesProtectionLoss: true)),
+    ]
+    for request in requests {
+      #expect(host.handle(request).errorMessage?.contains("not enabled") == true)
+    }
     #expect(!FileManager.default.fileExists(atPath: root.path))
   }
 

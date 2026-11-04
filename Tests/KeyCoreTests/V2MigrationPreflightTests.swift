@@ -3,6 +3,33 @@ import Testing
 @testable import KeyCore
 
 struct V2MigrationPreflightTests {
+    @Test(arguments: KeychainMode.allCases)
+    func missingSelectedSourceKeyBlocksPreflightWithoutFallbackOrCreation(mode: KeychainMode) throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = EntryStore(rootURL: root)
+        let key = Data((0 ..< 32).map(UInt8.init))
+        try store.save(VaultCipher().encrypt("retained-source", keyData: key), as: "mail/personal", overwrite: false)
+        let before = try fileSnapshot(at: root)
+        let keyStore = MemoryVaultKeyStore()
+        // Even a matching key in the other location must not replace the selected source.
+        keyStore.localKeyData = mode == .icloud ? key : nil
+        keyStore.iCloudKeyData = mode == .local ? key : nil
+        let handler = KeyServiceHandler(keyStore: keyStore, entryStore: store, keychainMode: mode)
+
+        let response = handler.handle(.migrationPreflight)
+
+        #expect(response.exitCode != EXIT_SUCCESS)
+        #expect(response.errorMessage?.contains("Vault key does not exist yet.") == true)
+        #expect(keyStore.requests.count == 1)
+        #expect(keyStore.requests.first?.mode == mode)
+        #expect(keyStore.requests.first?.createIfMissing == false)
+        #expect(keyStore.storeCount == 0)
+        #expect(keyStore.localKeyData == (mode == .icloud ? key : nil))
+        #expect(keyStore.iCloudKeyData == (mode == .local ? key : nil))
+        #expect(try fileSnapshot(at: root) == before)
+    }
+
     @Test
     func emptyVaultPassesWithoutLoadingOrCreatingAKey() throws {
         let root = try temporaryDirectory()

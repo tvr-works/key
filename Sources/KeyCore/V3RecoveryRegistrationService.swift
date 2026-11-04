@@ -141,6 +141,24 @@ struct V3RecoveryRegistrationService: Sendable {
     }
   }
 
+  /// Only an unexported reservation may be released. The configured workflow
+  /// supplies fresh Mac authentication and the exact pre-authentication pin.
+  /// Neither token observation nor possession is needed for this local cleanup.
+  func abandonUnarmedPreparation(
+    operationID: VaultTransactionOperationID, expectedOwnership: Data, currentVaultKey: Data
+  ) throws {
+    try owner.perform(.registerRecoveryRecipient) { _ in
+      try requireNoOtherPending()
+      let checkpoint = try loadCheckpoint()
+      let initial = try repository.observe(checkpoint: checkpoint, currentVaultKey: currentVaultKey)
+      try validator.requireOwner(identity.publicIdentity, in: initial.base)
+      guard identity.vaultID == vaultID else { throw V3RecoveryRegistrationError.invalidOwner }
+      try requireState(initial, checkpoint: checkpoint, currentKey: currentVaultKey)
+      try journal.abandonUnarmedPreparation(
+        vaultID: vaultID, operationID: operationID, expectedOwnership: expectedOwnership)
+    }
+  }
+
   /// Explicit resume/export never constructs a replacement or repeats a vendor
   /// write. The native record must be absent or this exact installed anchor.
   func resumeExport(

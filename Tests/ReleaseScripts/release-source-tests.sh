@@ -36,7 +36,7 @@ reject_source() {
 }
 
 "${fixture}/scripts/verify-release-source.sh" v1.2.3
-if "${fixture}/scripts/bump-version.sh" v1.2.4 > "${test_root}/bump-error" 2>&1; then
+if "${fixture}/scripts/bump-version.sh" v1.2.4 36 > "${test_root}/bump-error" 2>&1; then
   echo 'expected version preparation to reject main' >&2
   exit 1
 fi
@@ -52,26 +52,38 @@ reject_source 'must be clean'
 rm "${fixture}/untracked"
 git -C "${fixture}" switch --detach >/dev/null 2>&1
 reject_source 'must be on main'
-if "${fixture}/scripts/bump-version.sh" v1.2.4 >/dev/null 2>&1; then
+if "${fixture}/scripts/bump-version.sh" v1.2.4 36 >/dev/null 2>&1; then
   echo 'expected version preparation to reject detached HEAD' >&2
   exit 1
 fi
 git -C "${fixture}" switch -c release-version >/dev/null 2>&1
 reject_source 'must be on main'
 touch "${fixture}/untracked"
-if "${fixture}/scripts/bump-version.sh" v1.2.4 >/dev/null 2>&1; then
+if "${fixture}/scripts/bump-version.sh" v1.2.4 36 >/dev/null 2>&1; then
   echo 'expected version preparation to reject dirty source' >&2
   exit 1
 fi
 rm "${fixture}/untracked"
-"${fixture}/scripts/bump-version.sh" v1.2.4 > "${test_root}/bump-output"
-[[ "$("${fixture}/scripts/project-version.sh")" == $'1.2.4\t8' ]]
+for invalid_build in '' 0 6 7 08 -1 1.5 1000000000 '36;exit'; do
+  if "${fixture}/scripts/bump-version.sh" v1.2.4 "${invalid_build}" > "${test_root}/build-error" 2>&1; then
+    echo "expected invalid/reused build number rejection: ${invalid_build}" >&2
+    exit 1
+  fi
+  [[ "$(git -C "${fixture}" rev-parse HEAD)" == "${initial_commit}" ]]
+  [[ -z "$(git -C "${fixture}" status --porcelain)" ]]
+done
+if "${fixture}/scripts/bump-version.sh" v1.2.4 >/dev/null 2>&1; then
+  echo 'expected explicit build number requirement' >&2
+  exit 1
+fi
+"${fixture}/scripts/bump-version.sh" v1.2.4 36 > "${test_root}/bump-output"
+[[ "$("${fixture}/scripts/project-version.sh")" == $'1.2.4\t36' ]]
 [[ -z "$(git -C "${fixture}" status --porcelain)" ]]
 [[ -z "$(git -C "${fixture}" tag --list)" ]]
 [[ "$(git --git-dir="${origin}" rev-parse refs/heads/main)" == "${initial_commit}" ]]
 grep -q 'After merging' "${test_root}/bump-output"
 git -C "${fixture}" tag v1.2.4
-if "${fixture}/scripts/bump-version.sh" v1.2.4 >/dev/null 2>&1; then
+if "${fixture}/scripts/bump-version.sh" v1.2.4 36 >/dev/null 2>&1; then
   echo 'expected version preparation to reject an existing tag' >&2
   exit 1
 fi
@@ -95,8 +107,8 @@ git -C "${fixture}" remote set-url origin "${origin}"
 "${fixture}/scripts/verify-release-source.sh" v1.2.4
 
 git -C "${fixture}" switch -c preview-version >/dev/null 2>&1
-"${fixture}/scripts/bump-version.sh" v1.3.0-beta.1 > "${test_root}/preview-bump-output"
-[[ "$("${fixture}/scripts/project-version.sh")" == $'1.3.0-beta.1\t9' ]]
+"${fixture}/scripts/bump-version.sh" v1.3.0-beta.1 37 > "${test_root}/preview-bump-output"
+[[ "$("${fixture}/scripts/project-version.sh")" == $'1.3.0-beta.1\t37' ]]
 [[ -z "$(git -C "${fixture}" tag --list)" ]]
 
 if grep -q 'scripts/bump-version.sh' "${repo_root}/scripts/release.sh"; then

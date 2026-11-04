@@ -6,6 +6,16 @@ import Testing
 
 struct PIVRecoveryAgreementTests {
 
+  @Test(arguments: [-1, 0, 20, 90, 300])
+  func hardwareDeadlineNeverExtendsTheRequestOrUsesTheWholeRestoreBudget(remaining: Int) {
+    let start = DispatchTime(uptimeNanoseconds: 1_000_000_000_000)
+    let requestDeadline = start + .seconds(remaining)
+    let hardwareDeadline = PIVRecoveryAgreement.authenticationDeadline(
+      requestDeadline: requestDeadline, startedAt: start)
+    #expect(hardwareDeadline == start + .seconds(remaining > 90 ? 90 : remaining))
+    #expect(hardwareDeadline <= requestDeadline)
+  }
+
   @Test func unusedScopeDoesNotLookUpOrRequestAnything() throws {
     guard #available(macOS 26.0, *) else { return }
     let f = try Fixture()

@@ -99,6 +99,19 @@ struct V3RecoveryRegistrationJournal: Sendable {
     return try loadBundle(anchor).preparation
   }
 
+  /// A prepared reservation precedes any export or publication. Clear only
+  /// the selected local bytes; never delete files or abandon recoverable work.
+  func abandonUnarmedPreparation(
+    vaultID: String, operationID: VaultTransactionOperationID, expectedOwnership: Data
+  ) throws {
+    let anchor = try decodeOwnership(expectedOwnership, vaultID: vaultID)
+    guard anchor.operationID == operationID, anchor.phase == .prepared else {
+      throw V3RecoveryRegistrationJournalError.invalidOwnership
+    }
+    try requireOwnership(expectedOwnership, vaultID: vaultID)
+    try ownershipStore.replaceRecoveryAnchor(nil, expectedAnchor: expectedOwnership, vaultID: vaultID)
+  }
+
   /// Completion/export retain the exact recoverable record, not merely an
   /// operation ID or a bundle that happens to decode to the same preparation.
   @discardableResult

@@ -488,7 +488,7 @@ change retry limits or propose reset/regeneration as a forgotten-PIN shortcut.
 Resume follows exact locally owned bytes, not synchronized-file discovery.
 Repeat intent and full snapshot authentication under fresh Mac keys; do not
 regenerate/rebase, restore old token bytes or auto-repeat an uncertain vendor write.
-An incomplete reservation or missing/changed bundle remains attention-required.
+An incomplete reservation or missing/changed bundle remains attention-required. The explicit `recovery register abandon <original-operation-id>` command may clear only exact device-local ownership that is still prepared, before export-ready promotion. It requires interactive `ABANDON` confirmation and fresh Mac authentication of the current checkpoint, rejects competing work and changed ownership, and uses a guarded compare-and-swap clear. It preserves all files and never observes or changes the token. Export-ready ownership is retained even if its bundle is missing; a new preparation after successful abandonment requires a separate explicit request. Older helpers must refuse this additive request without fallback.
 Before checkpoint commitment require fresh possession even if the candidate is
 already published. After exact commitment, reconcile authenticated current
 session/ownership without another hardware approval/publication. A lost reply
@@ -674,8 +674,8 @@ Late positive/duplicate results cannot revive approval, start a new touch/agreem
 step, install authority or publish. An already admitted native operation may
 finish, but its stopped result is discarded. No automatic retry.
 
-The host deadline is 90 seconds including queue time; client reply bound 120 seconds. The agreement
-scope's standalone default is 60 seconds; composed requests pass their existing deadline.
+Restore and resume have a five-minute host deadline, including queue time, and a five-minute-thirty-second client reply bound. Abandonment and other recovery commands retain their 90-second host and 120-second client bounds. One hardware authentication/agreement attempt has its own maximum of 90 seconds from the private-operation request, capped by the remaining host deadline. Completing hardware approval does not reset or shorten the host's remaining budget. The agreement scope's standalone default remains 60 seconds; composed requests pass their host deadline, and the adapter applies the hardware cap.
+
 These bounds stop caller waiting, not guaranteed native execution. Retain the
 worker/key/context and shared native gate until the actual framework callback/
 provider return and cleanup, including pending public begin/send callbacks.
@@ -757,6 +757,7 @@ reserved unarmed before atomic install and promoted only after exact readback/
 synchronization. Resume authenticates exact bytes without new signing/randomness.
 Manifest-last/checkpoint-last commitment precedes session install/cleanup.
 Only exact unarmed abandonment is permitted; recoverable ownership is retained.
+The CLI exposes this as `recovery adopt --abandon <original-operation-id>`, mutually exclusive with `--resume` and requiring interactive `ABANDON` confirmation. The configured workflow verifies the permanent profile, exact prepared ownership and absence of competing work before Mac authentication, then rechecks ownership and cancellation before the guarded clear. It leaves the checkpoint, format and encrypted files intact, refuses armed or committed adoption, and never inspects or writes a token. An older helper that cannot decode this additive request must refuse; no fallback or automatic retry is permitted.
 Committed reconciliation authenticates current state without old ciphertext or
 republishing. Files without pins cannot create ownership/checkpoint authority.
 

@@ -213,14 +213,17 @@ struct V3VaultKeyHPKE: Sendable {
         PrivateKey: HPKEDiffieHellmanPrivateKey,
         PrivateKey.PublicKey == P256.KeyAgreement.PublicKey
     {
+        let inputs = Self.inputs(for: context)
+        // Recipient construction calls the private-key provider. Preserve its
+        // authentication errors for the native boundary, as the recovery
+        // receiver does; cancellation is not failed ciphertext authentication.
+        var recipient = try HPKE.Recipient(
+            privateKey: recipientPrivateKey,
+            ciphersuite: Self.suite,
+            info: inputs.info,
+            encapsulatedKey: wrappedKey.encapsulatedKey
+        )
         do {
-            let inputs = Self.inputs(for: context)
-            var recipient = try HPKE.Recipient(
-                privateKey: recipientPrivateKey,
-                ciphersuite: Self.suite,
-                info: inputs.info,
-                encapsulatedKey: wrappedKey.encapsulatedKey
-            )
             let vaultKey = try recipient.open(
                 wrappedKey.ciphertext,
                 authenticating: inputs.authenticatedData

@@ -7,6 +7,27 @@ struct KeyRecoveryReviewTests {
   private typealias Fixture = V3RecoveryRestoreServiceTestSupport.Fixture
   private enum Stop: Error { case unexpected }
 
+  @Test func removedRecipientReviewExplainsRefusalWithoutInternalErrorDetails() {
+    let configurationReads = Counter()
+    let calls = Counter()
+    let host = host(review: { _, _ in
+      calls.increment()
+      throw V3RecoveryValidationError.recipientRevoked
+    }, configurationReads: configurationReads)
+    let io = MemoryIO(stdinIsTTY: false)
+    let app = KeyCLIApplication(
+      transport: MemoryTransport { host.handle($0) }, io: io, clipboard: MemoryClipboard())
+
+    #expect(app.run(arguments: [
+      "recovery", "review", "--source", "/source", "--token", "token", "--json",
+    ]) == EXIT_FAILURE)
+    #expect(io.stdout.isEmpty)
+    #expect(io.stderr.contains("This recovery key was removed from this version of the vault."))
+    #expect(io.stderr.contains("Check recovery registration status on a Mac that still has access."))
+    #expect(!io.stderr.contains("V3RecoveryValidationError"))
+    #expect(calls.value == 1 && configurationReads.value == 0)
+  }
+
   @Test(arguments: [KeyRecoveryReviewRequest.tokens, .source(path: "/source", tokenID: "token")])
   func protocolIsPublicOnlyBoundedAndNeverRequestsShutdown(request: KeyRecoveryReviewRequest) throws
   {

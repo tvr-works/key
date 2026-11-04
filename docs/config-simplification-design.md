@@ -1,6 +1,6 @@
 # Config simplification compatibility design
 
-Status: `CFG-801` implemented locally for review on 2026-09-05; `CFG-802` remains proposed. No installed config or vault-format change has been made. This work can ship independently of catastrophe recovery.
+Status on 2026-10-29: `CFG-801`, explicit init, and directory-based joining are merged in PR #67. Signed release qualification remains open in the [0.3.0 checklist](release.md#030-release-preparation). `CFG-802` remains proposed. This work ships independently of enabling catastrophe recovery; existing installed configurations are not automatically rewritten.
 
 ## Pre-change behavior and ownership
 
@@ -13,7 +13,9 @@ Baseline: `main` at `957d561`, with Stable `0.2.0` compatibility.
 - `Sources/KeyCore/KeyCLIApplication.swift` reads config through `KeyConfigStore` and sends mutations through the helper. `ConfigKey` exposes `vault-dir` and `keychain-mode`; vault identity is not generally settable.
 - Package requirements are macOS 14+ and Swift tools 6.2. No new dependency or service is needed for this cleanup.
 
-For v3, the folder determines where ciphertext lives. An iCloud Drive folder does not require iCloud Keychain mode. Mode remains a real v2 key-storage choice and can identify the key needed for retained v2 data. That old snapshot does not recover later v3 changes; see the [released continuity promise](security-continuity-recovery.md).
+For v3, the folder determines where ciphertext lives. An iCloud Drive folder does not require iCloud Keychain mode. For v2, mode identifies the existing source key needed for retained data; it is not a promise that a new synchronized key can be created. That old snapshot does not recover later v3 changes; see the [released continuity promise](security-continuity-recovery.md).
+
+Qualification on 2026-10-30 confirmed that creating a synchronizable legacy key with the current `.userPresence` policy is rejected by macOS. Key now refuses synchronized-key creation and replacement before deleting a key, loading a local key for publication, or selecting an unavailable mode. Adopting an existing synchronized key still verifies all source entries before repairing the local mirror or changing configuration. Signed tests using an explicitly synthetic existing record verified read, migration, retained source-mode metadata, and rollback on one Mac. See the [native diagnosis and compatibility limits](release.md#legacy-icloud-keychain-diagnosis-2026-10-30); this does not establish historical 0.2.0 creation or cross-device delivery, and does not authorize deleting mode metadata or weakening production access control.
 
 ## Alternatives
 
@@ -63,7 +65,7 @@ Routine secret reads, copy, mutations, unlock/lock, migration commands, and raw 
 
 Migration remains explicit. Installing an update must not convert a vault, delete its old files or Keychain items, or silently block all access to its secrets. Users can skip the warning release, so later versions must explain the migration route themselves. Unsupported hardware or failed preflight must leave the source accessible through a documented compatible reader or migration path, not an automatic repair.
 
-Coordinate the other Macs before migration: they can otherwise keep writing to the old snapshot, and those edits do not enter v3. Require a clear continuity/recovery decision before enforcing the write cutoff. Hardware purchase is not a migration prerequisite, and catastrophe recovery remains unimplemented until its own gates pass.
+Coordinate the other Macs before migration: they can otherwise keep writing to the old snapshot, and those edits do not enter v3. Require a clear continuity/recovery decision before enforcing the write cutoff. Hardware purchase is not a migration prerequisite, and catastrophe recovery remains disabled in shipping builds until its own gates pass.
 
 ### New-vault installer foundation
 
@@ -159,4 +161,4 @@ Directory-enrollment verification on 2026-09-05: all 812 tests in 76 suites pass
 
 Explicit-setup verification on 2026-09-05: all 95 focused tests in seven suites passed, including no-config refusal, no key generation for empty local/iCloud v2 vaults, missing/replaced roots, lock/help/version before setup, and correction of a moved v2/v3 root without composing the old runtime. The unsigned CLI build, release-script tests, Preview install safety tests, and whitespace checks passed. The complete serial run executed 800 tests but failed with 65 issues across 30 tests. An untouched archive of the pre-change branch at `e31d345` reproduced those same 30 failing tests and per-test issue counts in its 791-test run. The failures originate in existing protected temporary-file writes and downstream assertions after those writes fail. The cause remains undiagnosed; file protection was not weakened, and this is not a clean full-suite or release qualification result. No installed app, live config, real vault, or hardware was used.
 
-Review `CFG-801`, the warning slice, explicit new-v3-vault initialization, removal of implicit setup, and the unconfigured enrollment entry point together as the focused PR. Qualify signed-product first-time setup and enrollment, helper restart, and provider interruption behavior before release. Define the bounded legacy-source record needed for `CFG-802` separately. Keep v2 content-write enforcement, normal-runtime removal, automated failed-init recovery, and catastrophe-recovery format changes in separate reviewed slices. No automatic format conversion, installed-app change, live-config rewrite, provider change, or YubiKey operation is included.
+The focused setup/config work is merged. Complete the [0.3.0 release checklist](release.md#030-release-preparation), including signed first-time setup and enrollment, helper restart, and provider interruption checks. Define the bounded legacy-source record needed for `CFG-802` separately. Keep v2 content-write enforcement, normal-runtime removal, automated failed-init recovery, and recovery enablement out of 0.3.0. No automatic format conversion, live-config rewrite, provider change, or YubiKey operation is part of this release preparation.

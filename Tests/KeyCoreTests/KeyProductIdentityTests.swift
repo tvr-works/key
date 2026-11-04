@@ -12,6 +12,31 @@ struct KeyProductIdentityTests {
     }
 
     @Test
+    func signedBundleRecoveryFlagsRequireBooleanPreviewOptIn() throws {
+        for variant in KeyProductVariant.allCases {
+            for flag in ["KeyPreviewRecoveryEnabled", "KeyExperimentalRecoveryEnabled"] {
+                for value: Any in [true, false, "true", "false", 1, 0] {
+                    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                    defer { try? FileManager.default.removeItem(at: root) }
+                    let contents = root.appendingPathComponent("Fixture.bundle/Contents")
+                    try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+                    let info: [String: Any] = [
+                        "CFBundleIdentifier": "test.recovery.\(UUID().uuidString)",
+                        "KeyProductVariant": variant.rawValue,
+                        flag: value,
+                    ]
+                    try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+                        .write(to: contents.appendingPathComponent("Info.plist"))
+                    let bundle = try #require(Bundle(url: contents.deletingLastPathComponent()))
+                    let expected = variant == .preview && type(of: value) == Bool.self && (value as? Bool == true)
+                    #expect(RuntimeConfiguration.live(bundle: bundle).experimentalRecoveryEnabled == expected)
+                }
+            }
+        }
+        #expect(!RuntimeConfiguration.live().experimentalRecoveryEnabled)
+    }
+
+    @Test
     func stableIdentityPreservesTheShippingProduct() {
         let identity = KeyProductIdentity.stable
 

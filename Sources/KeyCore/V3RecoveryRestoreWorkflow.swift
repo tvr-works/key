@@ -1,8 +1,38 @@
 import Darwin
 import Foundation
+import OSLog
 
 private struct V3NoopRestoreWorkflowObserver: V3RecoveryRestoreServicePhaseObserving {
   func didReach(_: V3RecoveryRestoreServicePhase) throws {}
+}
+
+/// Request-local timings only: never log a request, path, identifier, error
+/// description or entry. Per-entry publication events are deliberately omitted.
+private struct V3RestoreTimingObserver: V3RecoveryRestoreServicePhaseObserving {
+  let base: any V3RecoveryRestoreServicePhaseObserving
+  let started = ContinuousClock.now
+  private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "work.tvr.key", category: "RecoveryTiming")
+
+  func recordAdmission(deadline: DispatchTime) {
+    let now = DispatchTime.now().uptimeNanoseconds
+    let remaining = deadline.uptimeNanoseconds > now ? deadline.uptimeNanoseconds - now : 0
+    let milliseconds = remaining / 1_000_000
+    logger.info("Restore request started: remainingMilliseconds=\(milliseconds, privacy: .public)")
+  }
+
+  func record(_ stage: String) {
+    let elapsed = String(describing: started.duration(to: .now))
+    logger.info("Restore stage=\(stage, privacy: .public) elapsed=\(elapsed, privacy: .public)")
+  }
+
+  func didReach(_ phase: V3RecoveryRestoreServicePhase) throws {
+    switch phase {
+    case .publication(.entryPublished): break
+    default: record(String(describing: phase))
+    }
+    try base.didReach(phase)
+  }
 }
 
 /// Composes one explicitly admitted restore request. Public selectors are
@@ -47,14 +77,20 @@ struct V3RecoveryRestoreWorkflow {
   func handle(_ request: KeyRecoveryRequest, scope: KeyRecoveryRequestScope) throws
     -> KeyServiceResponse
   {
+    let timing = V3RestoreTimingObserver(base: observer)
+    timing.recordAdmission(deadline: scope.deadline)
+    var succeeded = false
+    defer { timing.record(succeeded ? "requestSucceeded" : "requestFailed") }
     guard #available(macOS 26.0, *) else {
       throw AppError.operationRefused("Vault recovery requires macOS 26 or later.")
     }
     try scope.requireCurrent()
     try request.validate()
     if case .abandon(let source, let destination, let vault, let operation) = request {
-      return try abandon(source: source, destination: destination, sourceVaultID: vault,
+      let response = try abandon(source: source, destination: destination, sourceVaultID: vault,
         operationID: .init(validating: operation), scope: scope)
+      succeeded = true
+      return response
     }
     let paths: (source: String, destination: String, token: String, recipient: String)
     let deviceName: String?
@@ -127,7 +163,7 @@ struct V3RecoveryRestoreWorkflow {
       identities: identities, checkpoints: checkpoints,
       cache: V3CheckpointManifestFilesystemCache(rootHandle: roots.cache),
       mutationOwner: owner, reader: reader, agreement: agreement,
-      authentication: scope.authentication, observer: observer)
+      authentication: scope.authentication, observer: timing)
     try recheck()
     let report: V3RecoveryRestoreReport
     if let deviceName {
@@ -142,6 +178,7 @@ struct V3RecoveryRestoreWorkflow {
       throw V3RecoveryRestoreError.invalidIntent
     }
     try recheck()
+    succeeded = true
     return .success(
       "Restored \(report.entryCount) entries into a new vault at '\(report.destinationPath)'.\nVault ID: \(report.checkpoint.vaultID)\nThe source vault was not changed. This new vault has no recovery key registered yet. The helper must restart before ordinary use.\n"
     )

@@ -1364,8 +1364,11 @@ struct KeyServiceHandlerTests {
         #expect(response.errorMessage?.contains("cannot decrypt 'mail/personal'") == true)
     }
 
-    @Test
-    func switchingToICloudPublishesWorkingLocalKeyAndUpdatesConfig() throws {
+    @Test(arguments: ["working", "stale", "missing"], [false, true])
+    func switchingToICloudWithoutSyncedKeyRefusesWithoutChangingState(
+        localKeyState: String,
+        hasEntries: Bool
+    ) throws {
         let homeDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let vaultDirectory = homeDirectory.appendingPathComponent("Vault", isDirectory: true)
@@ -1373,43 +1376,20 @@ struct KeyServiceHandlerTests {
         defer { try? FileManager.default.removeItem(at: homeDirectory) }
 
         let configStore = KeyConfigStore(homeDirectoryURL: homeDirectory)
-        try writeLegacyTestConfiguration(home: homeDirectory, root: vaultDirectory)
-
-        let keyStore = MemoryVaultKeyStore(keyData: Data((0 ..< 32).map(UInt8.init)))
-        let handler = KeyServiceHandler(
-            keyStore: keyStore,
-            entryStore: EntryStore(rootURL: vaultDirectory),
-            configStore: configStore
-        )
-
-        #expect(handler.handle(.addManual(name: "mail/personal", secret: "hunter2", type: .secret)) == .success())
-        let localKey = try #require(keyStore.localKeyData)
-
-        #expect(handler.handle(.setKeychainMode(.icloud)) == .success())
-        #expect(keyStore.iCloudKeyData == localKey)
-        #expect(try configStore.getValue(for: .keychainMode) == "icloud")
-        #expect(handler.handle(.get(name: "mail/personal")) == .success("hunter2"))
-    }
-
-    @Test
-    func switchingToICloudWaitsWhenOnlyStaleLocalKeyExists() throws {
-        let homeDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let vaultDirectory = homeDirectory.appendingPathComponent("Vault", isDirectory: true)
-        try FileManager.default.createDirectory(at: vaultDirectory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: homeDirectory) }
-
-        let configStore = KeyConfigStore(homeDirectoryURL: homeDirectory)
-        try writeLegacyTestConfiguration(home: homeDirectory, root: vaultDirectory)
+        let configuration = try writeLegacyTestConfiguration(home: homeDirectory, root: vaultDirectory)
+        let configBytes = try Data(contentsOf: configuration.configFileURL)
 
         let store = EntryStore(rootURL: vaultDirectory)
         let originalKey = Data((0 ..< 32).map(UInt8.init))
         let staleLocalKey = Data((32 ..< 64).map(UInt8.init))
         let encrypted = try VaultCipher().encrypt("hunter2", keyData: originalKey)
-        try store.save(encrypted, as: "mail/personal", overwrite: false)
+        if hasEntries {
+            try store.save(encrypted, as: "mail/personal", overwrite: false)
+        }
 
         let keyStore = MemoryVaultKeyStore()
-        keyStore.localKeyData = staleLocalKey
+        let localKey = localKeyState == "working" ? originalKey : localKeyState == "stale" ? staleLocalKey : nil
+        keyStore.localKeyData = localKey
         let handler = KeyServiceHandler(
             keyStore: keyStore,
             entryStore: store,
@@ -1417,10 +1397,20 @@ struct KeyServiceHandlerTests {
         )
 
         let response = handler.handle(.setKeychainMode(.icloud))
-        #expect(response.exitCode == KeyExitCode.securityFailure.rawValue)
-        #expect(response.errorMessage?.contains("wait for iCloud Keychain sync") == true)
+        #expect(response == .failure(
+            AppError.legacyICloudKeyCreationUnsupported.localizedDescription,
+            code: .operationRefused
+        ))
+        #expect(keyStore.loadCount == 0)
+        #expect(keyStore.storeCount == 0)
+        #expect(keyStore.localKeyData == localKey)
         #expect(keyStore.iCloudKeyData == nil)
-        #expect(try configStore.getValue(for: .keychainMode) == "local")
+        #expect(try Data(contentsOf: configuration.configFileURL) == configBytes)
+        if hasEntries {
+            #expect(try store.load("mail/personal") == encrypted)
+        } else {
+            #expect(try store.listEntries().isEmpty)
+        }
     }
 
     @Test

@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Security
 import Testing
 
 @testable import KeyCore
@@ -11,6 +12,28 @@ struct V3VaultKeyHPKETests {
     private static let otherTransitionID =
         "018f4d38-7d5a-7b20-b0f1-97d6e96c44b5"
     private static let vaultKey = Data((0 ..< 32).map(UInt8.init))
+
+    @Test
+    func recipientAuthenticationCancellationReachesThePlatformBoundary() throws {
+        let key = P256.KeyAgreement.PrivateKey()
+        let context = try Self.makeContext(vaultKey: Self.vaultKey)
+        let wrapped = try V3VaultKeyHPKE().wrap(
+            vaultKey: Self.vaultKey,
+            recipientPublicKey: key.publicKey.x963Representation,
+            context: context
+        )
+        let cancelled = NSError(domain: NSOSStatusErrorDomain, code: Int(errSecUserCanceled))
+        do {
+            _ = try V3VaultKeyHPKE().unwrap(
+                wrapped,
+                recipientPrivateKey: RefusingHPKEKey(publicKey: key.publicKey, failure: cancelled),
+                context: context
+            )
+            Issue.record("Cancelled key agreement must not return a vault key")
+        } catch {
+            #expect(v3EnrollmentKeyOperationError(for: error) == .authenticationCancelled)
+        }
+    }
 
     @Test
     func roundTripsWithSoftwareP256Key() throws {
@@ -187,5 +210,14 @@ struct V3VaultKeyHPKETests {
             authorityTransitionID: transitionID,
             recipientDeviceID: Base64URL.encode(Data(0 ..< 32))
         )
+    }
+}
+
+private struct RefusingHPKEKey: HPKEDiffieHellmanPrivateKey {
+    let publicKey: P256.KeyAgreement.PublicKey
+    let failure: NSError
+
+    func sharedSecretFromKeyAgreement(with publicKeyShare: P256.KeyAgreement.PublicKey) throws -> SharedSecret {
+        throw failure
     }
 }

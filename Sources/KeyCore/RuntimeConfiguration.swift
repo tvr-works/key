@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 
 public struct RuntimeConfiguration: Equatable, Sendable {
@@ -87,9 +88,17 @@ public struct RuntimeConfiguration: Equatable, Sendable {
                 ?? "default-vault",
             useDataProtectionKeychain: true,
             qualificationNamespace: qualificationNamespace,
-            experimentalRecoveryEnabled: bundle.object(forInfoDictionaryKey: "KeyExperimentalRecoveryEnabled") as? Bool == true
+            experimentalRecoveryEnabled: enabledBoolean("KeyPreviewRecoveryEnabled", in: bundle)
+                || enabledBoolean("KeyExperimentalRecoveryEnabled", in: bundle)
         )
     }
+}
+
+private func enabledBoolean(_ key: String, in bundle: Bundle) -> Bool {
+    guard let value = bundle.object(forInfoDictionaryKey: key) as? NSNumber,
+          CFGetTypeID(value) == CFBooleanGetTypeID()
+    else { return false }
+    return value.boolValue
 }
 
 #if DEBUG

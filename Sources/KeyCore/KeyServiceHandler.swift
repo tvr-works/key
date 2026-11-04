@@ -1326,8 +1326,6 @@ public final class KeyServiceHandler {
     }
 
     private func switchToICloudMode() throws {
-        let hasEntries = try vaultContainsEntries()
-
         if try keyStore.keyExists(mode: .icloud) {
             let iCloudKey = try keyStore.loadKey(
                 mode: .icloud,
@@ -1340,32 +1338,7 @@ public final class KeyServiceHandler {
             return
         }
 
-        if try keyStore.keyExists(mode: .local) {
-            let localKey = try keyStore.loadKey(
-                mode: .local,
-                reason: "Unlock key vault to enable iCloud Keychain mode.",
-                createIfMissing: false
-            )
-
-            do {
-                try verifyVaultKeyMatchesAllExistingEntries(localKey, sourceMode: .local)
-            } catch AppError.vaultKeyMismatch {
-                if hasEntries {
-                    throw waitingForICloudVaultKeyError()
-                }
-                throw errorForLocalKeyMismatch()
-            }
-
-            try keyStore.storeKey(localKey, mode: .icloud, overwriteExisting: false)
-            try persistKeychainMode(.icloud)
-            return
-        }
-
-        if hasEntries {
-            throw waitingForICloudVaultKeyError()
-        }
-
-        try persistKeychainMode(.icloud)
+        throw AppError.legacyICloudKeyCreationUnsupported
     }
 
     private func switchToLocalMode() throws {

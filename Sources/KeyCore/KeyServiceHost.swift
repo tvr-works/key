@@ -335,12 +335,13 @@ public final class KeyServiceHost {
     private func handleRecovery(
         _ request: KeyRecoveryRequest, connection: KeyServiceConnection?, progress: KeyRecoveryProgress?
     ) -> KeyServiceResponse {
-        // No live capability is installed yet. Stable and ordinary Preview
-        // refuse without composing a runtime, reading a card or touching files.
+        // Builds without recovery refuse before composing a runtime, reading
+        // a card or touching files. Stable always follows this path.
         guard let recovery else {
             return .failure("Recovery is not enabled in this product build.")
         }
-        return withRecoveryScope(connection: connection, flags: .barrier, progress: progress) { scope in
+        return withRecoveryScope(connection: connection, flags: .barrier, progress: progress,
+            maximumDurationSeconds: request.maximumDurationSeconds) { scope in
             try scope.requireCurrent()
             guard !restartPending else { return restarting() }
             try request.validate()
@@ -426,7 +427,9 @@ public final class KeyServiceHost {
                 activeRecovery = scope.id
             }
             defer { recoveryLock.withLock { activeRecovery = nil } }
-            let response = try perform(scope)
+            // Configured recovery uses the same Mac-unlock runtime as ordinary
+            // access; preserve its readable errors and structured auth codes.
+            let response = try translatingV3RecoveryRuntimeErrors { try perform(scope) }
             try scope.requireCurrent()
             return response
         }
@@ -457,13 +460,14 @@ public final class KeyServiceHost {
     private func withRecoveryScope(
         connection: KeyServiceConnection?, flags: DispatchWorkItemFlags,
         progress: KeyRecoveryProgress? = nil,
+        maximumDurationSeconds: Int = KeyRecoveryRequestScope.defaultMaximumDurationSeconds,
         operation: (KeyRecoveryRequestScope) throws -> KeyServiceResponse
     ) -> KeyServiceResponse {
         let pending = recoveryLock.withLock { () -> KeyRecoveryRequestScope? in
             guard recoveryRequest == nil else { return nil }
             let scope = KeyRecoveryRequestScope(
                 authentication: recoveryAuthentication,
-                deadline: .now() + .seconds(KeyRecoveryRequest.maximumDurationSeconds), progress: progress)
+                deadline: .now() + .seconds(maximumDurationSeconds), progress: progress)
             recoveryRequest = scope
             return scope
         }
@@ -502,6 +506,9 @@ public final class KeyServiceHost {
     private func respond(_ operation: () throws -> KeyServiceResponse) -> KeyServiceResponse {
         do { return try operation() }
         catch let error as AppError { return .failure(error) }
+        catch V3RecoveryValidationError.recipientRevoked {
+            return .failure(AppError.operationRefused("This recovery key was removed from this version of the vault. Check recovery registration status on a Mac that still has access."))
+        }
         catch { return .failure(error.localizedDescription) }
     }
 

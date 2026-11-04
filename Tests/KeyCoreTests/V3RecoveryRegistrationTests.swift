@@ -532,8 +532,19 @@ struct V3RecoveryRegistrationTests {
         try fixture.resume(journal: disk.journal())
       }
       #expect(disk.ownership.bytes == ownership)
+      try disk.journal().abandonUnarmedPreparation(
+        vaultID: Support.vaultID, operationID: preparation.intent.operationID,
+        expectedOwnership: ownership)
+      #expect(disk.ownership.bytes == nil)
     } else {
       #expect(try fixture.resume(journal: disk.journal()) == preparation.exportedAnchor)
+      let recoverable = try #require(disk.ownership.bytes)
+      #expect(throws: V3RecoveryRegistrationJournalError.invalidOwnership) {
+        try disk.journal().abandonUnarmedPreparation(
+          vaultID: Support.vaultID, operationID: preparation.intent.operationID,
+          expectedOwnership: recoverable)
+      }
+      #expect(disk.ownership.bytes == recoverable)
       #expect(try disk.journal().loadPending(vaultID: Support.vaultID) == preparation)
     }
     #expect(fixture.owner.signatures == 1 && fixture.owner.unwraps == 0)

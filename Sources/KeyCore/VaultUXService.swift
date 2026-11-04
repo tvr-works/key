@@ -34,11 +34,11 @@ enum VaultUXServiceError: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .vaultIncomplete:
-            "Some newer vault files are unavailable on this Mac. Check file synchronization before retrying. To read the last complete version already verified on this Mac, use --allow-stale; the value may be out of date."
+            "Required vault files are unavailable on this Mac. Check that your sync provider has downloaded the vault files, then retry."
         case .contentConflict:
             "That entry has conflicting changes. Run `key conflict list`, then `key conflict show <conflict-id>` to review the versions."
         case .catchUpContentConflict:
-            "Newer vault history contains competing edits. Saving changes is paused because Key cannot choose between them safely. Use --allow-stale only if you want to read the last complete version already verified on this Mac; it may be out of date."
+            "The latest vault changes need to be combined before Key can use them. Use --allow-stale only to read this Mac's last verified version; it may be out of date."
         case .securityConflict:
             "Vault history contains conflicting changes to device access or encryption keys. Key cannot safely choose between them. Keep vault files and local records intact for investigation."
         case .rollbackDetected:

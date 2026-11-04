@@ -377,7 +377,7 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct Register: ParsableCommand {
-            static let configuration = CommandConfiguration(commandName: "register", abstract: "Inspect or explicitly register the configured vault (gated).", discussion: CLIHelp.recoveryRegistration, subcommands: [Status.self, Prepare.self, ResumeExport.self, Finish.self])
+            static let configuration = CommandConfiguration(commandName: "register", abstract: "Inspect or explicitly register the configured vault (gated).", discussion: CLIHelp.recoveryRegistration, subcommands: [Status.self, Prepare.self, ResumeExport.self, Finish.self, Abandon.self])
             struct Status: CLIRequest {
                 static let configuration = CommandConfiguration(commandName: "status", abstract: "Authenticate configured recovery registration status without contacting a token.")
                 @Flag(help: "Print machine-readable registration status.") var json = false
@@ -395,6 +395,16 @@ private struct KeyArguments: ParsableCommand {
                 @OptionGroup var export: ExportOptions
                 var command: Command { .recoveryRegistration(.resumeExport(tokenID: credential.tokens[0], recipientID: credential.recipients[0]), exportPath: export.paths[0], json: false) }
             }
+            struct Abandon: CLIRequest {
+                static let configuration = CommandConfiguration(commandName: "abandon", abstract: "Release an incomplete registration only before its anchor was ready for export.", discussion: CLIHelp.recoveryRegistration)
+                @Argument(help: "Complete original registration operation ID from recovery pending.") var operationID: String
+                mutating func validate() throws {
+                    guard (try? VaultTransactionOperationID(validating: operationID)) != nil else {
+                        throw ValidationError("Provide the complete original registration operation ID.")
+                    }
+                }
+                var command: Command { .recoveryRegistration(.abandonRegistration(operationID: operationID), exportPath: nil, json: false) }
+            }
             struct Finish: CLIRequest {
                 static let configuration = CommandConfiguration(commandName: "finish", abstract: "Verify the externally installed anchor and possession, then activate registration.")
                 @OptionGroup var credential: CredentialOptions
@@ -405,12 +415,16 @@ private struct KeyArguments: ParsableCommand {
         struct Adopt: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "adopt", abstract: "Explicitly adopt the recovery-capable format, or resume its exact saved operation (gated).", discussion: CLIHelp.recoveryAdoption)
             @Option(name: .customLong("resume"), help: "Complete original adoption operation ID; never substitutes a new attempt.") var operation: String?
+            @Option(name: .customLong("abandon"), help: "Release only an incomplete adoption that has not been armed for publication; requires its original operation ID.") var abandonedOperation: String?
             mutating func validate() throws {
-                if let operation, (try? VaultTransactionOperationID(validating: operation)) == nil {
-                    throw ValidationError("Provide the complete original operation ID for --resume.")
+                guard operation == nil || abandonedOperation == nil else {
+                    throw ValidationError("Choose either --resume or --abandon, not both.")
+                }
+                if let selected = operation ?? abandonedOperation, (try? VaultTransactionOperationID(validating: selected)) == nil {
+                    throw ValidationError("Provide the complete original operation ID for --resume or --abandon.")
                 }
             }
-            var command: Command { .recoveryRegistration(operation.map { .resumeAdoption(operationID: $0) } ?? .adopt, exportPath: nil, json: false) }
+            var command: Command { .recoveryRegistration(abandonedOperation.map { .abandonAdoption(operationID: $0) } ?? operation.map { .resumeAdoption(operationID: $0) } ?? .adopt, exportPath: nil, json: false) }
         }
 
         struct Pending: CLIRequest {

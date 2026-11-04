@@ -84,7 +84,9 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
             30
         case .unlock, .get, .getConflictValue, .migrationPreflight:
             120
-        case .recovery, .recoveryReview, .recoveryRegistration, .recoveryRotation, .recoveryRecipientRemoval:
+        case .recovery(let request):
+            request.maximumDurationSeconds + 30
+        case .recoveryReview, .recoveryRegistration, .recoveryRotation, .recoveryRecipientRemoval:
             120
         case .list:
             30

@@ -36,7 +36,7 @@ jobs:
       - name: Check Swift correctness rules without formatting rules
         run: python3 scripts/ci-tool.py run swiftlint lint --strict --no-cache
       - name: Initialize CodeQL Swift extraction and security queries
-        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: swift
           build-mode: manual
@@ -50,7 +50,7 @@ jobs:
             --timeout-seconds 1800
       - name: Analyze Swift and publish CodeQL findings
         timeout-minutes: 8
-        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: /language:swift
           output: .build/verification/codeql

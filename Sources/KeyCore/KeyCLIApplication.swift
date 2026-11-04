@@ -342,13 +342,20 @@ public final class KeyCLIApplication {
         case .prepare: confirmation = "PREPARE"
         case .finish: confirmation = "REGISTER"
         case .adopt, .resumeAdoption: confirmation = "ADOPT"
+        case .abandonAdoption, .abandonRegistration: confirmation = "ABANDON"
         case .status, .pending, .resumeExport: confirmation = nil
         }
         if let confirmation {
             guard io.stdinIsTTY else {
                 throw AppError.operationRefused("Recovery setup requires an interactive terminal. No setup request was sent.")
             }
-            io.writeStderr("Recovery setup is experimental and gated. Preserve a backup and coordinate Mac upgrades. Key never provisions or writes the token; its external administration must be secured separately. Preparation/export does not activate recovery.\n")
+            if case .abandonAdoption = request {
+                io.writeStderr("Release only the selected incomplete adoption before it was armed for publication. The vault format, checkpoint and files stay intact. This cannot undo a committed adoption and never changes a hardware key.\n")
+            } else if case .abandonRegistration = request {
+                io.writeStderr("Release only the selected incomplete registration before its anchor was ready for export. The vault, checkpoint and saved files stay intact. This cannot remove active recovery protection and never contacts or changes a hardware key.\n")
+            } else {
+                io.writeStderr("Recovery setup is experimental and gated. Preserve a backup and coordinate Mac upgrades. Key never provisions or writes the token; its external administration must be secured separately. Preparation/export does not activate recovery.\n")
+            }
             guard try io.readLine(prompt: "Type \(confirmation) to continue this explicit recovery setup step: ").trimmingCharacters(in: .whitespacesAndNewlines) == confirmation else {
                 throw AppError.operationRefused("Recovery setup cancelled. No request was sent.")
             }
@@ -366,6 +373,18 @@ public final class KeyCLIApplication {
             }
             let result = try requiredServicePayload(response.recoveryRegistration, operation: "recovery registration")
             switch (request, result) {
+            case (.abandonAdoption(let requested), .adoptionAbandoned(let vault, let operation)):
+                guard isValidV3UUID(vault), operation == requested else {
+                    throw AppError.service("Invalid adoption abandonment response.")
+                }
+                io.writeStdout("Incomplete format adoption abandoned.\nOperation ID: \(operation)\nThe vault format, selected checkpoint and saved files were preserved. No recovery key was changed.\n")
+                return EXIT_SUCCESS
+            case (.abandonRegistration(let requested), .registrationAbandoned(let vault, let operation)):
+                guard isValidV3UUID(vault), operation == requested else {
+                    throw AppError.service("Invalid registration abandonment response.")
+                }
+                io.writeStdout("Incomplete recovery registration abandoned.\nOperation ID: \(operation)\nThe selected checkpoint and saved files were preserved. No recovery key was contacted or changed.\n")
+                return EXIT_SUCCESS
             case (.pending, .pending(let vault, let operations)):
                 guard isValidV3UUID(vault), operations.count <= 3,
                       Set(operations.map(\.namespace)).count == operations.count,

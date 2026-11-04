@@ -102,6 +102,7 @@
     "KeyCoreTests.V3VaultMutationServiceTests",
     "KeyCoreTests.V3VaultUXTests",
     "KeyCoreTests.VaultContainedMutationTests",
+    "KeyCoreTests.VaultKeyStoreTests",
     "KeyCoreTests.VaultPathResolverTests",
     "KeyCoreTests.VaultProviderNamePolicyTests",
     "KeyCoreTests.VaultRootChangeCoordinationTests",

@@ -38,6 +38,76 @@ struct V3RecoveryVaultRuntimeTests {
     #expect(f.disk.receiver.unwraps == 3 && f.disk.pending.allSatisfy { $0.value == nil })
   }
 
+  @Test(arguments: [false, true], [false, true])
+  func missingTrustedCiphertextCannotReadEvenStaleThenExactDeliveryRecovers(
+    cold: Bool, allowStale: Bool
+  ) throws {
+    let f = try Fixture(cold: cold)
+    defer { f.disk.disk.remove() }
+    let entry = try #require(
+      f.disk.initialEntries.values.first { $0.context.name == "fixture/secret" })
+    let path = f.disk.disk.entryURL(entry)
+    let bytes = try Data(contentsOf: path)
+    try FileManager.default.removeItem(at: path)
+    let runtime = f.runtime()
+    #expect(throws: VaultUXServiceError.vaultIncomplete) {
+      try runtime.read(name: "fixture/secret", allowStale: allowStale)
+    }
+    #expect(f.disk.local.value == f.disk.floor.checkpoint.canonicalBytes)
+    #expect(f.disk.pending.allSatisfy { $0.value == nil })
+    try bytes.write(to: path, options: .withoutOverwriting)
+    #expect(
+      try runtime.read(name: "fixture/secret", allowStale: false).plaintext
+        == "Software fixture secret e\u{301}\r\n")
+    #expect(try runtime.status().health == .ready)
+    #expect(f.disk.local.value == f.disk.floor.checkpoint.canonicalBytes)
+    runtime.lock()
+    #expect(
+      try f.runtime().read(name: "fixture/secret", allowStale: false).plaintext
+        == "Software fixture secret e\u{301}\r\n")
+  }
+
+  @Test(arguments: [false, true])
+  func incompleteNewerHistoryRecoversAfterExactParentOrCiphertextDelivery(parentMissing: Bool)
+    throws
+  {
+    let f = try Fixture()
+    defer { f.disk.disk.remove() }
+    try f.disk.edit("before rotation")
+    _ = try f.disk.publish(.rotation)
+    let parent = f.disk.parent
+    try f.disk.edit("fully delivered value")
+    let entry = try #require(f.disk.entries.values.first { $0.context.name == "fixture/secret" })
+    let path = parentMissing ? f.disk.disk.manifestURL(parent.digest) : f.disk.disk.entryURL(entry)
+    let bytes = try Data(contentsOf: path)
+    try FileManager.default.removeItem(at: path)
+    let runtime = f.runtime()
+    // A disconnected mixed-epoch graph is not authenticated as transport-only
+    // incompleteness. Keep its stricter refusal; restoring the exact parent
+    // must make the same runtime usable without resetting local trust.
+    let expected: VaultUXServiceError = parentMissing ? .recoveryRequired : .vaultIncomplete
+    #expect(throws: expected) {
+      try runtime.read(name: "fixture/secret", allowStale: false)
+    }
+    if parentMissing {
+      #expect(throws: VaultUXServiceError.recoveryRequired) {
+        try runtime.read(name: "fixture/secret", allowStale: true)
+      }
+    }
+    #expect(f.disk.local.value == f.disk.floor.checkpoint.canonicalBytes)
+    #expect(f.disk.pending.allSatisfy { $0.value == nil })
+    try bytes.write(to: path, options: .withoutOverwriting)
+    #expect(
+      try runtime.read(name: "fixture/secret", allowStale: false).plaintext
+        == "fully delivered value")
+    #expect(f.disk.local.value == f.disk.disk.checkpoints.value)
+    #expect(try runtime.status().health == .ready)
+    runtime.lock()
+    #expect(
+      try f.runtime().read(name: "fixture/secret", allowStale: false).plaintext
+        == "fully delivered value")
+  }
+
   @Test func allOrdinaryMutationRoutesReuseTheOuterHelperOperation() throws {
     let f = try Fixture()
     defer { f.disk.disk.remove() }

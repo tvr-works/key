@@ -53,7 +53,7 @@ assert_rejected "v1.2.03"
 assert_rejected "v1.2.3-alpha.01"
 assert_rejected "v1.2.3+build.1"
 
-if "${repo_root}/scripts/bump-version.sh" "v0.2.0-preview.1" >/dev/null 2>&1; then
+if "${repo_root}/scripts/bump-version.sh" "v0.2.0-preview.1" 36 >/dev/null 2>&1; then
   echo "expected version bumping to reject an unsupported release tag" >&2
   exit 1
 fi
@@ -119,6 +119,7 @@ create_test_product_bundle() {
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
+  <key>KeyPreviewRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${helper_path}/Contents/Info.plist" <<EOF
@@ -130,6 +131,7 @@ EOF
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
+  <key>KeyPreviewRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${agent_path}" <<EOF
@@ -389,6 +391,78 @@ grep -q '^stable$' "${signing_verification_log}"
 grep -q '^preview$' "${signing_verification_log}"
 [[ "$(grep -c '^stapler$' "${gatekeeper_verification_log}")" -eq 2 ]]
 [[ "$(grep -c '^spctl$' "${gatekeeper_verification_log}")" -eq 2 ]]
+
+# Test the public-release gate using actual zipped bundle plists. Private signed
+# qualification remains separate; these fixtures do not contact native services.
+for fixture_variant in stable preview; do
+  if [[ "${fixture_variant}" == stable ]]; then
+    fixture_version=0.2.0
+    fixture_app_name=Key.app
+    fixture_helper_name='Key Agent'
+    fixture_zip_name=Key-v0.2.0.zip
+  else
+    fixture_version=0.2.0-alpha.2
+    fixture_app_name='Key Preview.app'
+    fixture_helper_name='Key Preview Agent'
+    fixture_zip_name=Key-Preview-v0.2.0-alpha.2.zip
+  fi
+  set_artifact_project_version "${fixture_version}" 11
+  for fixture_component in app helper; do
+    for fixture_flag in KeyExperimentalRecoveryEnabled KeyPreviewRecoveryEnabled; do
+    for fixture_setting in missing false true string-true string-false integer; do
+      recovery_package="${artifact_fixture_root}/recovery-${fixture_variant}-${fixture_component}-${fixture_flag}-${fixture_setting}"
+      recovery_zip="${recovery_package:h}/${recovery_package:t}-zip/${fixture_zip_name}"
+      mkdir -p "${recovery_package}" "${recovery_zip:h}"
+      create_test_product_bundle "${fixture_variant}" \
+        "${recovery_package}/${fixture_app_name}" "${fixture_version}"
+      if [[ "${fixture_variant}" == stable ]]; then
+        mkdir -p "${recovery_package}/completions"
+        touch "${recovery_package}/completions/_key"
+      fi
+      recovery_info="${recovery_package}/${fixture_app_name}/Contents/Info.plist"
+      if [[ "${fixture_component}" == helper ]]; then
+        recovery_info="${recovery_package}/${fixture_app_name}/Contents/Helpers/${fixture_helper_name}.app/Contents/Info.plist"
+      fi
+      /usr/libexec/PlistBuddy -c "Delete :${fixture_flag}" "${recovery_info}" 2>/dev/null || true
+      fixture_type=bool
+      fixture_value="${fixture_setting}"
+      case "${fixture_setting}" in
+        string-true) fixture_type=string; fixture_value=true ;;
+        string-false) fixture_type=string; fixture_value=false ;;
+        integer) fixture_type=integer; fixture_value=1 ;;
+      esac
+      if [[ "${fixture_setting}" != missing ]]; then
+        /usr/libexec/PlistBuddy \
+          -c "Add :${fixture_flag} ${fixture_type} ${fixture_value}" "${recovery_info}"
+      fi
+      (cd "${recovery_package}" && /usr/bin/zip -qry "${recovery_zip}" .)
+      fixture_result=0
+      KEY_SCRIPT_TEST_PATH="${artifact_verifier_bin}:${PATH}" \
+      PATH="${artifact_verifier_bin}:${PATH}" \
+        "${artifact_verifier}" "v${fixture_version}" "${recovery_zip}" \
+        >"${recovery_package:h}/recovery-gate-result" 2>&1 || fixture_result=$?
+      fixture_accepted=false
+      if [[ "${fixture_flag}" == KeyExperimentalRecoveryEnabled ]]; then
+        if [[ "${fixture_setting}" == false || "${fixture_setting}" == missing ]]; then
+          fixture_accepted=true
+        fi
+        fixture_error='public release artifact must keep experimental recovery disabled'
+      else
+        if [[ "${fixture_variant}" == stable || "${fixture_setting}" == true ]]; then
+          fixture_accepted=true
+        fi
+        fixture_error='public Preview artifact must enable Preview recovery with boolean true'
+      fi
+      if [[ "${fixture_accepted}" == true ]]; then
+        [[ "${fixture_result}" == 0 ]]
+      else
+        [[ "${fixture_result}" != 0 ]]
+        grep -q "${fixture_error}" "${recovery_package:h}/recovery-gate-result"
+      fi
+    done
+    done
+  done
+done
 
 set_artifact_project_version "0.2.0" "11"
 if KEY_SCRIPT_TEST_PATH="${artifact_verifier_bin}:${PATH}" \
