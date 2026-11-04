@@ -6,7 +6,7 @@ Key is a secret manager for macOS, used from your terminal. It combines familiar
 
 ## Quick start
 
-The commands below work in released Stable `0.2.0`. The development build also supports [first-time vault setup](#unreleased-first-time-vault-setup), without first creating and migrating a Keychain-backed vault. Setup and CLI improvements are planned for [0.3.0](docs/release.md#030-release-preparation), which is still being tested for release; hardware recovery will remain disabled.
+The commands below work in released Stable `0.2.0`. The development build also supports [first-time vault setup](#unreleased-first-time-vault-setup), without first creating and migrating a Keychain-backed vault. Setup and CLI improvements are planned for [0.3.0](docs/release.md#030-release-preparation), which is still being tested for release. The planned Preview beta includes hardware recovery; Stable recovery remains disabled pending a separate promotion review.
 
 After installing Key, add a secret from a secure prompt:
 
@@ -41,7 +41,7 @@ key copy "$(key list | fzf)"
 
 Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
 
-Experimental development builds also include [hardware recovery and device lifecycle commands](docs/recovery-user-guide.md). These remain disabled in released Stable and ordinary Preview while qualification continues.
+The planned 0.3.0 Preview beta includes [hardware recovery and device lifecycle commands](docs/recovery-user-guide.md), including an independent backup key. It is not yet published. Use disposable data during the beta; Stable recovery remains disabled. See the [remaining release gates](docs/0.3.0-release-readiness.md).
 
 ## How access works
 

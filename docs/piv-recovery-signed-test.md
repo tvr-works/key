@@ -375,7 +375,7 @@ measurements. Evidence IDs resolve in the local index below.
   released-handle, fresh-context and direct-operation controls did not establish
   automatic dismissal. Ordinary Mac policy/ACL controls dismissed correctly;
   that narrows the investigation, not a proven OS/provider defect. Owner accepted
-  manual Cancel for Preview on 2026-10-26. Cancel blank leftover UI before further
+  manual Cancel for private Preview on 2026-10-26 and explicitly accepted the documented workaround for the public 0.3.0 beta on 2026-11-04, with reconsideration before Stable promotion. Cancel blank leftover UI before further
   card use; late PIN entry may still affect device authentication/retry counters.
   A stopped Key request cannot revive. No private API, provider termination or
   direct-operation production workaround is selected.
@@ -387,10 +387,7 @@ measurements. Evidence IDs resolve in the local index below.
 - **Mac approval cost.** Exact resume observed five Mac approvals after PIN/touch.
   These protect separate destination wrapper/trust/activation boundaries; no
   fixed count or prompt consolidation is promised.
-- **Coverage.** One physical credential, two arm64 Macs/one OS build; no independent
-  backup-token, full device/recipient lifecycle, complete provider/platform matrix
-  or released-old-binary adoption qualification. Restored vaults remain
-  unregistered until separately protected.
+- **Coverage.** The November 3 sessions above add a second independently provisioned YubiKey 5C NFC credential, both-key independent recovery, two-Mac lifecycle and recipient removal. Both Macs use arm64 macOS 27.0.1 and both keys use firmware 5.8.0; this is not a complete provider/platform matrix. Released-old-binary adoption and native certificate renewal remain unperformed. Restored vaults remain unregistered until separately protected. The [November 4 readiness record](0.3.0-release-readiness.md) explains which remaining native cases are beta gates and which rely on source/software coverage.
 - **Preservation claims.** Checks cover explicit sources, destinations, prior test
   roots, apps/configs and relevant records. They are not a whole-Keychain/system
   integrity claim; restore intentionally creates new destination credentials.

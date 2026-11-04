@@ -10,45 +10,25 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 ## 0.3.0 release preparation
 
-Status on 2026-11-02: feature work is merged; isolated single-Mac and two-Mac qualification passed at the scopes below, including deliberate setup cancellation. Release-preparation changes remain local for review. Final candidate and shipping-artifact checks remain separate gates. The intended sequence is `v0.3.0-beta.1` in the ordinary Preview channel, followed by `v0.3.0` Stable. Neither version has been published. This section owns the 0.3.0 checklist; the recovery plan owns the separate gates for enabling recovery.
+Status on 2026-11-04: prepare `v0.3.0-beta.1` in the Preview channel with hardware recovery, including independent backup keys. Stable recovery stays disabled until a separate promotion review. Neither version has been published. The [release readiness record](0.3.0-release-readiness.md) owns the current checklist, evidence dispositions, beta limitations and final-source verification. Historical results below retain their original scope.
 
 ### What users will get
 
 - Explicit new-vault setup with `key init`, and joining an existing vault from its synced folder.
-- Configuration output that describes the selected vault without presenting legacy Keychain mode as a choice for device-enrolled vaults.
-- Consistent command help, examples, `-h`, and help for individual enrollment steps.
-- Clearer authentication, status, conflict, interruption, and completed-operation messages.
-- Documentation explaining macOS approval, file syncing, backups, and their limits.
+- Simpler configuration and consistent command help, examples and individual enrollment-step help.
+- Clearer authentication, status, conflict, cancellation and interrupted-operation messages.
+- In Preview beta, explicit recovery-format adoption and registration of independent hardware keys, recovery after losing the Macs, and device/key lifecycle commands.
+- Documentation explaining macOS approval, file syncing, retained backups and recovery limits.
 
-Existing configured vaults do not need to run init or migrate. Legacy vault reads, writes, and explicit migration remain supported. No v2 write cutoff or persisted-mode removal is part of this release.
-
-### Recovery stays disabled
-
-The owner is evaluating PIV for 0.3.0. The [November 2 reconciliation](piv-recovery-plan.md#release-reconciliation-2026-11-02) identifies reusable evidence, remaining signed/hardware checks and the source/signing changes needed for public enablement. The checklist below remains the current recovery-disabled candidate scope until that separate decision and work are complete.
-
-Merged recovery implementation is included in the source but is not an enabled 0.3.0 capability. Stable rejects experimental enablement; ordinary Preview leaves it off. The helper must refuse recovery review, registration/adoption, rotation, removal, restore, and resume without creating configuration. Recovery help may describe gated commands; its presence is not a promise that they are available.
-
-The public ZIP verifier rejects an experimental recovery setting other than absent or false in either the host app or helper. Private signed recovery test builds remain separate from public release artifacts. Do not repoint an ordinary 0.3.0 app at an experimental recovery-capable vault. Preserve that vault and its matching private test installation while recovery qualification continues.
-
-Independent backup-token and recovery lifecycle qualification are not prerequisites for this recovery-disabled release. Shared code changes still require ordinary vault regression and installed-product checks. Enabling recovery later requires its own reviewed rollout and the [recovery acceptance gates](piv-recovery-plan.md#remaining-acceptance-matrix).
+Existing configured vaults do not need init or automatic migration. Legacy reads, writes and explicit migration remain supported. No legacy write cutoff or persisted-mode removal is part of this release. Recovery adoption is explicit and makes older apps refuse the adopted vault.
 
 ### Remaining gates
 
-| Gate | Required result | Current evidence / next action |
-|---|---|---|
-| Source and scope | Release from current main plus reviewed release-preparation changes, with recovery disabled. | Setup PR #67, wording/parser PR #68, recovery layers through #85, and release/CI PR #90 are merged. |
-| Automated regression | Full candidate checks pass; focused tests cover any later changes. | Local candidate `d562c90` compiled with warnings as errors and passed 1,849 Swift tests, with one optional migration-scale case skipped, on 2026-11-02. Release-script, Preview-install safety, CI-script, shell syntax, help, formatting, and lint checks passed. Hosted CI on the reviewed source remains pending; the older PR #90 result does not cover these local changes. This is not a signed-artifact result. |
-| Recovery-disabled boundary | Both public products refuse explicit recovery requests; a public ZIP cannot carry the experimental opt-in. | Local release-script tests and 36 focused Swift tests passed on 2026-10-29. Live-host coverage exercises 17 requests in ordinary Stable, ordinary Preview, and Stable with attempted opt-in. ZIP fixtures cover both app/helper plists in both channels, accepting absent/false and rejecting true/invalid settings. Signing services are stubbed in these fixtures. |
-| Additional qualification | Debug/Release product checks, the 300-entry migration case, and CodeQL pass on identified source. | On main `031a2c7`, Preview Debug/Release, migration scale, and CodeQL passed in [run 40983014889](https://github.com/tvr-works/key/actions/runs/40983014889). Stable Debug/Release passed in [run 40983538633](https://github.com/tvr-works/key/actions/runs/40983538633); its duplicate migration/CodeQL jobs were intentionally skipped. Neither run includes this branch's publication guard. Final-source relevance must also be checked. |
-| Fresh installed setup | Signed app registers the correct helper; init verifies a disposable empty vault, preserves existing config, and handles missing parents/nonempty folders safely. | Isolated signed setup, ordinary operations, directory checks, and a durable-phase helper interruption passed on 2026-10-30 at the scope below. The misleading recovery-required result was reproduced by cancelling authentication and fixed with software and installed-app verification. Deliberate setup cancellation and unchanged-file retry refusal passed on 2026-11-02. |
-| Existing users | Upgrade from 0.2.0 preserves local-Keychain and device-enrolled vaults. Existing synchronized records remain readable/importable; unsupported new synchronized-key creation refuses without mutation. | Isolated local legacy upgrade/migration, corrupt-input refusal, and already-enrolled upgrade passed. The separate synthetic synchronized-record check below passed read, migration, mutation, reopen, and rollback, with source keys/files retained. This qualifies the existing-record contract on one Mac, not historical 0.2.0 synchronized-key creation or cross-Mac delivery. Separate Debug identities do not replace final shipping-identity checks. |
-| Two-Mac joining and sync | Compare/approve/accept works from the same synced folder; delayed files, unavailable approval, and restart/retry produce safe guidance without switching vaults. | Signed Debug qualification passed on Mac mini/M2 Air with an actual iCloud Drive test folder: directory-based join, unavailable approval, restart, expiry/refusal/new invitation, acceptance, bidirectional edits, and missing-ciphertext refusal followed by exact restoration and normal reads. Scope and the completed stale-read wording follow-up are recorded below. Final shipping-artifact qualification remains separate. |
-| Version and artifact | Reviewed version commit, fresh build number, signatures, entitlements, notarization, Gatekeeper, quarantine, and helper registration all match the exact artifact. | Version PR and public signed artifact pending. Main still records build 19, but private Preview artifacts used builds through 30, including the installed [Air lifecycle candidate](piv-two-mac-lifecycle-session.md); use at least build31 for the next candidate. Recheck for newer private builds before choosing it. |
-| Publication | Publish the verified ZIP/checksum and tag, then explicitly update the organization Homebrew tap and smoke-test distribution. | Pending approval after the earlier gates pass. No tag, release, or tap update is authorized by a test run. |
+The necessary remaining live work is one recovery-format partial-delivery case and representative checks on the exact signed/notarized public Preview package. Reuse the completed two-key and two-Mac lifecycle evidence; do not provision another credential or repeat every interruption natively. The readiness record explains each removed test and its coverage limits.
 
-Do not overwrite or convert a real vault to complete this checklist. Before installed tests, agree on disposable source/destination folders, which product may be installed or replaced, rollback material, and the authentication steps. Keep installed experimental Preview recovery state separate from the ordinary beta. Record source, version/build, platform, outcome, and limitations for each qualification batch here; do not carry a historical pass forward to changed behavior without checking its relevance.
+Public Preview uses its own signed beta flag. Stable always refuses recovery. The ZIP verifier continues rejecting private-test opt-in and requires Boolean beta enablement in both Preview app and helper. The public beta accepts the documented manual-Cancel workaround for a lingering PIN dialog; Stable promotion needs a separate decision.
 
-Local release-preparation checks used Xcode 27.1 / Swift 6.4, while hosted qualification pins Xcode 26.4.1 / Swift 6.3.1. Shell syntax, SwiftFormat, SwiftLint, and diff whitespace checks passed for the affected code. These results do not cover signing, installation, native authentication, or physical hardware.
+Run current-source automated checks and hosted CI after authorized push, then qualify the final artifact before publication. Preserve Stable, existing Preview and both physical keys. Choose disposable installation state before any live command. Local commits do not authorize a push, tag, notarization upload, release or tap update. Build 36 is planned; check the ordinary Preview artifact ledger before signing. Separately namespaced qualification timestamp counters are not the public counter.
 
 ### Single-Mac checkpoint, 2026-10-29
 

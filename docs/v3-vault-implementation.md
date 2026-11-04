@@ -2221,7 +2221,7 @@ The [contract](piv-recovery-contract.md) and [review dispositions](piv-recovery-
 
 ## Immediate Next Action
 
-Complete the [0.3.0 release checklist](release.md#030-release-preparation) for the merged setup/config and CLI wording work, with recovery disabled. Signed setup, upgrade, two-Mac joining, and exact-artifact qualification remain open. Continue observing ordinary Stable use. Any artifact or code correction must use a new version and build; do not replace the published `v0.2.0` tag or asset.
+Follow the [November 4 release readiness record](0.3.0-release-readiness.md) for the Preview beta, including hardware recovery. Setup, upgrade, two-Mac joining and recovery lifecycle checks have scoped private-artifact passes; one provider-delivery case and exact public-artifact qualification remain. Stable recovery stays disabled pending promotion review. Preserve Stable and both physical keys. Any published correction needs a new version/build; do not replace the published `v0.2.0` tag or asset.
 
 ### Post-0.2.0 work packages
 

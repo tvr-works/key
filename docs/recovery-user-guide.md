@@ -1,6 +1,10 @@
 # Using recovery-capable vaults
 
-These commands describe explicitly enabled experimental builds. Shipping Stable and ordinary Preview keep recovery disabled. Use disposable data while the [remaining qualification](piv-recovery-plan.md#remaining-acceptance-matrix) is open.
+Hardware recovery is enabled in the planned 0.3.0 Preview beta, which is not yet published. Stable keeps it disabled. Use disposable data during the beta and check the [release readiness record](0.3.0-release-readiness.md) for remaining qualification.
+
+The examples use `key` as the command name. With the Preview app, use `key-preview` instead. Adoption changes the vault format; older apps will refuse that vault. Upgrade participating Macs before adopting it, and retain a complete earlier backup if you need to return to an older app. Recovery needs both a registered key and retained encrypted files; the key does not contain your vault.
+
+Physical qualification covers two Apple silicon Macs running macOS 27.0.1 and two independently provisioned YubiKey 5C NFC keys with firmware 5.8.0. The broader macOS 26+ and compatible firmware 5.3+ requirements are compatibility targets, not a tested device matrix.
 
 ## Register independent recovery keys
 
@@ -58,6 +62,12 @@ A committed removal can still have local cleanup pending. Preserve its files and
 
 Start on an unconfigured Mac with the encrypted source files, one registered recovery key, its PIN/touch approval and a fresh destination. Use `key recovery restore --help` for the explicit source/destination options. Recovery does not overwrite a selected vault. The recovered vault has new Mac credentials and must be separately registered for recovery again.
 
-After a timeout or client disconnect, macOS may leave its PIN dialog visible. Cancel that remaining dialog; it is not a new Key request. An expired request cannot publish a result. Preserve saved files and local records, and use the explicitly displayed resume command for another attempt.
+After a timeout or client disconnect, macOS may leave its PIN dialog visible. Cancel that remaining dialog; it is not a new Key request. An expired request cannot publish a result. This manual-Cancel workaround is accepted for the public beta; it must be reconsidered before Stable promotion. Preserve saved files and local records, and use the explicitly displayed resume command for another attempt.
 
 The folder/provider supplies available files; delivery freshness and backup retention remain external responsibilities. Key refuses visible conflicts and required missing state. It cannot prove that a provider has delivered every newer file.
+
+## Retained history and limits
+
+Keep the complete encrypted vault and a separate backup. A sync provider can omit, delay or delete files; a recovery key cannot recreate missing ciphertext. Removing a key or a Mac protects later versions on the continuing history, but cannot revoke copies that were already retained.
+
+Recovery checks a bounded amount of history and data. Key refuses operations that exceed those limits; it does not silently discard older recovery commitments or refresh a key’s starting point. The current limits are safeguards, not a promised number of entries or years of use. Retain the source after a restore and verify the new vault before separately registering its recovery keys.
