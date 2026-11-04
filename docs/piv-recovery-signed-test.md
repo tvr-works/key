@@ -269,6 +269,18 @@ The deadline fix has passed both native checks for this private artifact and fix
 
 Evidence is retained under `.build/piv-timeout-fix-20261103/`: build/signing records, `focused-tests.log`, `pin-deadline-unified.log`, `pin-deadline-verification.json`, `pin-test-cleanup.json`, full restore dispatch/progress/result and unified logs, `timing-analysis.json`, both contents verifications, `reopen-pids.json`, public key records, preservation inventories and `session-result.json`. The earlier paused checkpoint is retained as `paused-session-result.json`. No push or release occurred.
 
+## Adoption cancellation and early abandonment, 2026-11-04
+
+The owner authorized Mac-only interruption tests with both YubiKeys disconnected. Private signed PreviewDebug build35, namespace `interruption-1103`, was installed from the unchanged verified bundle built at `b1f45c5`. It ran on the Mini, macOS 27.0.1/arm64, with its own app/helper/support/configuration identities. Stable and all earlier fixtures were preserved. This is a development-artifact result, not shipping qualification.
+
+Fresh initialization created disposable vault `fa950ec6-1409-4fb2-9849-11df5fad2b86`. One synthetic secret and one TOTP seed passed exact-value and independent code verification. The owner approved initial adoption authentication and signing, then confirmed cancelling the prompt labelled `Verify Key vault format adoption`. The request returned authentication cancellation, leaving preparation `033e5cab-c2fe-4b6a-8c28-5f8bf8df4534` saved. All original published objects, configuration and selected checkpoint remained unchanged; only the encrypted adoption preparation was added.
+
+Normal lock/restart produced a new helper process. `recovery pending` selected that original operation. After explicit `ABANDON` confirmation and normal Mac approval, `recovery adopt --abandon` succeeded. Every vault file, including the retained preparation, remained byte-identical; the original checkpoint and configuration were unchanged. Exact secret/TOTP verification then passed, with two ready entries and no pending operations. This qualifies cancellation after preparation followed by guarded unarmed abandonment. It does not qualify cancellation before the preparation file exists, armed abandonment, or adoption resume.
+
+The owner paused prompts before the second adoption attempt. That attempt and the rotation/concurrent-client checks were not started. The test vault was normally locked and its helper confirmed stopped. All 332 Stable preservation checks and all 26 protected roots passed. No hardware inspection or operation was performed. Continue from this retained fixture after renewed readiness; the next step is a new, explicit adoption attempt for the cancellation/resume case.
+
+Evidence: `.build/piv-mac-interruption-20261104/` retains artifact/install metadata, command dispatches/results, before/after object inventories, helper process records, exact-value verification and `session-result.json`. The [live-session plan](piv-interruption-compatibility-session.md) owns the remaining sequence. Q5 remains open beyond the completed boundary.
+
 ## Artifact identity and tested environment
 
 Tested: Mini and MacBook Air, arm64 macOS 27.0.1 (26A434), one YubiKey 5C NFC,

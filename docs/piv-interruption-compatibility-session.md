@@ -28,6 +28,10 @@ Local evidence is under `.build/piv-interruption-compat-20261103/`: build log, a
 
 The original [0.2.0 release](https://github.com/tvr-works/key/releases/tag/v0.2.0) is retained as `Key-v0.2.0.zip`, SHA-256 `e70065fdb6deed2ec864cd3a1a0bc1f0e31f4c3af8212ea78308dbd7e82e0144`, matching GitHub's published asset digest. Its extracted app is version 0.2.0, build19, identifier `work.tvr.key.app`; strict deep signature verification passed. Neither app nor CLI was executed. Do not launch it under the current account: it uses shipping Stable identities.
 
+## Live progress, November 4
+
+Build35 is now installed in the planned isolated location. Fresh setup, two-entry verification, cancellation at the adoption verification prompt, helper restart and guarded abandonment of that exact unarmed attempt [passed](piv-recovery-signed-test.md#adoption-cancellation-and-early-abandonment-2026-11-04). Files, checkpoint and configuration were preserved. The owner paused prompts before the second adoption attempt; resume and rotation/concurrent-client cases remain unstarted. The retained fixture is `.build/piv-mac-interruption-20261104/live-vault`, vault ID `fa950ec6-1409-4fb2-9849-11df5fad2b86`. Use that existing selection when continuing, not the unused preparation path below or another init. The app is installed, the vault locked and its helper stopped.
+
 ## First live session: Mac-only interruptions
 
 Leave both YubiKeys disconnected. Install only the verified fresh qualification app after renewed readiness for prompts. Initialize a new local APFS vault under this session's evidence directory and add two synthetic values, including a TOTP seed. Record its vault ID, selected checkpoint, object hashes and exact expected values before adoption. Use the explicit installed CLI path for every command; never the `key` alias.
