@@ -335,8 +335,8 @@ public final class KeyServiceHost {
     private func handleRecovery(
         _ request: KeyRecoveryRequest, connection: KeyServiceConnection?, progress: KeyRecoveryProgress?
     ) -> KeyServiceResponse {
-        // No live capability is installed yet. Stable and ordinary Preview
-        // refuse without composing a runtime, reading a card or touching files.
+        // Builds without recovery refuse before composing a runtime, reading
+        // a card or touching files. Stable always follows this path.
         guard let recovery else {
             return .failure("Recovery is not enabled in this product build.")
         }

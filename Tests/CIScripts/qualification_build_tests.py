@@ -1,6 +1,7 @@
 """Check qualification build isolation without signing, installation or hardware."""
 
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -34,6 +35,8 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
         HelperMachServiceName=settings['KEY_HELPER_MACH_SERVICE_NAME'], KeyProductVariant=variant)
     if os.environ.get('QUALIFICATION_TEST_BAD_COMPONENT') == kind:
         info['KeyExperimentalRecoveryEnabled'] = False
+    if os.environ.get('QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT') == kind:
+        info['KeyPreviewRecoveryEnabled'] = True
     path = dest / 'Contents/Info.plist'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(plistlib.dumps(info))
@@ -68,6 +71,11 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertEqual(self.events.read_text(), "codesign\n")
                 self.assertFalse((self.work / "Applications").exists())
                 self.assertIn("Built without installing or launching", result.stdout)
+                for info_path in (self.work / "build").rglob("Info.plist"):
+                    info = plistlib.loads(info_path.read_bytes())
+                    self.assertIs(info["KeyPreviewRecoveryEnabled"], False)
+                    if info["KeyProductVariant"] == product:
+                        self.assertEqual(info.get("KeyExperimentalRecoveryEnabled", False), recovery == "1")
 
     def test_stable_recovery_and_implicit_namespace_refuse_before_build(self):
         self.environment["KEY_MIGRATION_QUALIFICATION_RECOVERY"] = "1"
@@ -87,6 +95,18 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 result = self.run_builder()
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("wrong recovery setting", result.stderr)
+                self.assertFalse(self.events.exists())
+                self.assertFalse((self.work / "Applications").exists())
+
+    def test_public_beta_flag_cannot_bypass_private_qualification_choice(self):
+        self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",
+            KEY_MIGRATION_QUALIFICATION_RECOVERY="0", KEY_MIGRATION_QUALIFICATION_INSTALL="1")
+        for component in ("APP", "HELPER"):
+            with self.subTest(component=component):
+                self.environment["QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT"] = component
+                result = self.run_builder()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("must not inherit public Preview recovery", result.stderr)
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 

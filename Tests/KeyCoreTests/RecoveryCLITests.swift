@@ -258,14 +258,16 @@ struct RecoveryCLITests {
   }
 
   @Test
-  func helpSeparatesDisabledCommandsSelectorsAuthenticationAndInterruption() throws {
+  func helpExplainsBetaAvailabilitySelectorsAuthenticationAndInterruption() throws {
     let group = try #require(CLIParser.helpText(for: "recovery"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     let restore = try #require(CLIParser.helpText(for: "recovery restore"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     let resume = try #require(CLIParser.helpText(for: "recovery resume"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
-    #expect(group.contains("not enabled in Stable or ordinary Preview"))
+    #expect(group.contains("available in the 0.3.0 Preview beta"))
+    #expect(group.contains("Stable keeps it disabled"))
+    #expect(group.contains("click Cancel if the macOS PIN dialog remains open"))
     #expect(group.contains("Neither selector is a secret or an approval"))
     #expect(group.contains("does not set up, reset or write"))
     #expect(restore.contains("destination itself must be missing"))

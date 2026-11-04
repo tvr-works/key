@@ -119,6 +119,7 @@ create_test_product_bundle() {
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
+  <key>KeyPreviewRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${helper_path}/Contents/Info.plist" <<EOF
@@ -130,6 +131,7 @@ EOF
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
+  <key>KeyPreviewRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${agent_path}" <<EOF
@@ -406,8 +408,9 @@ for fixture_variant in stable preview; do
   fi
   set_artifact_project_version "${fixture_version}" 11
   for fixture_component in app helper; do
-    for fixture_setting in false true invalid; do
-      recovery_package="${artifact_fixture_root}/recovery-${fixture_variant}-${fixture_component}-${fixture_setting}"
+    for fixture_flag in KeyExperimentalRecoveryEnabled KeyPreviewRecoveryEnabled; do
+    for fixture_setting in missing false true string-true string-false integer; do
+      recovery_package="${artifact_fixture_root}/recovery-${fixture_variant}-${fixture_component}-${fixture_flag}-${fixture_setting}"
       recovery_zip="${recovery_package:h}/${recovery_package:t}-zip/${fixture_zip_name}"
       mkdir -p "${recovery_package}" "${recovery_zip:h}"
       create_test_product_bundle "${fixture_variant}" \
@@ -420,24 +423,43 @@ for fixture_variant in stable preview; do
       if [[ "${fixture_component}" == helper ]]; then
         recovery_info="${recovery_package}/${fixture_app_name}/Contents/Helpers/${fixture_helper_name}.app/Contents/Info.plist"
       fi
+      /usr/libexec/PlistBuddy -c "Delete :${fixture_flag}" "${recovery_info}" 2>/dev/null || true
       fixture_type=bool
-      if [[ "${fixture_setting}" == invalid ]]; then fixture_type=string; fi
-      /usr/libexec/PlistBuddy \
-        -c "Add :KeyExperimentalRecoveryEnabled ${fixture_type} ${fixture_setting}" \
-        "${recovery_info}"
+      fixture_value="${fixture_setting}"
+      case "${fixture_setting}" in
+        string-true) fixture_type=string; fixture_value=true ;;
+        string-false) fixture_type=string; fixture_value=false ;;
+        integer) fixture_type=integer; fixture_value=1 ;;
+      esac
+      if [[ "${fixture_setting}" != missing ]]; then
+        /usr/libexec/PlistBuddy \
+          -c "Add :${fixture_flag} ${fixture_type} ${fixture_value}" "${recovery_info}"
+      fi
       (cd "${recovery_package}" && /usr/bin/zip -qry "${recovery_zip}" .)
       fixture_result=0
       KEY_SCRIPT_TEST_PATH="${artifact_verifier_bin}:${PATH}" \
       PATH="${artifact_verifier_bin}:${PATH}" \
         "${artifact_verifier}" "v${fixture_version}" "${recovery_zip}" \
         >"${recovery_package:h}/recovery-gate-result" 2>&1 || fixture_result=$?
-      if [[ "${fixture_setting}" == false ]]; then
+      fixture_accepted=false
+      if [[ "${fixture_flag}" == KeyExperimentalRecoveryEnabled ]]; then
+        if [[ "${fixture_setting}" == false || "${fixture_setting}" == missing ]]; then
+          fixture_accepted=true
+        fi
+        fixture_error='public release artifact must keep experimental recovery disabled'
+      else
+        if [[ "${fixture_variant}" == stable || "${fixture_setting}" == true ]]; then
+          fixture_accepted=true
+        fi
+        fixture_error='public Preview artifact must enable Preview recovery with boolean true'
+      fi
+      if [[ "${fixture_accepted}" == true ]]; then
         [[ "${fixture_result}" == 0 ]]
       else
         [[ "${fixture_result}" != 0 ]]
-        grep -q 'public release artifact must keep experimental recovery disabled' \
-          "${recovery_package:h}/recovery-gate-result"
+        grep -q "${fixture_error}" "${recovery_package:h}/recovery-gate-result"
       fi
+    done
     done
   done
 done

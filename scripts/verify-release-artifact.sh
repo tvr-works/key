@@ -91,16 +91,22 @@ require_value() {
   fi
 }
 
-# Public releases must not inherit the opt-in used by private PIV test builds.
-# Keep this at the publication boundary: private signed qualification artifacts
-# may enable recovery, but neither public channel is qualified to do so yet.
-for product_info in "${app_info}" "${helper_info}"; do
-  recovery_setting="$(plist_value "${product_info}" KeyExperimentalRecoveryEnabled)"
-  if [[ -n "${recovery_setting}" && "${recovery_setting}" != false ]]; then
-    echo "public release artifact must keep experimental recovery disabled: ${product_info}" >&2
-    exit 1
-  fi
-done
+# Public beta enablement is separate from the private qualification opt-in.
+# Stable ignores the Preview flag at runtime. Validate the actual plist types;
+# strings and integers must not silently become capability switches.
+python3 - "${product_variant}" "${app_info}" "${helper_info}" <<'PYTHON'
+import plistlib
+import sys
+
+variant, *paths = sys.argv[1:]
+for path in paths:
+    with open(path, "rb") as stream:
+        info = plistlib.load(stream)
+    if info.get("KeyExperimentalRecoveryEnabled", False) is not False:
+        sys.exit(f"public release artifact must keep experimental recovery disabled: {path}")
+    if variant == "preview" and info.get("KeyPreviewRecoveryEnabled") is not True:
+        sys.exit(f"public Preview artifact must enable Preview recovery with boolean true: {path}")
+PYTHON
 
 app_marketing_version="$(plist_value "${app_info}" CFBundleShortVersionString)"
 helper_marketing_version="$(plist_value "${helper_info}" CFBundleShortVersionString)"

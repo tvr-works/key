@@ -56,16 +56,18 @@ cp "${repo_root}/Config/${identity_prefix}.agent.plist" "${launch_agent_plist}"
 /usr/libexec/PlistBuddy -c "Set :SpawnConstraint:signing-identifier ${helper_bundle_id}" "${launch_agent_plist}"
 
 # Override only build inputs. Never edit shipping plists or re-sign a modified product.
-plist_settings=()
-if [[ "${recovery}" == 1 ]]; then
-  for kind in app helper; do
-    source_plist="${repo_root}/Config/Key-Info.plist"
-    [[ "${kind}" == app ]] || source_plist="${repo_root}/Config/KeyLaunchAgentHelper-Info.plist"
-    cp "${source_plist}" "${temporary_directory}/${kind}.plist"
+for kind in app helper; do
+  source_plist="${repo_root}/Config/Key-Info.plist"
+  [[ "${kind}" == app ]] || source_plist="${repo_root}/Config/KeyLaunchAgentHelper-Info.plist"
+  cp "${source_plist}" "${temporary_directory}/${kind}.plist"
+  # Qualification remains explicitly controlled by its private opt-in, even
+  # after the ordinary Preview beta enables recovery in shipping metadata.
+  /usr/libexec/PlistBuddy -c 'Set :KeyPreviewRecoveryEnabled false' "${temporary_directory}/${kind}.plist"
+  if [[ "${recovery}" == 1 ]]; then
     /usr/libexec/PlistBuddy -c 'Add :KeyExperimentalRecoveryEnabled bool true' "${temporary_directory}/${kind}.plist"
-  done
-  plist_settings=("KEY_APP_INFO_PLIST_FILE=${temporary_directory}/app.plist" "KEY_HELPER_INFO_PLIST_FILE=${temporary_directory}/helper.plist")
-fi
+  fi
+done
+plist_settings=("KEY_APP_INFO_PLIST_FILE=${temporary_directory}/app.plist" "KEY_HELPER_INFO_PLIST_FILE=${temporary_directory}/helper.plist")
 
 cd "${repo_root}"
 xcodebuild \
@@ -105,6 +107,10 @@ fi
 for info in "${app_info}" "${helper_info}"; do
   if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyProductVariant' "${info}")" != "${product}" ]]; then
     echo 'built qualification component has the wrong product variant' >&2
+    exit 1
+  fi
+  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyPreviewRecoveryEnabled' "${info}")" != false ]]; then
+    echo 'built qualification component must not inherit public Preview recovery' >&2
     exit 1
   fi
   enabled="$(/usr/libexec/PlistBuddy -c 'Print :KeyExperimentalRecoveryEnabled' "${info}" 2>/dev/null || true)"
