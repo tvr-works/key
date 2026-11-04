@@ -43,16 +43,16 @@ public struct EntryStore {
             throw AppError.invalidEntryName("Entry name must not be empty.")
         }
         guard !normalized.hasPrefix("/") else {
-            throw AppError.invalidEntryName("Entry name must be relative.")
+            throw AppError.invalidEntryName("Entry names cannot start with '/'.")
         }
 
         let components = normalized.split(separator: "/", omittingEmptySubsequences: false)
         for component in components {
             guard !component.isEmpty else {
-                throw AppError.invalidEntryName("Entry name must not contain empty path segments.")
+                throw AppError.invalidEntryName("Entry names cannot contain consecutive slashes or end with '/'.")
             }
             guard component != "." && component != ".." else {
-                throw AppError.invalidEntryName("Entry name must not contain '.' or '..' segments.")
+                throw AppError.invalidEntryName("Entry names cannot use '.' or '..' as a path component.")
             }
         }
     }

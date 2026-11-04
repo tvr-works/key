@@ -277,7 +277,7 @@ private final class PIVNativeAgreementSession: PIVRecoveryAgreementSession, @unc
 
   init() {
     context.interactionNotAllowed = true
-    context.localizedReason = "Open the selected Key vault recovery credential"
+    context.localizedReason = "Use the selected recovery key"
   }
 
   func invalidate() {

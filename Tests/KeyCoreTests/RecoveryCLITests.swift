@@ -168,7 +168,7 @@ struct RecoveryCLITests {
         tokenID: "selected-token", recipientID: Self.recipient, deviceName: "Replacement Mac")
     #expect(transport.requests == [.recovery(request)] && captures == 1)
     #expect(io.stdout == "Selected new vault.\n")
-    #expect(io.stderr.contains("Enter PIN only in the macOS dialog"))
+    #expect(io.stderr.contains("PIN only in the macOS dialog"))
     #expect(!io.stderr.contains("must-not-read") && !io.stdout.contains("must-not-read"))
     #expect(!FileManager.default.fileExists(atPath: home.path))
   }
@@ -184,8 +184,8 @@ struct RecoveryCLITests {
     let result = app.run(arguments: arguments())
     #expect(result == (thrown ? EXIT_FAILURE : 23))
     #expect(transport.requests.count == 1 && io.stdout.isEmpty)
-    #expect(io.stderr.contains("does not establish whether selection completed"))
-    #expect(io.stderr.contains("Do not start another restore or delete state"))
+    #expect(io.stderr.contains("could not confirm whether recovery finished"))
+    #expect(io.stderr.contains("Do not start another restore or delete files"))
     #expect(io.stderr.contains("key recovery resume"))
   }
 
@@ -228,7 +228,7 @@ struct RecoveryCLITests {
     #expect(f.identities.creates.value == 1)
     if interrupted {
       #expect(
-        initialIO.stdout.isEmpty && initialIO.stderr.contains("preserve state for inspection"))
+        initialIO.stdout.isEmpty && initialIO.stderr.contains("keep the records for investigation"))
       #expect(f.reservations.value != nil && f.preparations.value != nil)
       #expect(try !f.config.hasConfiguration())
       let resumedHost = host(f)

@@ -7,6 +7,22 @@ struct KeyRecoveryReviewTests {
   private typealias Fixture = V3RecoveryRestoreServiceTestSupport.Fixture
   private enum Stop: Error { case unexpected }
 
+  @Test(arguments: [PIVRecoveryTokenError.unavailable, PIVRecoveryTokenError.resourceLimit, PIVRecoveryTokenError.ambiguousInventory,
+    PIVRecoveryTokenError.invalidSelection, PIVRecoveryTokenError.tokenChanged, PIVRecoveryTokenError.operationInProgress, PIVRecoveryTokenError.invalidCertificate, PIVRecoveryTokenError.anchorCredentialMismatch,
+    PIVRecoveryKeyPolicyError.invalidMetadata, PIVRecoveryKeyPolicyError.unsupportedPolicy, PIVRecoveryKeyPolicyError.publicKeyMismatch] as [any Error])
+  func hardwareReadErrorsReachCLIWithReadableGuidance(error: any Error) {
+    let reads = Counter()
+    let service = host(review: { _, _ in throw error }, configurationReads: reads)
+    let io = MemoryIO(stdinIsTTY: false)
+    let transport = MemoryTransport { service.handle($0) }
+    let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
+    #expect(app.run(arguments: ["recovery", "credential", "--token", "fixture-token"]) == EXIT_FAILURE)
+    #expect(io.stdout.isEmpty)
+    #expect(io.stderr.contains(error.localizedDescription))
+    #expect(!io.stderr.contains("PIVRecoveryTokenError"))
+    #expect(transport.requests.count == 1 && reads.value == 0)
+  }
+
   @Test func removedRecipientReviewExplainsRefusalWithoutInternalErrorDetails() {
     let configurationReads = Counter()
     let calls = Counter()
@@ -108,8 +124,8 @@ struct KeyRecoveryReviewTests {
         source.registrationManifestDigest == Base64URL.encode(f.source.anchor.floor.envelopeDigest))
     } else {
       #expect(io.stdout.contains("not content-verified"))
-      #expect(io.stdout.contains("does not prove possession"))
-      #expect(io.stdout.contains("No saved attempt or restore approval"))
+      #expect(io.stdout.contains("does not prove that recovery will work"))
+      #expect(io.stdout.contains("No restore attempt was started or approved"))
     }
     #expect(!io.stdout.contains("Software fixture secret") && !io.stdout.contains("must-not-read"))
     #expect(try V3RecoveryRestoreJournalTestSupport.files(f.source.root) == before)
@@ -491,8 +507,8 @@ struct KeyRecoveryReviewTests {
           try JSONDecoder().decode(KeyRecoveryReviewResult.self, from: Data(io.stdout.utf8))
             == .tokens([]))
       } else {
-        #expect(io.stdout.contains("No connected token candidates"))
-        #expect(io.stdout.contains("does not select a key"))
+        #expect(io.stdout.contains("No connected security keys"))
+        #expect(io.stdout.contains("does not check the keys"))
       }
     }
     #expect(transport.requests.count == 2)

@@ -72,7 +72,7 @@ struct V3RecoveryRestoreTrustInstaller: Sendable {
     try validateScope()
     guard
       let identity = try identities.loadDeviceIdentity(
-        vaultID: checkpoint.vaultID, reason: "Load this Mac's saved restored-vault credentials."),
+        vaultID: checkpoint.vaultID, reason: "Open this Mac's saved access to the recovered vault."),
       identity.vaultID == checkpoint.vaultID,
       identity.publicIdentity == saved.manifest.body.devices[0].identity
     else { throw V3RecoveryRestoreTrustError.identityUnavailable }
@@ -108,7 +108,7 @@ struct V3RecoveryRestoreTrustInstaller: Sendable {
     _ = try V3DeviceWrappedCheckpointUnlocker().unlock(
       checkpoint: checkpoint, manifestData: bundle.manifest.canonicalBytes,
       identity: identity, session: validation,
-      reason: "Verify this Mac's saved restored-vault access before installing local trust.",
+      reason: "Check that this Mac can open the recovered vault.",
       validateBeforeSessionInstall: { try recheck(prior) })
     guard
       try validation.load(vaultID: checkpoint.vaultID, keyID: bundle.intent.destinationKeyID)

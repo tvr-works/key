@@ -7,6 +7,42 @@ struct RecoveryRegistrationCLITests {
   private static let recipient = Base64URL.encode(Data(repeating: 7, count: 32))
   private static let vault = "018f4d38-7d5a-7b20-b0f1-97d6e96c84d1"
 
+  @Test(arguments: [false, true], [false, true])
+  func completionDistinguishesFormatUpdateFromRegistration(finish: Bool, pending: Bool) {
+    let io = MemoryIO(stdinIsTTY: true, lineInput: finish ? "REGISTER" : "ADOPT")
+    let transport = MemoryTransport { _ in
+      .init(exitCode: EXIT_SUCCESS, value: nil, errorMessage: nil,
+        recoveryRegistration: .completed(vaultID: Self.vault,
+          manifestDigest: Base64URL.encode(Data(repeating: 8, count: 32)), cleanupPending: pending))
+    }
+    let args = finish
+      ? ["recovery", "register", "finish", "--token", "fixture-token", "--recipient", Self.recipient]
+      : ["recovery", "adopt"]
+    #expect(KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard()).run(arguments: args) == EXIT_SUCCESS)
+    #expect(io.stdout.contains("Recovery key registered.") == finish)
+    #expect(io.stdout.contains("No recovery key was registered by this step.") == !finish)
+    #expect(io.stderr.contains("One completion step remains") == pending)
+    #expect(transport.requests.count == 1)
+  }
+
+  @Test(arguments: [false, true])
+  func registrationStatusProvidesCompleteIDsWithoutChangingJSON(json: Bool) throws {
+    let result = KeyRecoveryRegistrationResult.status(state: .registered, vaultID: Self.vault,
+      recipients: [Self.recipient], activationCommitted: false)
+    let io = MemoryIO(stdinIsTTY: false)
+    let transport = MemoryTransport { _ in
+      .init(exitCode: EXIT_SUCCESS, value: nil, errorMessage: nil, recoveryRegistration: result)
+    }
+    let args = ["recovery", "register", "status"] + (json ? ["--json"] : [])
+    #expect(KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard()).run(arguments: args) == EXIT_SUCCESS)
+    if json {
+      #expect(try JSONDecoder().decode(KeyRecoveryRegistrationResult.self, from: Data(io.stdout.utf8)) == result)
+    } else {
+      #expect(io.stdout.contains("Recipient ID: \(Self.recipient)"))
+      #expect(io.stdout.contains("does not test the physical keys"))
+    }
+  }
+
   @Test(arguments: [false, true])
   func adoptionAbandonmentRequiresConfirmationAndExactReply(mismatched: Bool) throws {
     let operation = VaultTransactionOperationID().rawValue
@@ -25,7 +61,7 @@ struct RecoveryRegistrationCLITests {
     #expect(app.run(arguments: args) == (mismatched ? EXIT_FAILURE : EXIT_SUCCESS))
     #expect(transport.requests == [.recoveryRegistration(action)])
     #expect(!io.stdout.contains("must-not-read"))
-    if !mismatched { #expect(io.stdout.contains("checkpoint and saved files were preserved")) }
+    if !mismatched { #expect(io.stdout.contains("verified history and saved files were preserved")) }
     else { #expect(io.stdout.isEmpty) }
     for interactive in [false, true] {
       let declined = MemoryTransport { _ in Issue.record("No request without ABANDON confirmation"); return .success() }
@@ -53,7 +89,7 @@ struct RecoveryRegistrationCLITests {
     #expect(app.run(arguments: args) == (mismatched ? EXIT_FAILURE : EXIT_SUCCESS))
     #expect(transport.requests == [.recoveryRegistration(action)])
     #expect(!io.stdout.contains("must-not-read"))
-    if !mismatched { #expect(io.stdout.contains("checkpoint and saved files were preserved")) }
+    if !mismatched { #expect(io.stdout.contains("verified history and saved files were preserved")) }
     else { #expect(io.stdout.isEmpty) }
     for interactive in [false, true] {
       let declined = MemoryTransport { _ in Issue.record("No request without ABANDON confirmation"); return .success() }
@@ -129,7 +165,7 @@ struct RecoveryRegistrationCLITests {
     #expect(transport.requests.count == 1)
     #expect(try Data(contentsOf: output) == (existing == 0 ? anchor.canonicalBytes : sentinel))
     #expect(!io.stdout.contains("must-not-read"))
-    if existing != 0 { #expect(io.stderr.contains("not a new preparation")) }
+    if existing != 0 { #expect(io.stderr.contains("same saved preparation")) }
   }
 
   @Test func mismatchedPayloadCannotCreateAnExportAndNeverRetries() {
@@ -143,7 +179,7 @@ struct RecoveryRegistrationCLITests {
     let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
     #expect(app.run(arguments: arguments()) != EXIT_SUCCESS)
     #expect(transport.requests.count == 1 && io.stdout.isEmpty)
-    #expect(io.stderr.contains("does not prove nothing committed"))
+    #expect(io.stderr.contains("could not confirm whether this setup step finished"))
   }
 
   @Test func statusHasNoCredentialInputAndAttentionIsNotSuccess() {
@@ -182,7 +218,7 @@ struct RecoveryRegistrationCLITests {
       KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard()).run(
         arguments: input) == EXIT_SUCCESS)
     #expect(transport.requests == [.recoveryRotation(action)])
-    #expect(io.stdout.contains("No token operation") && !io.stdout.contains("must-not-read"))
+    #expect(io.stdout.contains("No hardware key was contacted") && !io.stdout.contains("must-not-read"))
     let cancelled = MemoryTransport { _ in
       Issue.record("Cancelled rotation dispatched")
       return .success()
@@ -216,7 +252,7 @@ struct RecoveryRegistrationCLITests {
     #expect(
       KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
         .run(arguments: ["recovery", "pending"]) == EXIT_SUCCESS)
-    #expect(io.stdout.contains(operation) && io.stdout.contains("not validated intent"))
+    #expect(io.stdout.contains(operation) && io.stdout.contains("does not confirm whether these operations finished"))
     #expect(transport.requests == [.recoveryRegistration(.pending)])
   }
 

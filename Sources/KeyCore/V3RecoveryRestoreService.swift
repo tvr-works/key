@@ -159,13 +159,13 @@ struct V3RecoveryRestoreService {
         try requireReservation()
         let created = try identities.createDeviceWrappedIdentity(
           vaultID: reservation.vaultID, displayName: deviceName,
-          reason: "Create this Mac's credentials for the restored vault.")
+          reason: "Set up this Mac's access to the recovered vault.")
         try observer.didReach(.identitySaved)
         try requireReservation()
         guard
           let saved = try identities.loadDeviceIdentity(
             vaultID: reservation.vaultID,
-            reason: "Load this Mac's saved restored-vault credentials.")
+            reason: "Open this Mac's saved access to the recovered vault.")
         else { throw V3RecoveryRestoreServiceError.identityUnavailable }
         guard created.vaultID == reservation.vaultID, saved.vaultID == reservation.vaultID,
           created.publicIdentity == saved.publicIdentity
@@ -185,7 +185,7 @@ struct V3RecoveryRestoreService {
           vaultID: reservation.vaultID, envelopeDigest: genesis.manifestDigest)
         _ = try V3DeviceWrappedCheckpointUnlocker().unlock(
           checkpoint: checkpoint, manifestData: genesis.manifestData, identity: saved,
-          session: session, reason: "Prepare restored vault on this Mac.",
+          session: session, reason: "Prepare the recovered vault on this Mac.",
           validateBeforeSessionInstall: requireReservation)
         guard try session.load(vaultID: reservation.vaultID, keyID: genesis.body.keyID) == key
         else {
@@ -286,7 +286,7 @@ struct V3RecoveryRestoreService {
         guard
           let identity = try identities.loadDeviceIdentity(
             vaultID: bundle.intent.destinationCheckpoint.vaultID,
-            reason: "Load this Mac's saved restored-vault credentials.")
+            reason: "Open this Mac's saved access to the recovered vault.")
         else { throw V3RecoveryRestoreServiceError.identityUnavailable }
         guard identity.vaultID == bundle.intent.destinationCheckpoint.vaultID,
           identity.publicIdentity == bundle.manifest.body.devices[0].identity
@@ -300,7 +300,7 @@ struct V3RecoveryRestoreService {
           checkpoint: bundle.intent.destinationCheckpoint,
           manifestData: bundle.manifest.canonicalBytes,
           identity: identity, session: session,
-          reason: "Reopen saved restore preparation on this Mac.",
+          reason: "Open the recovery preparation saved on this Mac.",
           validateBeforeSessionInstall: requirePending)
         let key = try session.load(
           vaultID: bundle.intent.destinationCheckpoint.vaultID,

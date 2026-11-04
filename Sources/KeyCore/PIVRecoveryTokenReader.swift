@@ -3,7 +3,7 @@ import CryptoTokenKit
 import Foundation
 import Security
 
-enum PIVRecoveryTokenError: Error, Equatable {
+enum PIVRecoveryTokenError: Error, Equatable, LocalizedError {
   case unavailable
   case resourceLimit
   case ambiguousInventory
@@ -12,6 +12,27 @@ enum PIVRecoveryTokenError: Error, Equatable {
   case operationInProgress
   case invalidCertificate
   case anchorCredentialMismatch
+
+  var errorDescription: String? {
+    switch self {
+    case .unavailable:
+      "Key could not access the selected security key. Check that it is connected to this Mac."
+    case .resourceLimit:
+      "The security key's public information exceeds Key's supported limits."
+    case .ambiguousInventory:
+      "Key could not distinguish the connected security keys. Connect only the intended key, then check the list again."
+    case .invalidSelection:
+      "The selected security key could not be identified. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens and use its complete token ID."
+    case .tokenChanged:
+      "The selected security key or its public information changed during the check. Keep saved recovery records and check the intended key again before continuing."
+    case .operationInProgress:
+      "Another operation is using the security key. Wait for it to finish before continuing."
+    case .invalidCertificate:
+      "Key could not read a compatible recovery certificate from this security key. Check its setup against the recovery guide."
+    case .anchorCredentialMismatch:
+      "The security key's recovery setup record does not match its credential. Keep the key and vault files unchanged while investigating."
+    }
+  }
 }
 
 /// Closed public-read surface. No PIN, management authentication, write,
@@ -104,7 +125,7 @@ struct PIVPublicReadFailure: Error, LocalizedError, Equatable, Sendable {
     let reportedStatus = status == 0 ? "not-reported" : String(format: "0x%04x", Int(status))
     let native = nativeError.map { "\($0.domain.rawValue):\($0.code)" } ?? "none"
     return
-      "Public PIV read failed [step=\(command.diagnosticStep), status=\(reportedStatus), native=\(native), reason=\(reason.rawValue)]. No automatic retry was attempted."
+      "Key could not read the security key's public recovery setup. No automatic retry was attempted.\nDiagnostic details: step=\(command.diagnosticStep), status=\(reportedStatus), native=\(native), reason=\(reason.rawValue)."
   }
 }
 

@@ -28,7 +28,7 @@ struct VaultUXCLITests {
                 == KeyExitCode.conflict.rawValue
         )
         #expect(io.stdout.contains("Some entries have conflicting changes"))
-        #expect(io.stdout.contains("Last trusted entries: 7"))
+        #expect(io.stdout.contains("Entries in this Mac's last verified version: 7"))
         #expect(io.stdout.contains("Conflicts: 2"))
         #expect(io.stdout.contains("key conflict list"))
         #expect(!io.stdout.contains("0123456789abcdef"))

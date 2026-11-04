@@ -195,7 +195,7 @@ func translatingV3RecoveryRuntimeErrors<T>(_ operation: () throws -> T) throws -
       )
     case .unsupportedProfile:
       throw AppError.operationRefused(
-        "This vault profile is not supported by the recovery-profile runtime.")
+        "This recovery workflow does not support the vault's format.")
     case .mutationPending, .recoveryRequired: throw VaultUXServiceError.recoveryRequired
     }
   } catch is V3DeviceWrappedVaultKeySessionError {

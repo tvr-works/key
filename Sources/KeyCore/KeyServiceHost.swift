@@ -187,7 +187,7 @@ public final class KeyServiceHost {
                     guard !restartPending else { return restarting() }
                     try requireNoRecoveryPending()
                     guard try !hasConfiguration(), handler == nil else {
-                        throw AppError.operationRefused("Key already has a configuration or an active runtime. Init never replaces a vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status`; use migration for v2 or enrollment for an existing v3 vault.")
+                        throw AppError.operationRefused("Key already has vault settings or an active session on this Mac. Init never replaces a vault. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status`; use migrate for an older vault or share to join an existing vault.")
                     }
                     let message = try initialize(path)
                     restartPending = true
