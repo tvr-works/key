@@ -380,7 +380,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 detail: detail,
                 guidance: [
                     KeyDashboardGuidance(
-                        title: "Allow Key to run in the background",
+                        title: "Allow \(context.productIdentity.appName) to run in the background",
                         detail: "Approve \(context.productIdentity.appName) in Login Items & Extensions so \(context.productIdentity.appName) can handle vault commands when needed.",
                         command: nil
                     )
@@ -413,11 +413,11 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
             let identity = context.productIdentity
             return KeyDashboardCallout(
                 title: "Terminal command not found",
-                detail: "\(identity.appName) could not find an external `\(identity.cliExecutableName)` CLI through your login shell or standard Homebrew install locations. You can still use the bundled CLI directly from \(identity.appName).app.",
+                detail: "\(identity.appName) could not find the `\(identity.cliExecutableName)` command in your terminal. You can use the command included with the app below. The diagnostic details show where Key looked.",
                 guidance: [
                     KeyDashboardGuidance(
                         title: "Use the command included with the app",
-                        detail: "Run the app’s bundled CLI until an external `\(identity.cliExecutableName)` install is available again.",
+                        detail: "Use this command to open help from the installed app.",
                         command: bundledCLICommand("help")
                     )
                 ]
@@ -434,7 +434,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance = [
                     KeyDashboardGuidance(
                         title: "Use the command included with the app",
-                        detail: "The external `\(identity.cliExecutableName)` CLI is older than this app. Use the bundled CLI until the external CLI is updated.",
+                        detail: "The `\(identity.cliExecutableName)` command in your terminal is older than this app. Use the included command until you update the terminal installation.",
                         command: bundledCLICommand("version")
                     )
                 ]
@@ -442,7 +442,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance = [
                     KeyDashboardGuidance(
                         title: "Check the terminal command",
-                        detail: "Run the CLI version command from the same shell environment you expect to use.",
+                        detail: "Run this version check in the terminal you normally use.",
                         command: "\(identity.cliExecutableName) version"
                     )
                 ]
@@ -464,7 +464,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance: [
                     KeyDashboardGuidance(
                         title: "Check the terminal command",
-                        detail: "Check which `\(identity.cliExecutableName)` binary your shell environment is actually using.",
+                        detail: "Check the version of `\(identity.cliExecutableName)` that your terminal is using.",
                         command: "\(identity.cliExecutableName) version"
                     )
                 ]
