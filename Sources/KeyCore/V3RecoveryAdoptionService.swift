@@ -147,7 +147,7 @@ struct V3RecoveryAdoptionService: Sendable {
   /// Encrypted files stay inert for audit; no provider data is deleted.
   func abandonUnarmedPreparation(operationID: VaultTransactionOperationID) throws {
     try mutationOwner.perform(.adoptRecoveryProfile) { _ in
-      try validateScope()
+      try requireNoOtherPending()
       guard let local = try loadOwnership(), local.operationID == operationID,
         local.phase == .prepared
       else { throw V3RecoveryAdoptionServiceError.ownershipChanged }

@@ -405,12 +405,16 @@ private struct KeyArguments: ParsableCommand {
         struct Adopt: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "adopt", abstract: "Explicitly adopt the recovery-capable format, or resume its exact saved operation (gated).", discussion: CLIHelp.recoveryAdoption)
             @Option(name: .customLong("resume"), help: "Complete original adoption operation ID; never substitutes a new attempt.") var operation: String?
+            @Option(name: .customLong("abandon"), help: "Release only an incomplete adoption that has not been armed for publication; requires its original operation ID.") var abandonedOperation: String?
             mutating func validate() throws {
-                if let operation, (try? VaultTransactionOperationID(validating: operation)) == nil {
-                    throw ValidationError("Provide the complete original operation ID for --resume.")
+                guard operation == nil || abandonedOperation == nil else {
+                    throw ValidationError("Choose either --resume or --abandon, not both.")
+                }
+                if let selected = operation ?? abandonedOperation, (try? VaultTransactionOperationID(validating: selected)) == nil {
+                    throw ValidationError("Provide the complete original operation ID for --resume or --abandon.")
                 }
             }
-            var command: Command { .recoveryRegistration(operation.map { .resumeAdoption(operationID: $0) } ?? .adopt, exportPath: nil, json: false) }
+            var command: Command { .recoveryRegistration(abandonedOperation.map { .abandonAdoption(operationID: $0) } ?? operation.map { .resumeAdoption(operationID: $0) } ?? .adopt, exportPath: nil, json: false) }
         }
 
         struct Pending: CLIRequest {

@@ -115,6 +115,12 @@ struct V3RecoveryAdoptionServiceTests {
       try f.service().abandonUnarmedPreparation(operationID: VaultTransactionOperationID())
     }
     #expect(f.ownership.value == local.canonicalBytes && f.core.owner.unwraps == 0)
+    try f.transactions.replaceRecoveryAnchor(Data([1]), expectedAnchor: nil, vaultID: Core.vaultID)
+    #expect(throws: V3RecoveryAdoptionServiceError.otherMutationPending) {
+      try f.service().abandonUnarmedPreparation(operationID: local.operationID)
+    }
+    #expect(f.ownership.value == local.canonicalBytes)
+    try f.transactions.replaceRecoveryAnchor(nil, expectedAnchor: Data([1]), vaultID: Core.vaultID)
     try f.service().abandonUnarmedPreparation(operationID: local.operationID)
     #expect(
       f.ownership.value == nil && f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
@@ -662,6 +668,65 @@ struct V3RecoveryAdoptionServiceTests {
       mutationOwner: f.mutationOwner)
     #expect(try runtime.list(allowStale: false).count == f.core.entries.count)
     #expect(try runtime.status().health == .ready)
+  }
+
+  @Test(arguments: 0 ..< 11)
+  func configuredAbandonmentOnlyReleasesExactUnarmedAdoption(variant: Int) throws {
+    guard #available(macOS 26.0, *) else { return }
+    let f = try Fixture(); defer { f.remove() }
+    let phase: V3RecoveryAdoptionPhase = switch variant {
+    case 1: .bundlePersisted
+    case 2: .ownershipArmed
+    case 3: .checkpointAdvanced
+    default: .ownershipReserved
+    }
+    #expect(throws: Core.FixtureError.cancelled) {
+      try f.service(observer: Observer { if $0 == phase { throw Core.FixtureError.cancelled } })
+        .adopt(currentVaultKey: Core.oldKey)
+    }
+    let anchor = try f.anchor()
+    let cacheRoot = f.root.appendingPathComponent(".test-local-cache", isDirectory: true)
+    try FileManager.default.createDirectory(at: cacheRoot, withIntermediateDirectories: true)
+    let cache = V3CheckpointManifestFilesystemCache(rootHandle: try .init(opening: cacheRoot))
+    let checkpoint = try V3ManifestCheckpoint(canonicalBytes: #require(f.checkpoints.value))
+    let manifest = try Data(contentsOf: f.manifestURL(checkpoint.envelopeDigest))
+    try cache.store(manifest, for: checkpoint)
+    let reader = PIVRecoveryTokenReader(inventory: NoTokens(), gate: .init())
+    let workflow = KeyRecoveryRegistrationWorkflow(
+      vaultID: Core.vaultID,
+      store: V3FilesystemTransactionArtifactStore(rootHandle: try .init(opening: f.root)),
+      checkpoints: f.checkpoints, transaction: f.transactions, registration: f.registration,
+      adoption: f.ownership, cache: cache, identities: WorkflowLoader(identity: f.core.owner),
+      reader: reader, agreement: .live(reader: reader), owner: f.mutationOwner)
+    let scope = KeyRecoveryRequestScope(authentication: .init(), deadline: .now() + 90)
+    if variant == 5 { scope.cancellation.cancel() }
+    if variant == 6 { try f.transactions.replaceRecoveryAnchor(Data([1]), expectedAnchor: nil, vaultID: Core.vaultID) }
+    if variant == 7 { f.core.owner.cancelUnwrap = true }
+    if variant == 8 {
+      f.core.owner.onUnwrap = {
+        let armed = try V3ImmutableTransactionRecoveryAnchor(operationID: anchor.operationID,
+          vaultID: Core.vaultID, intentDigest: anchor.intentDigest, phase: .recoverable)
+        try f.ownership.replaceRecoveryAnchor(armed.canonicalBytes, expectedAnchor: anchor.canonicalBytes, vaultID: Core.vaultID)
+      }
+    }
+    if variant == 9 { f.core.owner.onUnwrap = { scope.cancellation.cancel() } }
+    if variant == 10 { f.ownership.rejectClear = true }
+    let files = try V3RecoveryRestoreJournalTestSupport.files(f.root)
+    let signatures = f.core.owner.signatures
+    let selected = variant == 4 ? VaultTransactionOperationID() : anchor.operationID
+    let action = KeyRecoveryRegistrationRequest.abandonAdoption(operationID: selected.rawValue)
+    if variant < 2 {
+      let result = try workflow.handle(action, scope: scope)
+      #expect(result.recoveryRegistration == .adoptionAbandoned(vaultID: Core.vaultID, operationID: anchor.operationID.rawValue))
+      #expect(f.ownership.value == nil)
+    } else {
+      #expect(throws: (any Error).self) { try workflow.handle(action, scope: scope) }
+      if variant == 8 { #expect(try f.anchor().phase == .recoverable) }
+      else { #expect(f.ownership.value == anchor.canonicalBytes) }
+    }
+    #expect(f.checkpoints.value == checkpoint.canonicalBytes)
+    #expect(try V3RecoveryRestoreJournalTestSupport.files(f.root) == files)
+    #expect(f.core.owner.signatures == signatures)
   }
 
   private struct NoTokens: PIVRecoveryTokenInventoryProviding {

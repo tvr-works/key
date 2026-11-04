@@ -47,6 +47,8 @@ enum CLIHelp {
     Gated explicit format adoption, not registration or recovery. Preserve a backup and coordinate upgrades on every Mac before changing the format. Old clients must refuse the new profile. Adoption performs complete authenticated resealing and changes the selected checkpoint, but adds no token recipient. It never writes hardware or changes vault-dir.
 
     Use --resume <complete-original-operation-id> only for the exact locally owned interrupted adoption. It never starts a replacement or adopts provider records. Preserve files and local records after interruption; do not delete ownership to retry. Check registration status after the helper restarts, then separately register a recovery key. This workflow requires an interactive terminal.
+
+    If adoption stopped before its preparation was ready for publication and cannot resume, use --abandon <complete-original-operation-id>. Find the ID with recovery pending. Abandonment requires ABANDON confirmation and refuses any attempt already armed for publication. It preserves the vault format, checkpoint and saved files; it never changes a hardware key. After successful abandonment, a new adoption must be explicitly requested.
     """
 
     static let recoveryRecipientRemoval = """

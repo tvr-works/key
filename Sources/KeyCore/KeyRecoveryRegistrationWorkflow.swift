@@ -31,7 +31,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
     try request.validate()
     let kind: VaultTransactionMutationKind =
       switch request {
-      case .adopt, .resumeAdoption: .adoptRecoveryProfile
+      case .adopt, .resumeAdoption, .abandonAdoption: .adoptRecoveryProfile
       default: .registerRecoveryRecipient
       }
     return try owner.perform(kind) { context in
@@ -73,13 +73,19 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
         vaultID: vaultID, checkpoints: checkpoints, source: store, cache: cache)
       let authentication: Authentication
       switch (request, selected.profile) {
-      case (.adopt, .permanent), (.resumeAdoption, .permanent):
+      case (.adopt, .permanent), (.resumeAdoption, .permanent), (.abandonAdoption, .permanent):
         let pending = try adoption.loadRecoveryAnchor(vaultID: vaultID)
         if case .adopt = request, pending != nil {
           throw V3RecoveryAdoptionServiceError.adoptionPending
         }
         if case .resumeAdoption(let operation) = request {
           try requireSelectedOwnership(pending, operation: operation)
+        }
+        if case .abandonAdoption(let operation) = request {
+          let anchor = try requireSelectedOwnership(pending, operation: operation)
+          guard anchor.phase == .prepared else {
+            throw AppError.operationRefused("This adoption was already armed for publication and cannot be abandoned. Preserve its files and resume the original operation.")
+          }
         }
         try requireOwnership(transaction: nil, registration: nil, adoption: pending)
         let runtime = V3DeviceWrappedVaultUnlockRuntime(
@@ -98,6 +104,8 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
         throw AppError.operationRefused(
           "This vault already uses the recovery-capable format. Inspect registration status; adoption is not registration."
         )
+      case (.abandonAdoption, .recovery):
+        throw AppError.operationRefused("This vault already uses the recovery-capable format. Adoption abandonment cannot undo a committed format change.")
       case (_, .permanent):
         throw AppError.operationRefused(
           "Explicitly adopt the recovery-capable format before registration.")
@@ -117,7 +125,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
             try registration.loadRecoveryAnchor(vaultID: vaultID) == nil ? nil : .registration
         case .resumeExport: namespace = .registration
         case .prepare: namespace = nil
-        case .adopt, .pending: preconditionFailure("Handled above")
+        case .adopt, .pending, .abandonAdoption: preconditionFailure("Handled above")
         }
         if let namespace {
           let pending = try runtime.authenticatedPendingContext(
@@ -172,16 +180,24 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
         else { throw V3RecoveryVaultUnlockError.identityUnavailable }
         try session.requireCurrent(authentication.ticket)
         switch request {
-        case .adopt, .resumeAdoption:
+        case .adopt, .resumeAdoption, .abandonAdoption:
           let service = V3RecoveryAdoptionService(
             vaultID: vaultID, identity: identity, mutationOwner: direct, objectStore: store,
             checkpointStore: checkpoints, adoptionOwnershipStore: adoption,
             transactionOwnershipStore: transaction, registrationOwnershipStore: registration,
             validateScope: validate)
           let commit: V3RecoveryAdoptionCommit
-          if case .resumeAdoption(let operation) = request {
-            commit = try service.resume(
-              operationID: .init(validating: operation), currentVaultKey: authentication.key)
+          if case .abandonAdoption(let operation) = request {
+            try service.abandonUnarmedPreparation(operationID: .init(validating: operation))
+            result = .adoptionAbandoned(vaultID: vaultID, operationID: operation)
+            break
+          } else if case .resumeAdoption(let operation) = request {
+            do {
+              commit = try service.resume(
+                operationID: .init(validating: operation), currentVaultKey: authentication.key)
+            } catch V3RecoveryAdoptionServiceError.preparationUnavailable {
+              throw AppError.operationRefused("Saved format-adoption preparation is unavailable. Preserve its files and operation ID. If the attempt was not armed for publication, recovery adopt --abandon can release it; see recovery adopt --help. No replacement adoption was started.")
+            }
           } else {
             commit = try service.adopt(currentVaultKey: authentication.key)
           }

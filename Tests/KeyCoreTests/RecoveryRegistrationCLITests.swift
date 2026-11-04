@@ -8,6 +8,34 @@ struct RecoveryRegistrationCLITests {
   private static let vault = "018f4d38-7d5a-7b20-b0f1-97d6e96c84d1"
 
   @Test(arguments: [false, true])
+  func adoptionAbandonmentRequiresConfirmationAndExactReply(mismatched: Bool) throws {
+    let operation = VaultTransactionOperationID().rawValue
+    let args = ["recovery", "adopt", "--abandon", operation]
+    let action = KeyRecoveryRegistrationRequest.abandonAdoption(operationID: operation)
+    #expect(try CLIParser.parse(arguments: args) == .recoveryRegistration(action, exportPath: nil, json: false))
+    #expect(throws: AppError.self) { try CLIParser.parse(arguments: args + ["--resume", operation]) }
+    #expect(throws: AppError.self) { try CLIParser.parse(arguments: ["recovery", "adopt", "--abandon", "short"]) }
+    let io = MemoryIO(stdinIsTTY: true, lineInput: "ABANDON", secureInput: "must-not-read")
+    let transport = MemoryTransport { _ in
+      .init(exitCode: EXIT_SUCCESS, value: nil, errorMessage: nil,
+        recoveryRegistration: .adoptionAbandoned(vaultID: Self.vault,
+          operationID: mismatched ? VaultTransactionOperationID().rawValue : operation))
+    }
+    let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
+    #expect(app.run(arguments: args) == (mismatched ? EXIT_FAILURE : EXIT_SUCCESS))
+    #expect(transport.requests == [.recoveryRegistration(action)])
+    #expect(!io.stdout.contains("must-not-read"))
+    if !mismatched { #expect(io.stdout.contains("checkpoint and saved files were preserved")) }
+    else { #expect(io.stdout.isEmpty) }
+    for interactive in [false, true] {
+      let declined = MemoryTransport { _ in Issue.record("No request without ABANDON confirmation"); return .success() }
+      let declinedIO = MemoryIO(stdinIsTTY: interactive, lineInput: "ADOPT")
+      #expect(KeyCLIApplication(transport: declined, io: declinedIO, clipboard: MemoryClipboard()).run(arguments: args) != EXIT_SUCCESS)
+      #expect(declined.requests.isEmpty)
+    }
+  }
+
+  @Test(arguments: [false, true])
   func parserRequiresExplicitCredentialAndNewExportPath(resume: Bool) throws {
     let input = arguments(resume: resume)
     let action: KeyRecoveryRegistrationRequest =

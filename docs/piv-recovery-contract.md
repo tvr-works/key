@@ -757,6 +757,7 @@ reserved unarmed before atomic install and promoted only after exact readback/
 synchronization. Resume authenticates exact bytes without new signing/randomness.
 Manifest-last/checkpoint-last commitment precedes session install/cleanup.
 Only exact unarmed abandonment is permitted; recoverable ownership is retained.
+The CLI exposes this as `recovery adopt --abandon <original-operation-id>`, mutually exclusive with `--resume` and requiring interactive `ABANDON` confirmation. The configured workflow verifies the permanent profile, exact prepared ownership and absence of competing work before Mac authentication, then rechecks ownership and cancellation before the guarded clear. It leaves the checkpoint, format and encrypted files intact, refuses armed or committed adoption, and never inspects or writes a token. An older helper that cannot decode this additive request must refuse; no fallback or automatic retry is permitted.
 Committed reconciliation authenticates current state without old ciphertext or
 republishing. Files without pins cannot create ownership/checkpoint authority.
 

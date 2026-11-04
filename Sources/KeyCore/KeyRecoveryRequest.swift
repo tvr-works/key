@@ -102,6 +102,7 @@ public enum KeyRecoveryRegistrationRequest: Codable, Equatable, Sendable {
   case finish(tokenID: String, recipientID: String)
   case adopt
   case resumeAdoption(operationID: String)
+  case abandonAdoption(operationID: String)
 
   var changesCheckpoint: Bool {
     switch self {
@@ -113,10 +114,10 @@ public enum KeyRecoveryRegistrationRequest: Codable, Equatable, Sendable {
   func validate() throws {
     switch self {
     case .status, .pending, .adopt: break
-    case .resumeAdoption(let operation):
+    case .resumeAdoption(let operation), .abandonAdoption(let operation):
       guard (try? VaultTransactionOperationID(validating: operation)) != nil else {
         throw AppError.operationRefused(
-          "Adoption resume requires the complete original operation ID.")
+          "Adoption recovery requires the complete original operation ID.")
       }
     case .prepare(let token, let recipient), .resumeExport(let token, let recipient),
       .finish(let token, let recipient):
@@ -146,6 +147,7 @@ public enum KeyRecoveryRegistrationResult: Codable, Equatable, Sendable {
   case export(operationID: String, vaultID: String, recipientID: String, anchor: String)
   case completed(vaultID: String, manifestDigest: String, cleanupPending: Bool)
   case pending(vaultID: String, operations: [PendingOperation])
+  case adoptionAbandoned(vaultID: String, operationID: String)
 }
 
 /// Public selectors and locations only. Credentials and recovered keys never
