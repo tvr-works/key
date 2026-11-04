@@ -377,7 +377,7 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct Register: ParsableCommand {
-            static let configuration = CommandConfiguration(commandName: "register", abstract: "Inspect or explicitly register the configured vault (gated).", discussion: CLIHelp.recoveryRegistration, subcommands: [Status.self, Prepare.self, ResumeExport.self, Finish.self])
+            static let configuration = CommandConfiguration(commandName: "register", abstract: "Inspect or explicitly register the configured vault (gated).", discussion: CLIHelp.recoveryRegistration, subcommands: [Status.self, Prepare.self, ResumeExport.self, Finish.self, Abandon.self])
             struct Status: CLIRequest {
                 static let configuration = CommandConfiguration(commandName: "status", abstract: "Authenticate configured recovery registration status without contacting a token.")
                 @Flag(help: "Print machine-readable registration status.") var json = false
@@ -394,6 +394,16 @@ private struct KeyArguments: ParsableCommand {
                 @OptionGroup var credential: CredentialOptions
                 @OptionGroup var export: ExportOptions
                 var command: Command { .recoveryRegistration(.resumeExport(tokenID: credential.tokens[0], recipientID: credential.recipients[0]), exportPath: export.paths[0], json: false) }
+            }
+            struct Abandon: CLIRequest {
+                static let configuration = CommandConfiguration(commandName: "abandon", abstract: "Release an incomplete registration only before its anchor was ready for export.", discussion: CLIHelp.recoveryRegistration)
+                @Argument(help: "Complete original registration operation ID from recovery pending.") var operationID: String
+                mutating func validate() throws {
+                    guard (try? VaultTransactionOperationID(validating: operationID)) != nil else {
+                        throw ValidationError("Provide the complete original registration operation ID.")
+                    }
+                }
+                var command: Command { .recoveryRegistration(.abandonRegistration(operationID: operationID), exportPath: nil, json: false) }
             }
             struct Finish: CLIRequest {
                 static let configuration = CommandConfiguration(commandName: "finish", abstract: "Verify the externally installed anchor and possession, then activate registration.")

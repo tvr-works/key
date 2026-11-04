@@ -488,7 +488,7 @@ change retry limits or propose reset/regeneration as a forgotten-PIN shortcut.
 Resume follows exact locally owned bytes, not synchronized-file discovery.
 Repeat intent and full snapshot authentication under fresh Mac keys; do not
 regenerate/rebase, restore old token bytes or auto-repeat an uncertain vendor write.
-An incomplete reservation or missing/changed bundle remains attention-required.
+An incomplete reservation or missing/changed bundle remains attention-required. The explicit `recovery register abandon <original-operation-id>` command may clear only exact device-local ownership that is still prepared, before export-ready promotion. It requires interactive `ABANDON` confirmation and fresh Mac authentication of the current checkpoint, rejects competing work and changed ownership, and uses a guarded compare-and-swap clear. It preserves all files and never observes or changes the token. Export-ready ownership is retained even if its bundle is missing; a new preparation after successful abandonment requires a separate explicit request. Older helpers must refuse this additive request without fallback.
 Before checkpoint commitment require fresh possession even if the candidate is
 already published. After exact commitment, reconcile authenticated current
 session/ownership without another hardware approval/publication. A lost reply

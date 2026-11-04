@@ -59,6 +59,26 @@ struct V3RecoveryKeyRotationRecoveryTests {
     #expect(f.ownership.value == nil && f.core.owner.signatures == 2)
   }
 
+  @Test func ordinaryReadReleasesRotationStoppedBeforeIntentWasSaved() throws {
+    let f = try Fixture(); defer { f.remove() }
+    try interrupt(f, phase: .recoveryAnchorPrepared)
+    let checkpoint = f.checkpoints.value
+    let runtime = V3RecoveryVaultRuntime(
+      vaultID: Core.vaultID, objectStore: f.store, checkpointStore: f.checkpoints,
+      transactionOwnershipStore: f.ownership, registrationOwnershipStore: f.registration,
+      adoptionOwnershipStore: f.adoption, cache: f.cache,
+      identityLoader: Loader(identity: f.core.owner), session: .init(),
+      mutationOwner: VaultTransactionMutationOwner())
+    #expect(try runtime.read(name: "fixture/secret", allowStale: false).plaintext == "Software fixture secret e\u{301}\r\n")
+    #expect(f.ownership.value == nil && f.checkpoints.value == checkpoint)
+    #expect(f.core.owner.signatures == 2)
+  }
+
+  private struct Loader: V3DeviceWrappedIdentityLoading {
+    let identity: any V3DeviceWrappedVaultKeyUnwrapping
+    func loadDeviceIdentity(vaultID _: String, reason _: String) throws -> (any V3DeviceWrappedVaultKeyUnwrapping)? { identity }
+  }
+
   @Test func committedRestartNeedsNoOldCiphertextManifestOrCache() throws {
     let f = try Fixture()
     defer { f.remove() }

@@ -71,6 +71,15 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
       let loader = ScopedLoader(base: identities, scope: scope, validateLocation: validateLocation)
       let selected = try v3SelectedCheckpointProfile(
         vaultID: vaultID, checkpoints: checkpoints, source: store, cache: cache)
+      let abandonedRegistration: Data?
+      if case .abandonRegistration(let operation) = request {
+        abandonedRegistration = try registration.loadRecoveryAnchor(vaultID: vaultID)
+        let anchor = try requireSelectedOwnership(abandonedRegistration, operation: operation)
+        guard anchor.phase == .prepared else {
+          throw AppError.operationRefused("This registration was already ready for export and cannot be abandoned. Preserve its files and resume the original registration.")
+        }
+        try requireOwnership(transaction: nil, registration: abandonedRegistration, adoption: nil)
+      } else { abandonedRegistration = nil }
       let authentication: Authentication
       switch (request, selected.profile) {
       case (.adopt, .permanent), (.resumeAdoption, .permanent), (.abandonAdoption, .permanent):
@@ -123,7 +132,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
         case .status, .finish:
           namespace =
             try registration.loadRecoveryAnchor(vaultID: vaultID) == nil ? nil : .registration
-        case .resumeExport: namespace = .registration
+        case .resumeExport, .abandonRegistration: namespace = .registration
         case .prepare: namespace = nil
         case .adopt, .pending, .abandonAdoption: preconditionFailure("Handled above")
         }
@@ -202,31 +211,47 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
             commit = try service.adopt(currentVaultKey: authentication.key)
           }
           result = completed(commit.checkpoint, cleanup: commit.cleanupPending)
-        case .prepare(let token, let recipient), .resumeExport(let token, let recipient),
-          .finish(let token, let recipient):
-          let observation = try observe(token: token, recipient: recipient, scope: scope)
+        case .abandonRegistration(let operation):
+          guard let abandonedRegistration else { throw V3RecoveryRegistrationJournalError.invalidOwnership }
+          try requireOwnership(transaction: nil, registration: abandonedRegistration, adoption: nil)
           let service = V3RecoveryRegistrationService(
             vaultID: vaultID, identity: identity, mutationOwner: direct, objectStore: store,
             checkpointStore: checkpoints, registrationOwnershipStore: registration,
             transactionOwnershipStore: transaction, adoptionOwnershipStore: adoption,
             reader: reader, agreement: agreement, validateScope: validate)
-          if case .finish = request {
-            let commit = try service.finish(
-              observation: observation, currentVaultKey: authentication.key,
-              cancellation: scope.cancellation, deadline: scope.deadline, progress: scope.progress)
-            result = completed(commit.checkpoint, cleanup: commit.cleanupPending)
-          } else {
-            let exported: V3RecoveryRegistrationExport
-            if case .prepare = request {
-              exported = try service.prepare(
-                observation: observation, currentVaultKey: authentication.key)
+          try service.abandonUnarmedPreparation(
+            operationID: .init(validating: operation), expectedOwnership: abandonedRegistration,
+            currentVaultKey: authentication.key)
+          result = .registrationAbandoned(vaultID: vaultID, operationID: operation)
+        case .prepare(let token, let recipient), .resumeExport(let token, let recipient),
+          .finish(let token, let recipient):
+          do {
+            let observation = try observe(token: token, recipient: recipient, scope: scope)
+            let service = V3RecoveryRegistrationService(
+              vaultID: vaultID, identity: identity, mutationOwner: direct, objectStore: store,
+              checkpointStore: checkpoints, registrationOwnershipStore: registration,
+              transactionOwnershipStore: transaction, adoptionOwnershipStore: adoption,
+              reader: reader, agreement: agreement, validateScope: validate)
+            if case .finish = request {
+              let commit = try service.finish(
+                observation: observation, currentVaultKey: authentication.key,
+                cancellation: scope.cancellation, deadline: scope.deadline, progress: scope.progress)
+              result = completed(commit.checkpoint, cleanup: commit.cleanupPending)
             } else {
-              exported = try service.resumeExport(
-                observation: observation, currentVaultKey: authentication.key)
+              let exported: V3RecoveryRegistrationExport
+              if case .prepare = request {
+                exported = try service.prepare(
+                  observation: observation, currentVaultKey: authentication.key)
+              } else {
+                exported = try service.resumeExport(
+                  observation: observation, currentVaultKey: authentication.key)
+              }
+              result = .export(
+                operationID: exported.operationID.rawValue, vaultID: vaultID,
+                recipientID: exported.recipientID.rawValue, anchor: Base64URL.encode(exported.anchor))
             }
-            result = .export(
-              operationID: exported.operationID.rawValue, vaultID: vaultID,
-              recipientID: exported.recipientID.rawValue, anchor: Base64URL.encode(exported.anchor))
+          } catch V3RecoveryRegistrationJournalError.preparationUnavailable {
+            throw AppError.operationRefused("Saved registration preparation is unavailable. Preserve all files and inspect recovery pending. Only a registration that was not ready for export can be released with recovery register abandon <original-operation-id>. No replacement registration was started.")
           }
         case .status, .pending: preconditionFailure("Handled above")
         }

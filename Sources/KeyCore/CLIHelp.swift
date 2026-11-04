@@ -40,6 +40,8 @@ enum CLIHelp {
 
     Inspect recovery credential --token <token-id> for its complete recipient ID. Run register prepare with that --token, --recipient and --export-anchor <new-file>. Preparation creates one locally owned encrypted candidate and exports public commitments only. Install those exact bytes using the documented external vendor-tool procedure. Then register finish with the same token/recipient verifies the installed anchor and requests one possession operation before activation. Enter PIN only in the macOS dialog; touch the key when it flashes.
 
+    If preparation stopped before its anchor was ready for export, recovery pending shows its original registration operation ID. register abandon <operation-id> requires ABANDON confirmation and Mac approval; it releases only that early reservation, preserves all saved files, and never contacts the token. It refuses any export-ready or activated registration. After successful abandonment, a new prepare is a separate explicit action.
+
     After a failed export or interruption, preserve all state. register resume-export exports the same locally owned candidate to a new file; it does not replace setup or rewrite the token. Explicit finish rechecks the original candidate or exact committed state. register status authenticates local registration state without contacting a token; it is not a hardware qualification or provider-freshness claim. Never delete records to force another attempt.
     """
 

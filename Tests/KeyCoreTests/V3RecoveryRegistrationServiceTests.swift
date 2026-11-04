@@ -1333,6 +1333,75 @@ struct V3RecoveryRegistrationServiceTests {
     )
   }
 
+  @Test(arguments: 0 ..< 12)
+  func configuredAbandonmentOnlyReleasesAnUnexportedRegistration(variant: Int) throws {
+    guard #available(macOS 26.0, *) else { return }
+    let f = try Fixture(); defer { f.remove() }
+    let preparation = try f.core.prepare()
+    let phase: V3RecoveryRegistrationJournalPhase = variant == 1 ? .bundlePersisted : .ownershipReserved
+    let journal = V3RecoveryRegistrationJournal(
+      bundleStore: f.store, ownershipStore: f.ownership,
+      observer: RegistrationStop(phase: phase))
+    #expect(throws: Core.FixtureError.cancelled) {
+      try f.core.stage(preparation, journal: journal)
+    }
+    if variant == 2 || variant == 11 {
+      // Resume the same valid preparation to actual export-ready ownership.
+      try f.store.persistRegistrationBundle(
+        V3RecoveryRegistrationBundle(preparation: preparation).canonicalBytes,
+        operationID: preparation.intent.operationID)
+      _ = try f.core.resume(journal: .init(bundleStore: f.store, ownershipStore: f.ownership))
+      if variant == 11 { f.card.anchor = preparation.exportedAnchor; _ = try f.finish() }
+    }
+    let original = f.ownership.value
+    let scope = requestScope()
+    if variant == 4 { scope.cancellation.cancel() }
+    if variant == 5 { f.core.owner.onUnwrap = { scope.cancellation.cancel() } }
+    if variant == 6 {
+      f.core.owner.onUnwrap = {
+        let old = try V3ImmutableTransactionRecoveryAnchor(canonicalBytes: #require(original))
+        let armed = try V3ImmutableTransactionRecoveryAnchor(
+          operationID: old.operationID, vaultID: old.vaultID, intentDigest: old.intentDigest, phase: .recoverable)
+        try f.ownership.replaceRecoveryAnchor(armed.canonicalBytes, expectedAnchor: original, vaultID: Core.vaultID)
+      }
+    }
+    if variant == 7 { try f.transactions.replaceRecoveryAnchor(Data([1]), expectedAnchor: nil, vaultID: Core.vaultID) }
+    if variant == 8 { f.ownership.rejectClear = true }
+    if variant == 9 { try f.ownership.replaceRecoveryAnchor(nil, expectedAnchor: original, vaultID: Core.vaultID) }
+    if variant == 10 { try f.ownership.replaceRecoveryAnchor(Data([0]), expectedAnchor: original, vaultID: Core.vaultID) }
+    let before = f.ownership.value
+    let checkpoint = f.checkpoints.value
+    let signatures = f.core.owner.signatures
+    let publicSessions = f.card.publicSessions
+    let agreements = f.provider.requests
+    let bundle = try? Data(contentsOf: f.bundleURL(preparation.intent.operationID))
+    let action = KeyRecoveryRegistrationRequest.abandonRegistration(
+      operationID: variant == 3 ? VaultTransactionOperationID().rawValue : preparation.intent.operationID.rawValue)
+    if variant < 2 {
+      let response = try workflow(f).handle(action, scope: scope)
+      #expect(response.recoveryRegistration == .registrationAbandoned(
+        vaultID: Core.vaultID, operationID: preparation.intent.operationID.rawValue))
+      #expect(f.ownership.value == nil)
+    } else {
+      #expect(throws: (any Error).self) { try workflow(f).handle(action, scope: scope) }
+      if variant == 6 {
+        #expect(try V3ImmutableTransactionRecoveryAnchor(canonicalBytes: #require(f.ownership.value)).phase == .recoverable)
+      } else { #expect(f.ownership.value == before) }
+    }
+    #expect(f.checkpoints.value == checkpoint && f.core.owner.signatures == signatures)
+    #expect(f.card.publicSessions == publicSessions && f.provider.requests == agreements)
+    #expect((try? Data(contentsOf: f.bundleURL(preparation.intent.operationID))) == bundle)
+    for entry in f.core.entries.values { #expect(try Data(contentsOf: f.entryURL(entry)) == entry.canonicalBytes) }
+    #expect(try Data(contentsOf: f.manifestURL(f.core.parent.digest)) == f.core.parent.canonicalBytes)
+  }
+
+  private struct RegistrationStop: V3RecoveryRegistrationJournalPhaseObserving {
+    let phase: V3RecoveryRegistrationJournalPhase
+    func didReach(_ current: V3RecoveryRegistrationJournalPhase) throws {
+      if phase == current { throw Core.FixtureError.cancelled }
+    }
+  }
+
   private func requestScope() -> KeyRecoveryRequestScope {
     .init(authentication: .init(), deadline: .now() + 90)
   }
