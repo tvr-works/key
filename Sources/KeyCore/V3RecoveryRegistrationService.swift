@@ -116,7 +116,7 @@ struct V3RecoveryRegistrationService: Sendable {
         checkpoint: checkpoint, parent: initial.base, currentEntries: initial.entries,
         currentVaultKey: currentVaultKey, nextVaultKey: nextKey,
         credential: observation.keyMetadata, occupancy: observation.anchor, owner: identity,
-        reason: "Prepare to register this recovery key", operationID: context.operationID
+        reason: "Prepare recovery key registration", operationID: context.operationID
       ) { body, staged in
         try repository.requireUnsignedProjection(
           initial, body: body, parent: checkpoint, stagedEntries: staged)
@@ -294,7 +294,7 @@ struct V3RecoveryRegistrationService: Sendable {
     let key = try identity.unwrapDeviceWrappedVaultKey(
       wrapped.wrappedKey,
       context: envelope.body.deviceContext(recipientDeviceID: identity.publicIdentity.deviceID),
-      reason: "Check the saved recovery key registration")
+      reason: "Verify recovery key registration")
     try checkCancellation(cancellation)
     let state = try repository.observe(checkpoint: checkpoint, currentVaultKey: key)
     guard state.base == envelope, try journal.loadPending(vaultID: vaultID) == nil else {
@@ -416,7 +416,7 @@ struct V3RecoveryRegistrationService: Sendable {
       wrapped.wrappedKey,
       context: preparation.candidate.body.deviceContext(
         recipientDeviceID: identity.publicIdentity.deviceID),
-      reason: "Finish the saved recovery key registration")
+      reason: "Finish saved recovery key registration")
     try checkCancellation(cancellation)
     let state = try repository.observe(checkpoint: checkpoint, currentVaultKey: nextKey)
     guard state.base == preparation.candidate else {
@@ -486,7 +486,7 @@ struct V3RecoveryRegistrationService: Sendable {
       wrapped.wrappedKey,
       context: preparation.candidate.body.deviceContext(
         recipientDeviceID: identity.publicIdentity.deviceID),
-      reason: "Continue preparing the saved recovery key registration")
+      reason: "Resume recovery key registration")
   }
 
   private func requireCredential(

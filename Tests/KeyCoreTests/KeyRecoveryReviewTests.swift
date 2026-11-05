@@ -124,8 +124,8 @@ struct KeyRecoveryReviewTests {
         source.registrationManifestDigest == Base64URL.encode(f.source.anchor.floor.envelopeDigest))
     } else {
       #expect(io.stdout.contains("not content-verified"))
-      #expect(io.stdout.contains("does not prove that recovery will work"))
-      #expect(io.stdout.contains("No restore attempt was started or approved"))
+      #expect(io.stdout.contains("Unverified: recovery"))
+      #expect(io.stdout.contains("No restore started"))
     }
     #expect(!io.stdout.contains("Software fixture secret") && !io.stdout.contains("must-not-read"))
     #expect(try V3RecoveryRestoreJournalTestSupport.files(f.source.root) == before)
@@ -508,7 +508,7 @@ struct KeyRecoveryReviewTests {
             == .tokens([]))
       } else {
         #expect(io.stdout.contains("No connected security keys"))
-        #expect(io.stdout.contains("does not check the keys"))
+        #expect(io.stdout.contains("recovery setup and registration not checked"))
       }
     }
     #expect(transport.requests.count == 2)

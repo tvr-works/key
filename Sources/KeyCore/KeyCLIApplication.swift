@@ -56,7 +56,7 @@ public final class KeyCLIApplication {
             let directory = path.map {
                 URL(fileURLWithPath: $0, isDirectory: true, relativeTo: currentDirectory())
             } ?? currentDirectory()
-            io.writeStderr("Creating a new vault at '\(directory.standardizedFileURL.path)'. To use a vault from another Mac, join it with `\(KeyProductIdentity.currentProcess.cliExecutableName) share` instead. This new vault has no recovery key yet. Keep another Mac enrolled; the vault folder alone cannot restore access.\n")
+            io.writeStderr("Creating vault: '\(directory.standardizedFileURL.path)'\nFor an existing vault, use `\(KeyProductIdentity.currentProcess.cliExecutableName) share`.\nKeep another Mac enrolled. This vault has no recovery key; files alone cannot restore access.\n")
             response = try transport.send(.initializeVault(path: directory.standardizedFileURL.path))
             return try handle(response, for: command)
         case .migrationPreflight:
@@ -209,18 +209,18 @@ public final class KeyCLIApplication {
     private func writeRecoveryReview(_ result: KeyRecoveryReviewResult) {
         switch result {
         case .credential(let credential):
-            io.writeStdout("Security key recovery setup (public information):\nToken ID: \(credential.token.tokenID)\nReader: \(credential.token.readerSlotName)\nRecipient ID: \(credential.recipientID)\nReported setup: PIV slot 9d; P-256 generated on the key; PIN and touch required each time.\nRecovery setup record (anchor): \(credential.anchorState.rawValue)\nNo PIN or touch was requested. This check does not prove that recovery will work or that hardware administration is protected.\n")
+            io.writeStdout("Recovery key setup (public check):\nToken ID: \(credential.token.tokenID)\nReader: \(credential.token.readerSlotName)\nRecipient ID: \(credential.recipientID)\nReported: PIV 9d; P-256 generated on key; PIN/touch always.\nRecovery setup record (anchor): \(credential.anchorState.rawValue)\nRead-only; no PIN or touch requested.\nUntested: recovery, PIN/touch enforcement and administration protection.\n")
         case .tokens(let tokens):
             var lines = [tokens.isEmpty ? "No connected security keys found." : "Connected security keys:"]
             for token in tokens {
                 lines.append("Token ID: \(token.tokenID)")
                 lines.append("  Reader: \(token.readerSlotName)")
             }
-            lines.append("This list does not check the keys' recovery setup or show which keys are registered for your vault.")
+            lines.append("Connected keys only; recovery setup and registration not checked.")
             io.writeStdout(lines.joined(separator: "\n") + "\n")
         case .source(let source):
             io.writeStdout("""
-            Recovery source check (public information):
+            Recovery source (public check):
             Source: \(String(reflecting: source.path))
             Token ID: \(source.token.tokenID)
             Reader: \(source.token.readerSlotName)
@@ -232,8 +232,9 @@ public final class KeyCLIApplication {
             Latest visible version: \(source.observedHeadDigest)
             Listed entries (not content-verified): \(source.listedEntryCount)
             History records checked: \(source.observedManifestCount)
-            The available public history matches this key. Secret contents were not opened.
-            This does not prove that recovery will work, that the key's administration and PIN/touch settings are protected, or that every newer file has arrived. No restore attempt was started or approved.
+            Public history matches this key. Secret contents were not checked.
+            Unverified: recovery, PIN/touch enforcement, administration protection and latest file delivery.
+            No restore started.
 
             """)
         }
@@ -253,15 +254,15 @@ public final class KeyCLIApplication {
             return try writeRecoveryRecipientRemoval(reviewed, recipientID: recipientID)
         case .review(let review):
             try review.validate(for: recipientID)
-            io.writeStderr("Remove recovery key from this vault:\nVault ID: \(review.vaultID)\nRecipient ID: \(review.recipientID)\nOther active recovery keys remaining: \(review.remainingRecipientIDs.count)\nThe physical key and its recovery setup record stay unchanged. Old vault copies remain accessible with their old keys.\n")
+            io.writeStderr("Remove recovery key from this vault:\nVault ID: \(review.vaultID)\nRecipient ID: \(review.recipientID)\nRecovery keys remaining: \(review.remainingRecipientIDs.count)\nThe physical key stays unchanged. The removed key can still open older vault copies.\n")
             if let operation = review.pendingOperationID {
-                io.writeStderr("This continues the saved removal: \(operation). It does not start another removal.\n")
+                io.writeStderr("Continuing saved removal: \(operation)\n")
             }
             let phrase = review.removesLastRecoveryKey ? "REMOVE LAST RECOVERY KEY" : "REMOVE"
             if review.removesLastRecoveryKey {
-                io.writeStderr("After removal, this vault will have NO recovery key. Register another while an enrolled Mac is still available; if every enrolled Mac is lost before then, access is permanently lost.\n")
+                io.writeStderr("This removes your LAST recovery key. If all enrolled Macs are lost before you register another, access is permanently lost.\n")
             }
-            guard try io.readLine(prompt: "Type \(phrase) to remove this recovery key: ").trimmingCharacters(in: .whitespacesAndNewlines) == phrase else {
+            guard try io.readLine(prompt: "Type \(phrase) to confirm: ").trimmingCharacters(in: .whitespacesAndNewlines) == phrase else {
                 throw AppError.operationRefused("Recovery key removal cancelled. No removal request was sent.")
             }
             do {
@@ -269,13 +270,13 @@ public final class KeyCLIApplication {
                     confirmationToken: review.confirmationToken, pendingOperationID: review.pendingOperationID,
                     acknowledgesProtectionLoss: review.removesLastRecoveryKey)))
                 guard response.exitCode == EXIT_SUCCESS else {
-                    io.writeStderr("Key could not confirm whether removal finished. Keep the vault files and saved records. Check status or run this command again to review and finish the same removal. Key did not retry automatically.\n")
+                    io.writeStderr("Could not confirm removal finished. Keep vault files and saved records.\nRun this command again to review and finish the same removal. No automatic retry was made.\n")
                     return try handle(response, for: .recoveryRecipientRemoval(recipientID: recipientID))
                 }
                 return try writeRecoveryRecipientRemoval(requiredServicePayload(response.recoveryRecipientRemoval,
                     operation: "recovery key removal"), recipientID: recipientID)
             } catch {
-                io.writeStderr("Key could not confirm whether removal finished. Keep the vault files and saved records. Check status or run this command again to review and finish the same removal. Key did not retry automatically.\n")
+                io.writeStderr("Could not confirm removal finished. Keep vault files and saved records.\nRun this command again to review and finish the same removal. No automatic retry was made.\n")
                 throw error
             }
         }
@@ -288,7 +289,7 @@ public final class KeyCLIApplication {
         }
         io.writeStdout("Recovery key \(already ? "is already removed in the verified current vault" : "removed from future vault versions").\nVault ID: \(vault)\nRecipient ID: \(removed)\nManifest: \(digest)\n")
         if pending {
-            io.writeStderr("The recovery key was removed, but one completion step remains on this Mac. Keep its saved records and run this command again to finish the same removal.\n")
+            io.writeStderr("Key removed. Keep saved records and run this command again to finish on this Mac.\n")
         }
         return EXIT_SUCCESS
     }
@@ -298,7 +299,7 @@ public final class KeyCLIApplication {
         guard io.stdinIsTTY else {
             throw AppError.operationRefused("Explicit key rotation requires an interactive terminal. No request was sent.")
         }
-        io.writeStderr("Change this vault's encryption key. Enrolled Macs and registered recovery keys will keep their access. Hardware keys can stay disconnected. Keep a backup and approve the Mac prompts until completion.\n")
+        io.writeStderr("Change the vault encryption key. Macs and recovery keys keep access.\nBack up first. Hardware keys can stay disconnected.\n")
         guard try io.readLine(prompt: "Type ROTATE to continue: ").trimmingCharacters(in: .whitespacesAndNewlines) == "ROTATE" else {
             throw AppError.operationRefused("Key rotation cancelled. No request was sent.")
         }
@@ -316,14 +317,14 @@ public final class KeyCLIApplication {
                     throw AppError.service("Invalid key rotation completion response.")
                 }
                 if pending {
-                    io.writeStderr("One completion step remains on this Mac. Keep its saved records. After the background service restarts, use recovery pending to find the original operation ID, then recovery rotate --resume <operation-id>.\n")
+                    io.writeStderr("One step remains on this Mac. Keep saved records. After the background service restarts:\n  \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending\n  \(KeyProductIdentity.currentProcess.cliExecutableName) recovery rotate --resume <original-operation-id>\n")
                 }
-                io.writeStdout("The vault's encryption key was changed.\nVault ID: \(vault)\nManifest: \(digest)\nRun \(KeyProductIdentity.currentProcess.cliExecutableName) status after the background service restarts. No hardware key was contacted.\n")
+                io.writeStdout("The vault's encryption key was changed.\nVault ID: \(vault)\nManifest: \(digest)\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) status after the background service restarts.\n")
             case .abandoned(let vault):
                 guard case .resume = request, isValidV3UUID(vault) else {
                     throw AppError.service("Invalid key rotation abandonment response.")
                 }
-                io.writeStdout("The incomplete encryption-key change was abandoned. No new change was started. Check status after the background service restarts.\n")
+                io.writeStdout("Incomplete key change abandoned. No new rotation started.\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) status after the background service restarts.\n")
             }
             return EXIT_SUCCESS
         } catch {
@@ -333,7 +334,7 @@ public final class KeyCLIApplication {
     }
 
     private func writeRotationFailureGuidance() {
-        io.writeStderr("Key could not confirm whether the encryption-key change finished. Keep the vault files and saved records. After the background service restarts, run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` and `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending`. Continue the original operation with `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery rotate --resume <operation-id>`. Do not delete records or start a new rotation. Key did not retry automatically.\n")
+        io.writeStderr("Could not confirm rotation finished. Keep vault files and saved records; do not start another rotation.\nAfter the background service restarts, find the original ID with `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending`, then use `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery rotate --resume <operation-id>`. No automatic retry was made.\n")
     }
 
     private func executeRecoveryRegistration(
@@ -352,26 +353,17 @@ public final class KeyCLIApplication {
             guard io.stdinIsTTY else {
                 throw AppError.operationRefused("Recovery setup requires an interactive terminal. No setup request was sent.")
             }
-            if case .abandonAdoption = request {
-                io.writeStderr("Release this early format-update attempt. This cannot undo a saved format change. The vault format, verified history and files stay intact. No hardware key is changed.\n")
-            } else if case .abandonRegistration = request {
-                io.writeStderr("Release this early registration attempt, before its setup file was ready to export. The vault, verified history and saved files stay intact. This cannot remove an active recovery key or change the physical key.\n")
-            } else {
-                io.writeStderr("Hardware recovery is a Preview beta feature. Keep a backup and upgrade participating Macs before changing the vault format. Prepare and secure the physical key separately using the setup guide. Recovery becomes active only after registration finishes.\n")
-            }
+            writeRegistrationConfirmationGuidance(for: request)
             guard try io.readLine(prompt: "Type \(confirmation) to continue: ").trimmingCharacters(in: .whitespacesAndNewlines) == confirmation else {
                 throw AppError.operationRefused("Recovery setup cancelled. No request was sent.")
             }
-        }
-        if case .finish = request {
-            io.writeStderr("When Key checks the hardware key, enter its PIN only in the macOS dialog and touch it when it flashes. Approve the Mac prompts until completion. Key does not retry automatically.\n")
         }
         do {
             let serviceRequest = KeyServiceRequest.recoveryRegistration(request)
             let response = try sendRecovery(serviceRequest)
             guard response.exitCode == EXIT_SUCCESS else {
                 if let message = response.errorMessage { io.writeStderr(message + "\n") }
-                writeRegistrationFailureGuidance()
+                writeRegistrationFailureGuidance(for: request)
                 return response.exitCode
             }
             let result = try requiredServicePayload(response.recoveryRegistration, operation: "recovery registration")
@@ -380,13 +372,13 @@ public final class KeyCLIApplication {
                 guard isValidV3UUID(vault), operation == requested else {
                     throw AppError.service("Invalid adoption abandonment response.")
                 }
-                io.writeStdout("Incomplete format update abandoned.\nOperation ID: \(operation)\nThe vault format, verified history and saved files were preserved. No recovery key was changed.\n")
+                io.writeStdout("Incomplete format update abandoned.\nOperation ID: \(operation)\nVault format, verified history and files preserved. No recovery key changed.\n")
                 return EXIT_SUCCESS
             case (.abandonRegistration(let requested), .registrationAbandoned(let vault, let operation)):
                 guard isValidV3UUID(vault), operation == requested else {
                     throw AppError.service("Invalid registration abandonment response.")
                 }
-                io.writeStdout("Incomplete recovery registration abandoned.\nOperation ID: \(operation)\nThe verified history and saved files were preserved. No recovery key was contacted or changed.\n")
+                io.writeStdout("Incomplete recovery registration abandoned.\nOperation ID: \(operation)\nVerified history and files preserved. No recovery key changed.\n")
                 return EXIT_SUCCESS
             case (.pending, .pending(let vault, let operations)):
                 guard isValidV3UUID(vault), operations.count <= 3,
@@ -398,7 +390,7 @@ public final class KeyCLIApplication {
                 else {
                     io.writeStdout("Vault ID: \(vault)\n")
                     for operation in operations { io.writeStdout("\(operation.namespace.rawValue): \(operation.operationID)\n") }
-                    io.writeStdout("Saved operation records: \(operations.count). This list does not confirm whether these operations finished or can resume. Keep the records intact and follow the matching command's resume instructions.\n")
+                    io.writeStdout("Saved operations: \(operations.count). Not checked for completion or ability to resume.\nKeep these records; follow the matching command's resume instructions.\n")
                 }
                 return EXIT_SUCCESS
             case (.status, .status(let state, let vaultID, let recipients, let committed)):
@@ -416,8 +408,8 @@ public final class KeyCLIApplication {
                     }
                     io.writeStdout("Recovery setup: \(description)\nVault ID: \(vaultID)\nRegistered recovery keys: \(recipients.count)\n")
                     for recipient in recipients { io.writeStdout("Recipient ID: \(recipient)\n") }
-                    if committed { io.writeStdout("The pending registration was saved to the vault; a local completion step may remain.\n") }
-                    io.writeStdout("This checks this Mac's saved registration state. It does not test the physical keys or prove that every newer file has arrived.\n")
+                    if committed { io.writeStdout("Registration saved; this Mac may still need to finish setup.\n") }
+                    io.writeStdout("Saved status only. Hardware recovery and file delivery are untested.\n")
                 }
                 return state == .attentionRequired ? EXIT_FAILURE : EXIT_SUCCESS
             case (.prepare(_, let expected), .export(let operation, let vault, let recipient, let encoded)),
@@ -434,7 +426,7 @@ public final class KeyCLIApplication {
                 // Insert only: existing files and links are never replaced. If
                 // this fails, the locally owned preparation remains resumable.
                 try bytes.write(to: url, options: .withoutOverwriting)
-                io.writeStdout("Recovery setup file (public anchor) saved to '\(url.path)'.\nOperation ID: \(operation)\nRecipient ID: \(recipient)\nRecovery is not active yet. Install this exact file on the selected key using the setup guide's vendor-tool procedure. Then run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient.\n")
+                io.writeStdout("Setup file saved: '\(url.path)'\nOperation ID: \(operation)\nRecipient ID: \(recipient)\nRecovery is not active yet. Install this exact file on the selected key using the setup guide.\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient.\n")
                 return EXIT_SUCCESS
             case (.finish, .completed(let vault, let digest, let pending)),
                  (.adopt, .completed(let vault, let digest, let pending)),
@@ -446,24 +438,69 @@ public final class KeyCLIApplication {
                 if case .finish = request {
                     outcome = "Recovery key registered."
                 } else {
-                    outcome = "Vault updated to support recovery keys. No recovery key was registered by this step."
+                    outcome = "Vault format updated. No recovery key added."
                 }
                 io.writeStdout("\(outcome)\nVault ID: \(vault)\nManifest: \(digest)\n")
                 if pending {
-                    io.writeStderr("One completion step remains on this Mac. Keep its saved records and continue this same operation after the background service restarts. Use recovery pending and the matching resume or finish command.\n")
+                    io.writeStderr("One step remains on this Mac. Keep saved records.\n")
+                    if case .finish = request {
+                        io.writeStderr("After the background service restarts, repeat \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient.\n")
+                    } else {
+                        io.writeStderr("After the background service restarts: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending\nThen: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt --resume <original-operation-id>\n")
+                    }
+                } else if case .finish = request {
+                    io.writeStdout("After the background service restarts: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register status\n")
+                } else {
+                    io.writeStdout("Next: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register --help\n")
                 }
-                io.writeStdout("Check registered keys with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register status after the background service restarts.\n")
                 return EXIT_SUCCESS
             default: throw AppError.service("Mismatched recovery setup response.")
             }
         } catch {
-            writeRegistrationFailureGuidance()
+            writeRegistrationFailureGuidance(for: request)
             throw error
         }
     }
 
-    private func writeRegistrationFailureGuidance() {
-        io.writeStderr("Key could not confirm whether this setup step finished. Keep the vault files, saved records and physical key unchanged. After the background service restarts, check status and recovery pending. Continue the saved registration with resume-export or finish, or the format update with adopt --resume and its original operation ID. For a failed export, use a new output filename for the same saved preparation. Do not delete records or start replacement setup.\n")
+    private func writeRegistrationConfirmationGuidance(for request: KeyRecoveryRegistrationRequest) {
+        let message: String
+        switch request {
+        case .adopt:
+            message = "Update the vault format for recovery keys. Older apps will lose access.\nBack up first and upgrade every Mac. This step does not register a key."
+        case .resumeAdoption(let operation):
+            message = "Resume saved format update: \(operation).\nKeep vault files and saved records intact."
+        case .prepare:
+            message = "Prepare recovery key registration. Recovery stays inactive until registration finishes.\nSet up and secure the physical key first; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register --help."
+        case .finish:
+            message = "Register this recovery key. Approve Mac prompts, enter its PIN only in macOS, and touch when it flashes."
+        case .abandonAdoption:
+            message = "Release this early format-update attempt. Saved files stay intact.\nCompleted format changes cannot be undone here."
+        case .abandonRegistration:
+            message = "Release this early registration attempt. Saved files and active recovery keys stay intact.\nThe physical key stays unchanged."
+        case .status, .pending, .resumeExport:
+            return
+        }
+        io.writeStderr(message + "\n")
+    }
+
+    private func writeRegistrationFailureGuidance(for request: KeyRecoveryRegistrationRequest) {
+        let command = KeyProductIdentity.currentProcess.cliExecutableName
+        let next: String
+        switch request {
+        case .status, .pending:
+            // Read-only failures have their own error; they do not imply that
+            // setup was attempted or needs to be resumed.
+            return
+        case .prepare, .resumeExport:
+            next = "For the same saved preparation, use resume-export with the original IDs and a new filename.\nHelp: \(command) recovery register --help"
+        case .finish:
+            next = "After the background service restarts, repeat \(command) recovery register finish with the same --token and --recipient."
+        case .adopt, .resumeAdoption:
+            next = "After the background service restarts: \(command) recovery pending\nResume instructions: \(command) recovery adopt --help"
+        case .abandonAdoption, .abandonRegistration:
+            next = "Check the saved attempt before continuing: \(command) recovery pending"
+        }
+        io.writeStderr("Could not confirm setup finished. Keep vault files, saved records and hardware setup unchanged. Do not start replacement setup.\n\(next)\n")
     }
 
     private func executeRecovery(_ request: KeyRecoveryRequest) throws -> Int32 {
@@ -491,9 +528,9 @@ public final class KeyCLIApplication {
         }
         try resolved.validate()
         if resolved.isAbandonment {
-            io.writeStderr("Release only this Mac's matching early restore attempt. Files and Mac credentials are retained. No Mac authentication or hardware approval is needed.\n")
+            io.writeStderr("Releasing the early restore attempt. Files and Mac credentials will be kept.\n")
         } else {
-            io.writeStderr("When Key opens the source vault, enter the recovery key's PIN only in the macOS dialog and touch the key when it flashes. Then approve each Mac prompt until completion. Key does not retry automatically.\n")
+            io.writeStderr("Enter the key's PIN only in the macOS dialog, touch when it flashes, then approve the Mac prompts.\n")
         }
         do {
             let response = try sendRecovery(.recovery(resolved))
@@ -508,10 +545,10 @@ public final class KeyCLIApplication {
 
     private func writeRecoveryFailureGuidance(abandonment: Bool = false) {
         if abandonment {
-            io.writeStderr("Key could not confirm whether the early restore attempt was released. Keep the source, destination and saved records intact. Inspect the original attempt before another action. No new restore was started.\n")
+            io.writeStderr("Could not confirm the attempt was released. Keep the source, destination and saved records.\nInspect the original attempt before continuing. No new restore started.\n")
             return
         }
-        io.writeStderr("Key could not confirm whether recovery finished. Keep the source, destination, saved records and configuration intact. Do not start another restore or delete files to retry. If a saved attempt remains, use `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume` with the original paths and IDs. See `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help`. If preparation stopped too early to resume, follow its instructions for recovery abandon; otherwise keep the records for investigation.\n")
+        io.writeStderr("Could not confirm recovery finished. Keep the source, destination, saved records and configuration.\nDo not start another restore or delete files to retry.\nNext: `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help`. Use the original paths and IDs; if the attempt cannot resume, follow its error instructions.\n")
     }
 
     private func sendRecovery(_ request: KeyServiceRequest) throws -> KeyServiceResponse {
@@ -621,7 +658,7 @@ public final class KeyCLIApplication {
         let path = directory.standardizedFileURL.path
         io.writeStderr("Vault folder: '\(path)'.\n")
         if case .join = request {
-            io.writeStderr("Key will set up this Mac's access credentials and send a request to join. This does not create a new vault or change any hardware security key.\n")
+            io.writeStderr("Requesting access for this Mac. No new vault or hardware key changes.\n")
         }
         return .shareInDirectory(request: request, path: path)
     }
@@ -690,7 +727,7 @@ public final class KeyCLIApplication {
 
     private func confirmDeviceRevocation() throws {
         let answer = try io.readLine(
-            prompt: "Type REVOKE to remove the reviewed Mac's access and change the encryption key: "
+            prompt: "Type REVOKE to remove the selected Mac's access: "
         ).trimmingCharacters(in: .whitespacesAndNewlines)
         guard answer == "REVOKE" else {
             throw AppError.operationRefused("Device revocation cancelled.")
@@ -792,7 +829,7 @@ public final class KeyCLIApplication {
 
     private func confirmDeviceRejoin() throws {
         let answer = try io.readLine(
-            prompt: "Type REJOIN to replace this Mac's old access credentials: "
+            prompt: "Type REJOIN to replace this Mac's credentials: "
         ).trimmingCharacters(in: .whitespacesAndNewlines)
         guard answer == "REJOIN" else {
             throw AppError.operationRefused("Device rejoin cancelled.")
@@ -951,7 +988,7 @@ public final class KeyCLIApplication {
         case .effective:
             "Entries"
         case .lastTrusted:
-            "Entries in this Mac's last verified version"
+            "Entries (last verified on this Mac)"
         }
         var lines = [
             headline,
@@ -1001,7 +1038,7 @@ public final class KeyCLIApplication {
     private func writeV2DeprecationWarning() {
         guard io.stdoutIsTTY else { return }
         io.writeStderr(
-            "Warning: this vault uses the older storage format, which is deprecated. Reading and saving secrets still work. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check` to check migration readiness without changing the vault. Before migrating, review `\(KeyProductIdentity.currentProcess.cliExecutableName) help migrate` for other-Mac setup and recovery limits.\n"
+            "Warning: older vault format, deprecated but still supported.\nCheck migration readiness: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check\nMigration steps and limits: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help\n"
         )
     }
 

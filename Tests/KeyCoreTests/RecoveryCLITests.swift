@@ -184,7 +184,7 @@ struct RecoveryCLITests {
     let result = app.run(arguments: arguments())
     #expect(result == (thrown ? EXIT_FAILURE : 23))
     #expect(transport.requests.count == 1 && io.stdout.isEmpty)
-    #expect(io.stderr.contains("could not confirm whether recovery finished"))
+    #expect(io.stderr.contains("Could not confirm recovery finished"))
     #expect(io.stderr.contains("Do not start another restore or delete files"))
     #expect(io.stderr.contains("key recovery resume"))
   }
@@ -228,7 +228,7 @@ struct RecoveryCLITests {
     #expect(f.identities.creates.value == 1)
     if interrupted {
       #expect(
-        initialIO.stdout.isEmpty && initialIO.stderr.contains("keep the records for investigation"))
+        initialIO.stdout.isEmpty && initialIO.stderr.contains("follow its error instructions"))
       #expect(f.reservations.value != nil && f.preparations.value != nil)
       #expect(try !f.config.hasConfiguration())
       let resumedHost = host(f)

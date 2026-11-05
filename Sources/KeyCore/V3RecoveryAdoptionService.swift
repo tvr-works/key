@@ -171,7 +171,7 @@ struct V3RecoveryAdoptionService: Sendable {
       initial, candidate: candidate.envelope,
       stagedEntries: candidate.stagedEntries)
     try requireState(initial, checkpoint: parent.checkpoint, preparation: preparation)
-    let nextKey = try openLocal(candidate.envelope, reason: "Check that this Mac can open the updated vault")
+    let nextKey = try openLocal(candidate.envelope, reason: "Verify access to the updated vault")
     if let expectedNextKey, nextKey != expectedNextKey {
       throw V3RecoveryProfileAdoptionError.localWrapperMismatch
     }
@@ -276,7 +276,7 @@ struct V3RecoveryAdoptionService: Sendable {
     try requireIdentity(preparation)
     let envelope = preparation.candidate.envelope
     let initial = try objects.observe(checkpoint: checkpoint, expectedBase: envelope.canonicalBytes)
-    let nextKey = try openLocal(envelope, reason: "Finish the saved vault format update")
+    let nextKey = try openLocal(envelope, reason: "Finish the vault format update")
     try V3RecoveryEpochBoundary().verifyCurrentAuthentication(envelope, vaultKey: nextKey)
     _ = try V3EntrySnapshotValidator(limits: limits).plaintexts(
       fields: envelope.body.fields,

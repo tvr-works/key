@@ -561,7 +561,7 @@ struct KeyCLIApplicationTests {
 
         """)
         #expect(io.stderr ==
-            "Type REVOKE to remove the reviewed Mac's access and change the encryption key: ")
+            "Type REVOKE to remove the selected Mac's access: ")
     }
 
     @Test
@@ -661,7 +661,7 @@ struct KeyCLIApplicationTests {
 
         """)
         #expect(io.stderr.hasSuffix(
-            "Type REJOIN to replace this Mac's old access credentials: "))
+            "Type REJOIN to replace this Mac's credentials: "))
     }
 
     @Test

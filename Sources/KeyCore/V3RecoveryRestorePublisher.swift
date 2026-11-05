@@ -83,7 +83,7 @@ struct V3RecoveryRestorePublisher: Sendable {
     _ = try V3DeviceWrappedCheckpointUnlocker().unlock(
       checkpoint: bundle.intent.destinationCheckpoint,
       manifestData: bundle.manifest.canonicalBytes, identity: identity, session: session,
-      reason: "Save the prepared recovered vault.",
+      reason: "Save the recovered vault.",
       validateBeforeSessionInstall: {
         try recheck()
         _ = try inventory(bundle, store: store)
