@@ -345,7 +345,7 @@ private struct KeyArguments: ParsableCommand {
 
         struct CredentialOptions: ParsableArguments {
             @Option(name: .customLong("token"), help: "The complete token ID of the connected key.") var tokens: [String]
-            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "The complete recipient ID from recovery credential.") var recipients: [String]
+            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "The complete recovery key ID from recovery credential.") var recipients: [String]
             mutating func validate() throws {
                 guard tokens.count == 1, recipients.count == 1 else {
                     throw ValidationError("Provide --token and --recipient exactly once each.")
@@ -428,17 +428,17 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct Pending: CLIRequest {
-            static let configuration = CommandConfiguration(commandName: "pending", abstract: "List operation records saved on this Mac.", discussion: "List the IDs of saved vault changes, registrations and format updates without Mac or hardware approval. This list does not confirm whether an operation finished or can resume. Keep the records intact and follow the matching command's resume instructions. Conflicting records need investigation.")
+            static let configuration = CommandConfiguration(commandName: "pending", abstract: "List operation records saved on this Mac.", discussion: "List the IDs of saved vault changes, registrations and format updates without Mac or hardware approval. This list does not confirm whether an operation finished or can resume. Keep the records intact and follow the matching command's resume instructions. For conflicting records, keep them intact and see \(CLIHelp.troubleshootingURL).")
             @Flag(help: "Print machine-readable saved operation IDs.") var json = false
             var command: Command { .recoveryRegistration(.pending, exportPath: nil, json: json) }
         }
 
         struct RemoveRecipient: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "remove-recipient", abstract: "Review and remove one recovery key from this vault.", discussion: CLIHelp.recoveryRecipientRemoval)
-            @Argument(help: "Complete public recipient ID from recovery register status.") var recipientID: String
+            @Argument(help: "Complete public recovery key ID from recovery register status.") var recipientID: String
             mutating func validate() throws {
                 guard (try? V3RecoveryRecipientID(rawValue: recipientID)) != nil else {
-                    throw ValidationError("Provide one complete recovery recipient ID.")
+                    throw ValidationError("Provide one complete recovery key ID.")
                 }
             }
             var command: Command { .recoveryRecipientRemoval(recipientID: recipientID) }
@@ -487,7 +487,7 @@ private struct KeyArguments: ParsableCommand {
             var destinations: [String]
             @Option(name: .customLong("token"), help: "Exact connected token ID. Required exactly once; never automatically selected.")
             var tokens: [String]
-            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "Complete recovery recipient ID, not a certificate fingerprint. Required exactly once.")
+            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "Complete recovery key ID, not a certificate fingerprint. Required exactly once.")
             var recipients: [String]
 
             mutating func validate() throws {
@@ -506,7 +506,7 @@ private struct KeyArguments: ParsableCommand {
                     throw ValidationError("Provide a nonempty token ID of at most 1024 UTF-8 bytes without NUL characters.")
                 }
                 guard (try? V3RecoveryRecipientID(rawValue: recipients[0])) != nil else {
-                    throw ValidationError("Provide the complete recovery recipient ID; prefixes and certificate fingerprints are not accepted.")
+                    throw ValidationError("Provide the complete recovery key ID; prefixes and certificate fingerprints are not accepted.")
                 }
             }
         }

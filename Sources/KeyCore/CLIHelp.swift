@@ -1,6 +1,9 @@
 /// Workflow explanations supplied to Argument Parser's generated help.
 /// Keep paragraphs unwrapped; the renderer owns wrapping and column alignment.
 enum CLIHelp {
+    static let recoveryGuideURL = "https://github.com/tvr-works/key/blob/main/docs/recovery-user-guide.md"
+    static let troubleshootingURL = "https://github.com/tvr-works/key/blob/main/docs/troubleshooting.md"
+
     static let recovery = """
     Hardware recovery is a Preview beta feature; disabled in Stable. Use disposable data during the beta.
 
@@ -14,6 +17,8 @@ enum CLIHelp {
     A key cannot replace missing files. Key cannot prove that every newer file has synchronized.
 
     If interrupted, keep all files and saved records. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help. Cancel any PIN dialog left open after a timeout or disconnection. Key does not retry automatically.
+
+    Setup guide: \(recoveryGuideURL)
     """
 
     static let recoveryTokens = """
@@ -27,13 +32,15 @@ enum CLIHelp {
 
     Key checks that this Mac still has the matching early attempt, the original folders, an empty destination, and no configured or fully prepared vault. It refuses changed, missing or invalid records. A fully prepared restore must be resumed instead.
 
-    This leaves files, the destination folder and saved Mac credentials intact. It does not start another restore. After successful abandonment, a new restore needs a different destination that does not exist. If the result is uncertain, preserve the records for investigation.
+    This leaves files, the destination folder and saved Mac credentials intact. It does not start another restore. After successful abandonment, a new restore needs a different destination that does not exist. If the result is uncertain, keep the records and save the error; see troubleshooting below.
+
+    Troubleshooting: \(troubleshootingURL)
     """
 
     static let recoveryCredential = """
     Check a key's public recovery setup without PIN or touch. Use the complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens.
 
-    Reports the PIV slot 9d credential, key type, PIN/touch settings and recovery setup record (anchor). The recipient ID identifies the recovery public key, not the certificate fingerprint.
+    Reports the PIV slot 9d credential, key type, PIN/touch settings and recovery setup record (anchor). Use the recovery key ID with --recipient. It identifies the recovery public key, not the certificate fingerprint.
 
     This does not change or register the key. It cannot prove recovery works, administration is protected, or PIN/touch is enforced. Registration and restore verify the key with hardware approval.
     """
@@ -45,7 +52,7 @@ enum CLIHelp {
 
     1. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id>.
 
-    2. Use its token and recipient IDs with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register prepare --export-anchor <new-file>.
+    2. Use its token and recovery key IDs with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register prepare --export-anchor <new-file>.
 
     3. Install that exact public setup file (anchor) on the selected key using the guide's vendor-tool procedure.
 
@@ -54,6 +61,8 @@ enum CLIHelp {
     Recovery is inactive until registration finishes. Register each backup key separately.
 
     If export fails, keep the saved records and use register resume-export with a new filename. Follow resume instructions if interrupted; do not delete records to retry. Use register status to check saved registration state, not hardware recovery or sync completion.
+
+    Setup guide: \(recoveryGuideURL)
     """
 
     static let recoveryRegistrationAbandon = """
@@ -75,9 +84,9 @@ enum CLIHelp {
     """
 
     static let recoveryRecipientRemoval = """
-    Remove a registered recovery key from future versions of the configured vault. The key can remain disconnected: Key uses this Mac's credentials and never changes the physical key or its saved anchor. Old copies can still be opened with their old keys. If the recipient ID starts with '-', place -- before it.
+    Remove a registered recovery key from future versions of the configured vault. The key can remain disconnected: Key uses this Mac's credentials and never changes the physical key or its saved anchor. Old copies can still be opened with their old keys. If the recovery key ID starts with '-', place -- before it.
 
-    An interactive review shows the exact recipient and how many recovery keys will remain. Type REMOVE to confirm. Removing the last key instead requires typing REMOVE LAST RECOVERY KEY after acknowledging that recovery will be unavailable until another key is registered. There is no noninteractive override.
+    An interactive review shows the selected recovery key and how many recovery keys will remain. Type REMOVE to confirm. Removing the last key instead requires typing REMOVE LAST RECOVERY KEY after acknowledging that recovery will be unavailable until another key is registered. There is no noninteractive override.
 
     If interrupted, preserve files and local records. Run this command again to review and explicitly finish the same saved removal; it never silently starts a replacement candidate. No automatic retry is made. This workflow is available in the 0.3.0 Preview beta; disabled in Stable.
     """
@@ -87,7 +96,9 @@ enum CLIHelp {
 
     Keep a backup, type ROTATE, and approve each Mac prompt until the command finishes. Key rewrites the current encrypted contents with the new encryption key.
 
-    If interrupted, keep the vault files and this Mac's saved records. After the background service restarts, inspect \(KeyProductIdentity.currentProcess.cliExecutableName) status and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending. Use --resume <operation-id> to continue the original saved rotation. If required records are missing or invalid, keep them for investigation; do not delete them or start another rotation. Key does not retry automatically.
+    If interrupted, keep the vault files and this Mac's saved records. After the background service restarts, inspect \(KeyProductIdentity.currentProcess.cliExecutableName) status and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending. Use --resume <operation-id> to continue the original saved rotation. If required records are missing or invalid, save the error and follow troubleshooting below; do not delete them or start another rotation. Key does not retry automatically.
+
+    Troubleshooting: \(troubleshootingURL)
     """
 
     static let recoveryReview = """
@@ -101,7 +112,7 @@ enum CLIHelp {
     static let recoveryRestore = """
     Recover into a new vault on a Mac with no configured vault. Available in the Preview beta; disabled in Stable. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help for prerequisites.
 
-    Use --name for this Mac's name. Supply --source, --destination, --token and --recipient exactly once. Use the complete IDs from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review; the recipient ID is not a certificate fingerprint. These IDs are public identifiers, not secrets or approval to restore. Paths may be absolute or relative to the current directory.
+    Use --name for this Mac's name. Supply --source, --destination, --token and --recipient exactly once. Use the complete IDs from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review; the recovery key ID is not a certificate fingerprint. These IDs are public identifiers, not secrets or approval to restore. Paths may be absolute or relative to the current directory.
 
     The source and destination parent must exist. The destination itself must not exist, even as an empty folder. Source and destination cannot overlap. Key leaves the source unchanged and selects the verified new vault for future commands.
 
@@ -115,9 +126,11 @@ enum CLIHelp {
 
     If the background service is restarting, run \(KeyProductIdentity.currentProcess.cliExecutableName) lock, then \(KeyProductIdentity.currentProcess.cliExecutableName) status. Status alone does not finish an interrupted restore. Resume the saved attempt explicitly and approve its hardware and Mac prompts.
 
-    If preparation stopped too early to resume, Key reports the original vault and operation IDs. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --help to release that incomplete attempt. Changed, missing or invalid records require investigation; keep them and the vault folders intact.
+    If preparation stopped too early to resume, Key reports the original vault and operation IDs. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --help to release that incomplete attempt. If records are changed, missing or invalid, stop and save the error. Keep them and the vault folders intact; see troubleshooting below.
 
     A completed attempt cannot be resumed once its saved operation records have been cleared. After a timeout, cancel any remaining PIN dialog before another attempt. Key does not retry automatically.
+
+    Troubleshooting: \(troubleshootingURL)
     """
 
     static let overview = """
@@ -205,6 +218,8 @@ enum CLIHelp {
     Check whether your vault is ready to use, has missing files, or needs attention. This does not edit entries or resolve conflicts. Use either --json or --verbose, not both.
 
     If files are unavailable, check your sync provider before retrying. Local APFS and iCloud Drive were directly validated for Stable 0.2.0. Other ordinary folder-backed providers may work, but are not directly validated. These results do not qualify new setup behavior in later builds.
+
+    Troubleshooting: \(troubleshootingURL)
     """
 
     static let conflict = """

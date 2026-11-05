@@ -209,7 +209,7 @@ public final class KeyCLIApplication {
     private func writeRecoveryReview(_ result: KeyRecoveryReviewResult) {
         switch result {
         case .credential(let credential):
-            io.writeStdout("Recovery key setup (public check):\nToken ID: \(credential.token.tokenID)\nReader: \(credential.token.readerSlotName)\nRecipient ID: \(credential.recipientID)\nReported: PIV 9d; P-256 generated on key; PIN/touch always.\nRecovery setup record (anchor): \(credential.anchorState.rawValue)\nRead-only; no PIN or touch requested.\nUntested: recovery, PIN/touch enforcement and administration protection.\n")
+            io.writeStdout("Recovery key setup (public check):\nToken ID: \(credential.token.tokenID)\nReader: \(credential.token.readerSlotName)\nRecovery key ID: \(credential.recipientID)\nReported: PIV 9d; P-256 generated on key; PIN/touch always.\nRecovery setup record (anchor): \(credential.anchorState.rawValue)\nRead-only; no PIN or touch requested.\nThis check cannot prove recovery works, PIN and touch are enforced, or key administration is protected.\n")
         case .tokens(let tokens):
             var lines = [tokens.isEmpty ? "No connected security keys found." : "Connected security keys:"]
             for token in tokens {
@@ -224,16 +224,17 @@ public final class KeyCLIApplication {
             Source: \(String(reflecting: source.path))
             Token ID: \(source.token.tokenID)
             Reader: \(source.token.readerSlotName)
-            Recipient ID: \(source.recipientID)
+            Recovery key ID: \(source.recipientID)
             Slot: 9d; P-256; reported PIN \(source.reportedPINPolicy), touch \(source.reportedTouchPolicy), origin \(source.reportedKeyOrigin).
             Vault ID: \(source.vaultID)
             Registration ID: \(source.registrationID)
-            Registration manifest: \(source.registrationManifestDigest)
+            Vault version at registration: \(source.registrationManifestDigest)
             Latest visible version: \(source.observedHeadDigest)
             Listed entries (not content-verified): \(source.listedEntryCount)
             History records checked: \(source.observedManifestCount)
             Public history matches this key. Secret contents were not checked.
-            Unverified: recovery, PIN/touch enforcement, administration protection and latest file delivery.
+            This check cannot prove recovery works, PIN and touch are enforced, or key administration is protected.
+            It cannot confirm that all files have arrived.
             No restore started.
 
             """)
@@ -254,7 +255,7 @@ public final class KeyCLIApplication {
             return try writeRecoveryRecipientRemoval(reviewed, recipientID: recipientID)
         case .review(let review):
             try review.validate(for: recipientID)
-            io.writeStderr("Remove recovery key from this vault:\nVault ID: \(review.vaultID)\nRecipient ID: \(review.recipientID)\nRecovery keys remaining: \(review.remainingRecipientIDs.count)\nThe physical key stays unchanged. The removed key can still open older vault copies.\n")
+            io.writeStderr("Remove recovery key from this vault:\nVault ID: \(review.vaultID)\nRecovery key ID: \(review.recipientID)\nRecovery keys remaining: \(review.remainingRecipientIDs.count)\nThe physical key stays unchanged. The removed key can still open older vault copies.\n")
             if let operation = review.pendingOperationID {
                 io.writeStderr("Continuing saved removal: \(operation)\n")
             }
@@ -287,7 +288,7 @@ public final class KeyCLIApplication {
               isValidV3UUID(vault), removed == recipientID, isRecoveryRemovalDigest(digest) else {
             throw AppError.service("Invalid recovery key removal completion response.")
         }
-        io.writeStdout("Recovery key \(already ? "is already removed in the verified current vault" : "removed from future vault versions").\nVault ID: \(vault)\nRecipient ID: \(removed)\nManifest: \(digest)\n")
+        io.writeStdout("Recovery key \(already ? "is already removed in the verified current vault" : "removed from future vault versions").\nVault ID: \(vault)\nRecovery key ID: \(removed)\nVault version: \(digest)\n")
         if pending {
             io.writeStderr("Key removed. Keep saved records and run this command again to finish on this Mac.\n")
         }
@@ -319,7 +320,7 @@ public final class KeyCLIApplication {
                 if pending {
                     io.writeStderr("One step remains on this Mac. Keep saved records. After the background service restarts:\n  \(KeyProductIdentity.currentProcess.cliExecutableName) recovery pending\n  \(KeyProductIdentity.currentProcess.cliExecutableName) recovery rotate --resume <original-operation-id>\n")
                 }
-                io.writeStdout("The vault's encryption key was changed.\nVault ID: \(vault)\nManifest: \(digest)\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) status after the background service restarts.\n")
+                io.writeStdout("The vault's encryption key was changed.\nVault ID: \(vault)\nVault version: \(digest)\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) status after the background service restarts.\n")
             case .abandoned(let vault):
                 guard case .resume = request, isValidV3UUID(vault) else {
                     throw AppError.service("Invalid key rotation abandonment response.")
@@ -407,9 +408,9 @@ public final class KeyCLIApplication {
                     case .attentionRequired: "Setup needs attention"
                     }
                     io.writeStdout("Recovery setup: \(description)\nVault ID: \(vaultID)\nRegistered recovery keys: \(recipients.count)\n")
-                    for recipient in recipients { io.writeStdout("Recipient ID: \(recipient)\n") }
+                    for recipient in recipients { io.writeStdout("Recovery key ID: \(recipient)\n") }
                     if committed { io.writeStdout("Registration saved; this Mac may still need to finish setup.\n") }
-                    io.writeStdout("Saved status only. Hardware recovery and file delivery are untested.\n")
+                    io.writeStdout("This checks saved registration only. It does not test recovery or confirm that all files have arrived.\n")
                 }
                 return state == .attentionRequired ? EXIT_FAILURE : EXIT_SUCCESS
             case (.prepare(_, let expected), .export(let operation, let vault, let recipient, let encoded)),
@@ -426,7 +427,7 @@ public final class KeyCLIApplication {
                 // Insert only: existing files and links are never replaced. If
                 // this fails, the locally owned preparation remains resumable.
                 try bytes.write(to: url, options: .withoutOverwriting)
-                io.writeStdout("Setup file saved: '\(url.path)'\nOperation ID: \(operation)\nRecipient ID: \(recipient)\nRecovery is not active yet. Install this exact file on the selected key using the setup guide.\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient.\n")
+                io.writeStdout("Setup file saved: '\(url.path)'\nOperation ID: \(operation)\nRecovery key ID: \(recipient)\nRecovery is not active yet. Install this exact file on the selected key.\nSetup guide: \(CLIHelp.recoveryGuideURL)\nNext: \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient.\n")
                 return EXIT_SUCCESS
             case (.finish, .completed(let vault, let digest, let pending)),
                  (.adopt, .completed(let vault, let digest, let pending)),
@@ -440,7 +441,7 @@ public final class KeyCLIApplication {
                 } else {
                     outcome = "Vault format updated. No recovery key added."
                 }
-                io.writeStdout("\(outcome)\nVault ID: \(vault)\nManifest: \(digest)\n")
+                io.writeStdout("\(outcome)\nVault ID: \(vault)\nVault version: \(digest)\n")
                 if pending {
                     io.writeStderr("One step remains on this Mac. Keep saved records.\n")
                     if case .finish = request {
@@ -982,7 +983,7 @@ public final class KeyCLIApplication {
         case .rollbackDetected:
             "Vault history includes an older entry revision. Key has blocked the rollback."
         case .recoveryRequired:
-            "Key cannot safely use this vault until its state has been investigated."
+            "Key could not verify that this vault is safe to use."
         }
         let entryLabel = switch status.entries.basis {
         case .effective:
@@ -1004,7 +1005,7 @@ public final class KeyCLIApplication {
                 lines.append("Next: run `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`.")
             case .rollbackDetected:
                 lines.append(
-                    "Next: inspect with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`. Keep vault files and local records intact; ordinary conflict resolution cannot accept this rollback."
+                    "Next: inspect with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict list`. Keep vault files and local records intact; ordinary conflict resolution cannot accept this rollback.\nTroubleshooting: \(CLIHelp.troubleshootingURL)"
                 )
             case .ready, .incomplete, .securityConflicted,
                 .recoveryRequired:
@@ -1015,7 +1016,7 @@ public final class KeyCLIApplication {
         case .incomplete:
             lines.append("Next: check that your sync provider has downloaded the vault files, then run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` again.")
         case .securityConflicted, .recoveryRequired:
-            lines.append("Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check.")
+            lines.append("Keep vault files and local records intact. Do not delete them or run init to bypass this check.\nTroubleshooting: \(CLIHelp.troubleshootingURL)")
         case .ready, .contentConflicted, .rollbackDetected:
             break
         }
@@ -1133,7 +1134,7 @@ public final class KeyCLIApplication {
             )
         case .recoveryRequired:
             lines.append(
-                "This older revision cannot be accepted with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict resolve`. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
+                "This older revision cannot be accepted with `\(KeyProductIdentity.currentProcess.cliExecutableName) conflict resolve`. Keep vault files and local records intact. Do not delete them or run init to bypass this check.\nTroubleshooting: \(CLIHelp.troubleshootingURL)"
             )
         }
         io.writeStdout(lines.joined(separator: "\n") + "\n")

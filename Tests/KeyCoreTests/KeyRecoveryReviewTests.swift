@@ -124,7 +124,7 @@ struct KeyRecoveryReviewTests {
         source.registrationManifestDigest == Base64URL.encode(f.source.anchor.floor.envelopeDigest))
     } else {
       #expect(io.stdout.contains("not content-verified"))
-      #expect(io.stdout.contains("Unverified: recovery"))
+      #expect(io.stdout.contains("cannot prove recovery works"))
       #expect(io.stdout.contains("No restore started"))
     }
     #expect(!io.stdout.contains("Software fixture secret") && !io.stdout.contains("must-not-read"))

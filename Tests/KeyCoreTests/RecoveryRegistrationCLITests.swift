@@ -68,8 +68,8 @@ struct RecoveryRegistrationCLITests {
     if json {
       #expect(try JSONDecoder().decode(KeyRecoveryRegistrationResult.self, from: Data(io.stdout.utf8)) == result)
     } else {
-      #expect(io.stdout.contains("Recipient ID: \(Self.recipient)"))
-      #expect(io.stdout.contains("Hardware recovery and file delivery are untested"))
+      #expect(io.stdout.contains("Recovery key ID: \(Self.recipient)"))
+      #expect(io.stdout.contains("It does not test recovery or confirm that all files have arrived"))
     }
   }
 

@@ -275,7 +275,7 @@ struct RecoveryCLITests {
     #expect(restore.contains("register recovery keys again"))
     #expect(resume.contains("never starts a replacement restore or recreates missing files"))
     #expect(resume.contains("Status alone does not finish an interrupted restore"))
-    #expect(resume.contains("keep them and the vault folders intact"))
+    #expect(resume.contains("Keep them and the vault folders intact"))
   }
 
   private func arguments(resume: Bool = false) -> [String] {

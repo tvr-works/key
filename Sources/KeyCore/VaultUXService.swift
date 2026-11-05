@@ -40,13 +40,13 @@ enum VaultUXServiceError: Error, Equatable, LocalizedError {
         case .catchUpContentConflict:
             "The latest vault changes need to be combined before Key can use them. Use --allow-stale only to read this Mac's last verified version; it may be out of date."
         case .securityConflict:
-            "Vault history contains conflicting changes to device access or encryption keys. Key cannot safely choose between them. Keep vault files and local records intact for investigation."
+            "Vault history contains conflicting changes to device access or encryption keys. Key cannot safely choose between them. Keep vault files and local records intact. See `\(KeyProductIdentity.currentProcess.cliExecutableName) status --help` for troubleshooting."
         case .rollbackDetected:
             "Vault history would move an entry back to an older revision. Key has blocked this rollback. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status --verbose` to inspect the problem; keep vault files and local records intact."
         case .recoveryRequired:
-            "Key cannot safely continue with the available vault state. Keep vault files and local records intact for investigation. Do not delete them or run init to bypass this check."
+            "Key cannot safely continue with the available vault state. Keep vault files and local records intact. See `\(KeyProductIdentity.currentProcess.cliExecutableName) status --help` for troubleshooting. Do not delete them or run init to bypass this check."
         case .deviceIdentityUnavailable:
-            "This Mac no longer has usable access credentials for this vault. A Mac that still has access must invite it again; see `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`. If no enrolled Mac survives, the vault is permanently inaccessible. The vault folder alone cannot restore access."
+            "This Mac's vault credentials are unavailable.\nTo rejoin, ask a Mac that still has access; see `\(KeyProductIdentity.currentProcess.cliExecutableName) share --help`.\nIf none is available, Preview recovery requires a previously registered hardware key and the vault files; see `\(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help`. Files alone cannot restore access."
         case .deviceRevoked:
             "This Mac's access to the vault was removed. A Mac that still has access must invite it again; see `\(KeyProductIdentity.currentProcess.cliExecutableName) help share`."
         case .conflictNotFound:
