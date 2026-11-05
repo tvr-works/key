@@ -2,21 +2,24 @@
 /// Keep paragraphs unwrapped; the renderer owns wrapping and column alignment.
 enum CLIHelp {
     static let recovery = """
-    Hardware recovery is available in the 0.3.0 Preview beta and disabled in Stable. Use disposable data during the beta.
+    Hardware recovery is a Preview beta feature; disabled in Stable. Use disposable data during the beta.
 
-    Before you need recovery, prepare the vault with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt, then register each recovery key with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register. Keep independent backup keys separately. Key does not set up or reset the physical keys; follow the hardware setup guide first.
+    Before you need recovery:
+      Set up each physical key using the hardware setup guide.
+      Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register.
+      Store independent backup keys separately.
 
-    To recover, you need the encrypted vault files and a key previously registered for that vault. Start with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again for the new vault.
+    To recover, you need the encrypted vault files and a previously registered key. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
 
-    Enter the YubiKey's PIN only in the macOS dialog, touch the key when it flashes, and approve the Mac prompts that follow. After a timeout or disconnection, click Cancel if the PIN dialog remains open. Key does not retry automatically.
+    A key cannot replace missing files. Key cannot prove that every newer file has synchronized.
 
-    If interrupted, keep the source, destination and saved records intact. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help before another attempt. A recovery key cannot replace missing files, and Key cannot prove that your sync provider has delivered every newer file.
+    If interrupted, keep all files and saved records. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --help. Cancel any PIN dialog left open after a timeout or disconnection. Key does not retry automatically.
     """
 
     static let recoveryTokens = """
-    List connected security keys and their token IDs without asking for a PIN or touch. Key does not select a key automatically or read its recovery setup. An empty list does not mean that your vault has no registered recovery keys.
+    List connected keys and their complete token IDs without PIN or touch. This does not check recovery setup or list the vault's registered keys.
 
-    Use the complete token ID with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id> to check a key's setup, or \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review --source <directory> --token <token-id> to check it against vault files. Listing a key does not prove that it supports recovery or is registered for your vault. --json prints the same public information for scripts.
+    Use --token <token-id> with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential to check setup, or with recovery review --source <directory> to check against vault files. Key does not select a key automatically. --json prints the same public information for scripts.
     """
 
     static let recoveryAbandon = """
@@ -28,23 +31,29 @@ enum CLIHelp {
     """
 
     static let recoveryCredential = """
-    Check one security key's public recovery setup without asking for a PIN or touch. Use the complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens.
+    Check a key's public recovery setup without PIN or touch. Use the complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens.
 
-    Key reads the credential in PIV slot 9d, checks its reported key type and PIN/touch settings, and reports whether a recovery setup record (anchor) is present. The recipient ID identifies the recovery public key; it is not the certificate fingerprint.
+    Reports the PIV slot 9d credential, key type, PIN/touch settings and recovery setup record (anchor). The recipient ID identifies the recovery public key, not the certificate fingerprint.
 
-    This check does not change the key, register it, or prove that recovery will work. Public information cannot prove that hardware administration is protected or that the key will enforce PIN and touch. Registration and restore check the key again and require hardware approval.
+    This does not change or register the key. It cannot prove recovery works, administration is protected, or PIN/touch is enforced. Registration and restore verify the key with hardware approval.
     """
 
     static let recoveryRegistration = """
-    Register a hardware key so it can recover this vault if your Macs are lost. Available in the Preview beta; disabled in Stable. Use disposable data during the beta. First run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt on the configured vault.
+    Register a hardware key to recover this vault if your Macs are lost. Preview beta only; use disposable data. First run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt.
 
-    Prepare the physical key separately using the hardware setup guide. Key requires a P-256 key generated in PIV slot 9d, a matching certificate, and PIN-always and touch-always settings. Protect its administration credentials separately. Key does not provision, reset or write to the physical key.
+    Prepare the physical key using the hardware setup guide: P-256 generated in PIV slot 9d, a matching certificate, PIN-always and touch-always settings, and protected administration credentials. Key does not set up, reset or write to the physical key.
 
-    Inspect the key with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id>. Use the returned token and recipient IDs with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register prepare --export-anchor <new-file>. This saves the registration attempt and exports a public recovery setup file, called an anchor. Recovery is not active yet.
+    1. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery credential --token <token-id>.
 
-    Install that exact file on the selected key using the documented vendor-tool procedure. Then run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient. Enter the key's PIN only in macOS and touch it when it flashes. Register each independent backup key separately.
+    2. Use its token and recipient IDs with \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register prepare --export-anchor <new-file>.
 
-    If export fails, keep the saved records and use register resume-export with a new output filename. If setup stops, follow its resume instructions; do not delete records to start again. Use register status to check this Mac's saved registration state. This does not test the hardware key or prove that all files have synchronized.
+    3. Install that exact public setup file (anchor) on the selected key using the guide's vendor-tool procedure.
+
+    4. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register finish with the same --token and --recipient. Enter the PIN only in macOS, then touch when it flashes.
+
+    Recovery is inactive until registration finishes. Register each backup key separately.
+
+    If export fails, keep the saved records and use register resume-export with a new filename. Follow resume instructions if interrupted; do not delete records to retry. Use register status to check saved registration state, not hardware recovery or sync completion.
     """
 
     static let recoveryRegistrationAbandon = """
