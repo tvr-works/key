@@ -16,7 +16,20 @@ Key reads the hardware key's public setup and requests its approval. It does not
 
 ## Prepare and register each recovery key
 
-First, follow the [hardware setup requirements](piv-recovery-contract.md#owner-operated-setup-boundary). Key requires a P-256 key generated on the hardware in PIV slot 9d, its matching certificate, PIN-always and touch-always settings, and protected administration credentials. Keep your PIN, PUK and management credentials safely outside Key's configuration.
+### Hardware setup checklist
+
+Use the vendor's tools to prepare each key separately before registration:
+
+- Identify the physical key and check whether PIV slot **9d** is already in use. Do not overwrite an existing credential or reset PIV to make room.
+- Set your own PIN and PUK. Keep them outside the vault you may need to recover.
+- Protect PIV administration with a randomly generated, nondefault AES management key and management touch. Prefer PIN-protected storage on the key; otherwise, keep the management key safely offline. This affects the whole PIV application, not just slot 9d.
+- Generate a **P-256** credential in the empty slot 9d with **PIN Always** and **Touch Always**, then create its matching certificate. These settings require PIN and touch for each use.
+
+[Yubico's PIV instructions](https://docs.yubico.com/software/yubikey/tools/ykman/PIV_Commands.html) cover these operations. Enter credentials privately in the vendor tool's prompts, not in command arguments, environment variables, logs or chat. If a credential is unknown, stop rather than guessing or resetting the key.
+
+Key's public inspection below checks reported settings; it cannot prove that administration is protected or that PIN and touch are enforced. For the design details, see the [hardware setup requirements](piv-recovery-contract.md#owner-operated-setup-boundary).
+
+### Inspect and register
 
 Connect the intended key and inspect it:
 
@@ -25,7 +38,7 @@ key-preview recovery tokens
 key-preview recovery credential --token <token-id>
 ```
 
-Replace `<token-id>` with the complete ID printed for that key. The credential check also prints a **recipient ID**, which identifies its recovery public key. Use the full value, not a shortened prefix or certificate fingerprint. These public IDs are not passwords and do not authorize recovery. Public inspection does not test the key's private operation or prove that recovery will work.
+Replace `<token-id>` with the complete ID printed for that key. The credential check also prints a **recovery key ID**, used with `--recipient` (and called `recipientID` in JSON), which identifies its recovery public key. Use the full value, not a shortened prefix or certificate fingerprint. These public IDs are not passwords and do not authorize recovery. Public inspection does not test the key's private operation or prove that recovery will work.
 
 On a Mac that already has access to the vault, update the vault format once:
 
@@ -43,14 +56,18 @@ key-preview recovery register prepare --token <token-id> --recipient <recipient-
 
 This saves a registration attempt on the Mac and exports a public recovery setup file, called an **anchor**. The output file must not already exist. Recovery is not active yet.
 
-Install that exact file on the selected key using the [vendor-tool setup procedure](piv-recovery-contract.md#owner-operated-setup-boundary). Then finish registration with the same IDs:
+Install that exact file on the selected key using the vendor's [PIV object import](https://docs.yubico.com/software/yubikey/tools/ykman/PIV_Commands.html#ykman-piv-objects-import-options-object-data) operation. Key uses object ID **5F4B59** for this public setup record. Select the intended physical key explicitly and keep the other key disconnected. This writes the setup record, not a new private key or certificate.
+
+Import only the file from this saved registration attempt, after `prepare` confirms the setup-record location is available. The vendor tool can overwrite an existing object; if its contents changed or an import result is uncertain, stop and inspect before another write. Never import a different file to force registration through.
+
+Then finish registration with the same IDs:
 
 ```sh
 key-preview recovery register finish --token <token-id> --recipient <recipient-id>
 key-preview recovery register status
 ```
 
-Finish checks the installed file and requests hardware approval. Enter this key's PIN in macOS, touch when it flashes, and approve the following Mac prompts. A successful registration makes this key available for recovery. Status lists the registered recipient IDs, but does not exercise the physical keys or prove that all files have synchronized.
+Finish checks the installed file and requests hardware approval. Enter this key's PIN in macOS, touch when it flashes, and approve the following Mac prompts. A successful registration makes this key available for recovery. Status lists the registered recovery key IDs, but does not exercise the physical keys or prove that all files have synchronized.
 
 Repeat registration for the independent backup key, using its own IDs and a new setup filename. Do not overwrite the first key's setup. Before relying on a backup, check recovery from each key using disposable data.
 
@@ -67,7 +84,7 @@ key-preview recovery tokens
 key-preview recovery review --source <source-folder> --token <token-id>
 ```
 
-Review does not ask for PIN or touch and does not open secret contents. It checks the available public history against the key and prints the recipient ID. A successful review is not proof that the contents can be recovered or that the provider has delivered every newer file.
+Review does not ask for PIN or touch and does not open secret contents. It checks the available public history against the key and prints the recovery key ID. A successful review is not proof that the contents can be recovered or that the provider has delivered every newer file.
 
 Choose a destination that does not exist, with a parent folder that already exists. An existing empty destination is also refused. The source and destination cannot overlap.
 
@@ -91,7 +108,7 @@ Use the original paths and IDs to continue a saved attempt:
 key-preview recovery resume --source <source-folder> --destination <original-destination> --token <token-id> --recipient <recipient-id>
 ```
 
-Resume does not take a new Mac name or recreate missing records. If preparation stopped too early to resume, its error supplies the original vault and operation IDs. Follow `key-preview recovery abandon --help` to release that early attempt. Abandonment preserves its files and credentials; a later new restore needs a different destination. Changed or invalid records require investigation, not deletion.
+Resume does not take a new Mac name or recreate missing records. If preparation stopped too early to resume, its error supplies the original vault and operation IDs. Follow `key-preview recovery abandon --help` to release that early attempt. Abandonment preserves its files and credentials; a later new restore needs a different destination. If records are missing or invalid, stop and follow [troubleshooting](troubleshooting.md#interrupted-setup-or-recovery); do not delete them to retry.
 
 ## Add, remove or replace a Mac
 
@@ -116,7 +133,7 @@ A removed Mac can rejoin through a fresh invitation. Review and confirm replacem
 
 ## Remove a recovery key
 
-Find its complete recipient ID with `key-preview recovery register status`, then run:
+Find its complete recovery key ID with `key-preview recovery register status`, then run:
 
 ```sh
 key-preview recovery remove-recipient <recipient-id>
