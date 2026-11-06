@@ -60,6 +60,21 @@ awk '
   END { if (argumentsSeen != 1 || optionsSeen != 2 || continuationSeen != 1) exit 1 }
 ' "$scratch/stdout"
 
+# Compact recovery labels keep descriptions on the same row, with wrapped
+# continuations still owned by Argument Parser's standard column layout.
+for columns in 40 60 80; do
+  COLUMNS="$columns" "$cli" recovery restore --help >"$scratch/stdout"
+  awk '
+    /^  --source <path> / { if (index($0, "Existing") != 27) exit 1; seen++ }
+    /^  --destination <path> / { if (index($0, "New") != 27) exit 1; seen++ }
+    /^  --token <id> / { if (index($0, "Exact") != 27) exit 1; seen++ }
+    /^  --recipient <id> / { if (index($0, "Complete") != 27) exit 1; seen++ }
+    /^OPTIONS:/ { inOptions = 1; next }
+    inOptions && /^ +[^ -]/ { if (match($0, /[^ ]/) != 27) exit 1; wrapped++ }
+    END { if (seen != 4 || !wrapped) exit 1 }
+  ' "$scratch/stdout"
+done
+
 # Built-in help takes precedence, including over otherwise invalid input.
 "$cli" migrate --apply --help >"$scratch/stdout" 2>"$scratch/stderr"
 [[ ! -s "$scratch/stderr" ]]

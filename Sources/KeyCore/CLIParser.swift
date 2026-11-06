@@ -344,8 +344,8 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct CredentialOptions: ParsableArguments {
-            @Option(name: .customLong("token"), help: "The complete token ID of the connected key.") var tokens: [String]
-            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "The complete recovery key ID from recovery credential.") var recipients: [String]
+            @Option(name: .customLong("token"), help: ArgumentHelp("The complete token ID of the connected key.", valueName: "id")) var tokens: [String]
+            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: ArgumentHelp("The complete recovery key ID from recovery credential.", valueName: "id")) var recipients: [String]
             mutating func validate() throws {
                 guard tokens.count == 1, recipients.count == 1 else {
                     throw ValidationError("Provide --token and --recipient exactly once each.")
@@ -356,7 +356,7 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct ExportOptions: ParsableArguments {
-            @Option(name: .customLong("export-anchor"), help: "A new recovery setup file to install on the key with vendor tools.", completion: .file()) var paths: [String]
+            @Option(name: .customLong("export-anchor"), help: ArgumentHelp("A new recovery setup file to install on the key with vendor tools.", valueName: "path"), completion: .file()) var paths: [String]
             mutating func validate() throws {
                 guard paths.count == 1, !paths[0].isEmpty, paths[0].utf8.count <= 4_096, !paths[0].utf8.contains(0) else {
                     throw ValidationError("Provide --export-anchor once with a new file path of at most 4096 UTF-8 bytes.")
@@ -366,7 +366,7 @@ private struct KeyArguments: ParsableCommand {
 
         struct Credential: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "credential", abstract: "Check a security key's recovery setup without PIN or touch.", discussion: CLIHelp.recoveryCredential)
-            @Option(name: .customLong("token"), help: "Complete connected token ID. Required exactly once.") var tokens: [String]
+            @Option(name: .customLong("token"), help: ArgumentHelp("Complete connected token ID. Required exactly once.", valueName: "id")) var tokens: [String]
             @Flag(help: "Print machine-readable public observations.") var json = false
             mutating func validate() throws {
                 guard tokens.count == 1 else { throw ValidationError("Provide --token exactly once.") }
@@ -414,8 +414,8 @@ private struct KeyArguments: ParsableCommand {
 
         struct Adopt: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "adopt", abstract: "Update this vault to support recovery keys.", discussion: CLIHelp.recoveryAdoption)
-            @Option(name: .customLong("resume"), help: "Complete original adoption operation ID; never substitutes a new attempt.") var operation: String?
-            @Option(name: .customLong("abandon"), help: "Release an early attempt that cannot resume; requires its original operation ID.") var abandonedOperation: String?
+            @Option(name: .customLong("resume"), help: ArgumentHelp("Complete original adoption operation ID; never substitutes a new attempt.", valueName: "id")) var operation: String?
+            @Option(name: .customLong("abandon"), help: ArgumentHelp("Release an early attempt that cannot resume; requires its original operation ID.", valueName: "id")) var abandonedOperation: String?
             mutating func validate() throws {
                 guard operation == nil || abandonedOperation == nil else {
                     throw ValidationError("Choose either --resume or --abandon, not both.")
@@ -446,7 +446,7 @@ private struct KeyArguments: ParsableCommand {
 
         struct Rotate: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "rotate", abstract: "Change this vault's encryption key without a hardware key.", discussion: CLIHelp.recoveryRotation)
-            @Option(name: .customLong("resume"), help: "Complete original locally owned rotation operation ID.") var operation: String?
+            @Option(name: .customLong("resume"), help: ArgumentHelp("Complete original locally owned rotation operation ID.", valueName: "id")) var operation: String?
             mutating func validate() throws {
                 if let operation, (try? VaultTransactionOperationID(validating: operation)) == nil {
                     throw ValidationError("Provide the complete original operation ID for --resume.")
@@ -458,12 +458,12 @@ private struct KeyArguments: ParsableCommand {
         struct Review: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "review", abstract: "Check a vault's public history against a recovery key.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery review --source <directory> --token <token-id> [--json]",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery review --source <path> --token <id> [--json]",
                 discussion: CLIHelp.recoveryReview
             )
-            @Option(name: .customLong("source"), help: "Existing source vault folder. Required exactly once.", completion: .directory)
+            @Option(name: .customLong("source"), help: ArgumentHelp("Existing source vault folder. Required exactly once.", valueName: "path"), completion: .directory)
             var sources: [String]
-            @Option(name: .customLong("token"), help: "Complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens. Required exactly once.")
+            @Option(name: .customLong("token"), help: ArgumentHelp("Complete token ID from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery tokens. Required exactly once.", valueName: "id"))
             var tokens: [String]
             @Flag(help: "Print machine-readable public observations.") var json = false
             mutating func validate() throws {
@@ -481,13 +481,13 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct SelectionOptions: ParsableArguments {
-            @Option(name: .customLong("source"), help: "Existing source vault folder. Required exactly once.", completion: .directory)
+            @Option(name: .customLong("source"), help: ArgumentHelp("Existing source vault folder. Required exactly once.", valueName: "path"), completion: .directory)
             var sources: [String]
-            @Option(name: .customLong("destination"), help: "New vault folder for restore, or the exact existing destination for resume. Required exactly once.", completion: .directory)
+            @Option(name: .customLong("destination"), help: ArgumentHelp("New vault folder for restore, or the exact existing destination for resume. Required exactly once.", valueName: "path"), completion: .directory)
             var destinations: [String]
-            @Option(name: .customLong("token"), help: "Exact connected token ID. Required exactly once; never automatically selected.")
+            @Option(name: .customLong("token"), help: ArgumentHelp("Exact connected token ID. Required exactly once; never automatically selected.", valueName: "id"))
             var tokens: [String]
-            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: "Complete recovery key ID, not a certificate fingerprint. Required exactly once.")
+            @Option(name: .customLong("recipient"), parsing: .unconditionalSingleValue, help: ArgumentHelp("Complete recovery key ID, not a certificate fingerprint. Required exactly once.", valueName: "id"))
             var recipients: [String]
 
             mutating func validate() throws {
@@ -514,7 +514,7 @@ private struct KeyArguments: ParsableCommand {
         struct Restore: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "restore", abstract: "Restore verified contents into a new vault on an unconfigured Mac.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore --source <directory> --destination <new-directory> --token <token-id> --recipient <recipient-id> --name <this-mac-name>",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore --source <path> --destination <path> --token <id> --recipient <id> --name <this-mac-name>",
                 discussion: CLIHelp.recoveryRestore
             )
             @OptionGroup var selection: SelectionOptions
@@ -536,7 +536,7 @@ private struct KeyArguments: ParsableCommand {
         struct Resume: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "resume", abstract: "Continue the restore attempt saved on this Mac.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --source <directory> --destination <original-destination> --token <token-id> --recipient <recipient-id>",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery resume --source <path> --destination <path> --token <id> --recipient <id>",
                 discussion: CLIHelp.recoveryResume
             )
             @OptionGroup var selection: SelectionOptions
@@ -551,12 +551,12 @@ private struct KeyArguments: ParsableCommand {
         struct Abandon: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "abandon", abstract: "Release an early restore attempt that cannot resume.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --source <directory> --destination <original-destination> --vault-id <source-vault-id> --operation <original-operation-id>",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) recovery abandon --source <path> --destination <path> --vault-id <id> --operation <id>",
                 discussion: CLIHelp.recoveryAbandon)
-            @Option(name: .customLong("source"), completion: .directory) var sources: [String]
-            @Option(name: .customLong("destination"), completion: .directory) var destinations: [String]
-            @Option(name: .customLong("vault-id")) var vaults: [String]
-            @Option(name: .customLong("operation")) var operations: [String]
+            @Option(name: .customLong("source"), help: ArgumentHelp("Original source vault folder.", valueName: "path"), completion: .directory) var sources: [String]
+            @Option(name: .customLong("destination"), help: ArgumentHelp("Original destination folder.", valueName: "path"), completion: .directory) var destinations: [String]
+            @Option(name: .customLong("vault-id"), help: ArgumentHelp("Complete source vault ID reported by resume.", valueName: "id")) var vaults: [String]
+            @Option(name: .customLong("operation"), help: ArgumentHelp("Complete original operation ID reported by resume.", valueName: "id")) var operations: [String]
             mutating func validate() throws {
                 guard sources.count == 1, destinations.count == 1, vaults.count == 1, operations.count == 1 else {
                     throw ValidationError("Provide --source, --destination, --vault-id and --operation exactly once each.")
@@ -598,7 +598,7 @@ private struct KeyArguments: ParsableCommand {
         }
 
         struct DirectoryOptions: ParsableArguments {
-            @Option(name: .customLong("vault-dir"), help: ArgumentHelp("An existing vault directory. Specify at most once; never switches a configured Mac to another vault.", valueName: "directory"), completion: .directory)
+            @Option(name: .customLong("vault-dir"), help: ArgumentHelp("An existing vault directory. Specify at most once; never switches a configured Mac to another vault.", valueName: "path"), completion: .directory)
             var directories: [String] = []
             mutating func validate() throws {
                 guard directories.count <= 1 else {
@@ -628,7 +628,7 @@ private struct KeyArguments: ParsableCommand {
         struct Invitations: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "invitations", abstract: "Find invitations in the existing vault folder.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share invitations [--vault-dir <directory>]",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share invitations [--vault-dir <path>]",
                 discussion: CLIHelp.joiningDirectory
             )
             @OptionGroup var location: DirectoryOptions
@@ -638,7 +638,7 @@ private struct KeyArguments: ParsableCommand {
         struct Join: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "join", abstract: "Request access from the joining Mac.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share join <invitation-id> --name <this-mac-name> [--vault-dir <directory>]",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share join <invitation-id> --name <this-mac-name> [--vault-dir <path>]",
                 discussion: "Use --name for the name you want to give this joining Mac. Follow the commands printed on both Macs; joining is not complete until verified acceptance.\n\n" + CLIHelp.joiningDirectory
             )
             @Argument(help: "The invitation ID from \(KeyProductIdentity.currentProcess.cliExecutableName) share invitations.") var invitationID: String
@@ -658,7 +658,7 @@ private struct KeyArguments: ParsableCommand {
         struct Compare: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "compare", abstract: "Show the comparison code and Mac names for this attempt.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share compare <vault-id> <invitation-id> [<request-id>] [--vault-dir <directory>]",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share compare <vault-id> <invitation-id> [<request-id>] [--vault-dir <path>]",
                 discussion: "Compare the exact code and both Mac names on the two screens. Stop if they differ. On the existing Mac, include the request ID printed by \(KeyProductIdentity.currentProcess.cliExecutableName) share requests.\n\n" + CLIHelp.joiningDirectory
             )
             @Argument(help: "The vault ID printed during this attempt.") var vaultID: String
@@ -690,7 +690,7 @@ private struct KeyArguments: ParsableCommand {
         struct Accept: CLIRequest {
             static let configuration = CommandConfiguration(
                 commandName: "accept", abstract: "Verify approved access and configure the joining Mac.",
-                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share accept <vault-id> <invitation-id> <comparison-code> [--vault-dir <directory>]",
+                usage: "\(KeyProductIdentity.currentProcess.cliExecutableName) share accept <vault-id> <invitation-id> <comparison-code> [--vault-dir <path>]",
                 discussion: "Compare the exact code and both Mac names on the two screens before approval and acceptance. Stop if they differ. Only verified acceptance saves this Mac's vault configuration.\n\n" + CLIHelp.joiningDirectory
             )
             @OptionGroup var confirmation: ConfirmationOptions

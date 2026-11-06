@@ -8,9 +8,12 @@ enum CLIHelp {
     Hardware recovery is a Preview beta feature; disabled in Stable. Use disposable data during the beta.
 
     Before you need recovery:
-      Set up each physical key using the hardware setup guide.
-      Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register.
-      Store independent backup keys separately.
+
+    1. Set up each physical key using the hardware setup guide.
+
+    2. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery register.
+
+    3. Store independent backup keys separately.
 
     To recover, you need the encrypted vault files and a previously registered key. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
 
@@ -158,22 +161,29 @@ enum CLIHelp {
 
     static let share = """
     On a Mac that already has access:
-      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share devices to find this Mac's recorded name.
-      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invite --name "Existing Mac" using that exact name.
-      --name identifies this Mac, not the Mac you are inviting.
+
+    1. Run \(KeyProductIdentity.currentProcess.cliExecutableName) share devices to find this Mac's recorded name.
+
+    2. Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invite --name "Existing Mac" using that exact name. --name identifies this Mac, not the Mac you are inviting.
 
     On the joining Mac:
-      Open the existing synced vault folder in your terminal. Do not run init.
-      Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invitations, then:
-      \(KeyProductIdentity.currentProcess.cliExecutableName) share join <invitation-id> --name "New Mac"
-      Here, --name is the name you want to give the joining Mac.
+
+    1. Open the existing synced vault folder in your terminal. Do not run init.
+
+    2. Run \(KeyProductIdentity.currentProcess.cliExecutableName) share invitations, then use the invitation ID:
+
+    \(KeyProductIdentity.currentProcess.cliExecutableName) share join <invitation-id> --name "New Mac"
+
+    Here, --name is the name you want to give the joining Mac.
 
     Follow the commands printed on each Mac. Compare the exact code and both Mac names on the two screens. Stop if they differ. Approve on the existing Mac, then accept on the joining Mac. Only verified acceptance saves the joining Mac's vault configuration. Invitations expire after 10 minutes.
 
     Folder selection:
+
     With no configuration, joining commands use the current directory. Use --vault-dir on invitations/join/compare/accept to run elsewhere. Keep using the same folder and invitation for that attempt. A configured Mac uses its configured folder; --vault-dir cannot switch vaults. Joining never creates a folder. Wait for existing vault files to download.
 
     Removing access:
+
     \(KeyProductIdentity.currentProcess.cliExecutableName) share revoke shows a review and requires you to type REVOKE. The removed Mac cannot read the new vault or future changes, but keeps any secrets and older vault data it already obtained. A lost or revoked Mac rejoins through an invitation from a surviving Mac.
 
     Keep at least two active enrolled Macs. If all are lost, the vault folder alone cannot restore access. There is no password, cloud, or support fallback.
