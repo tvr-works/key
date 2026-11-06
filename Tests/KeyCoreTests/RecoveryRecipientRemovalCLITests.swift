@@ -105,7 +105,7 @@ struct RecoveryRecipientRemovalCLITests {
       return .failure("Incomplete")
     }
     #expect(app(transport, io).run(arguments: args) != EXIT_SUCCESS)
-    #expect(transport.requests.count == 2 && io.stderr.contains("no automatic retry"))
+    #expect(transport.requests.count == 2 && io.stderr.contains("No automatic retry was made"))
   }
 
   @Test func alreadyRemovedReviewReportsVerifiedStatusWithoutAnotherConfirmation() {

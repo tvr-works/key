@@ -4,6 +4,7 @@ set -euo pipefail
 # Pass a freshly built CLI. Every invocation below is help, version, or an
 # invalid command: none may request authentication or touch a real vault.
 cli="${1:?usage: help-tests.sh /path/to/built/key}"
+command_name="${cli:t}"
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/key-help-tests.XXXXXX")"
 trap 'rm -f -- "$scratch/stdout" "$scratch/stderr"; rmdir "$scratch"' EXIT
 
@@ -14,6 +15,11 @@ topics=(
   'conflict list' 'conflict show' 'conflict get' 'conflict copy' 'conflict resolve'
   'share devices' 'share invite' 'share invitations' 'share join' 'share requests'
   'share compare' 'share approve' 'share accept' 'share revoke'
+  recovery 'recovery tokens' 'recovery credential' 'recovery register'
+  'recovery register status' 'recovery register prepare' 'recovery register resume-export'
+  'recovery register finish' 'recovery register abandon' 'recovery adopt'
+  'recovery pending' 'recovery rotate' 'recovery remove-recipient'
+  'recovery review' 'recovery restore' 'recovery resume' 'recovery abandon'
 )
 
 for columns in 0 20 40 60 80 120 invalid; do
@@ -21,6 +27,11 @@ for columns in 0 20 40 60 80 120 invalid; do
     words=( ${=topic} )
     env COLUMNS="$columns" "$cli" "${words[@]}" --help >"$scratch/stdout" 2>"$scratch/stderr"
     [[ -s "$scratch/stdout" && ! -s "$scratch/stderr" ]]
+    # Product names must be correct before wrapping, including nested usage.
+    grep -q "^USAGE: ${command_name}\( \|$\)" "$scratch/stdout"
+    if [[ "$command_name" == key-preview ]]; then
+      ! grep -Eq '(^|[[:space:]`])key (init|help|recovery|share|status|lock|config|migrate|conflict|add|edit|get|copy|list|<command>)' "$scratch/stdout"
+    fi
     LC_ALL=C awk '
       /[[:cntrl:]]/ { exit 1 }
       /[[:blank:]]$/ { exit 1 }
@@ -48,6 +59,21 @@ awk '
   /^ +once\./ { if (index($0, "once.") != 27) exit 1; continuationSeen++ }
   END { if (argumentsSeen != 1 || optionsSeen != 2 || continuationSeen != 1) exit 1 }
 ' "$scratch/stdout"
+
+# Compact recovery labels keep descriptions on the same row, with wrapped
+# continuations still owned by Argument Parser's standard column layout.
+for columns in 40 60 80; do
+  COLUMNS="$columns" "$cli" recovery restore --help >"$scratch/stdout"
+  awk '
+    /^  --source <path> / { if (index($0, "Existing") != 27) exit 1; seen++ }
+    /^  --destination <path> / { if (index($0, "New") != 27) exit 1; seen++ }
+    /^  --token <id> / { if (index($0, "Exact") != 27) exit 1; seen++ }
+    /^  --recipient <id> / { if (index($0, "Complete") != 27) exit 1; seen++ }
+    /^OPTIONS:/ { inOptions = 1; next }
+    inOptions && /^ +[^ -]/ { if (match($0, /[^ ]/) != 27) exit 1; wrapped++ }
+    END { if (seen != 4 || !wrapped) exit 1 }
+  ' "$scratch/stdout"
+done
 
 # Built-in help takes precedence, including over otherwise invalid input.
 "$cli" migrate --apply --help >"$scratch/stdout" 2>"$scratch/stderr"

@@ -101,7 +101,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
           vaultID: vaultID, checkpointStore: checkpoints, source: store, cache: cache,
           identityLoader: loader, session: session)
         let current = try runtime.authenticatedCheckpoint(
-          reason: "Authenticate explicit recovery format adoption.")
+          reason: "Prepare this vault for recovery keys.")
         guard current.checkpoint == selected.checkpoint else {
           throw V3RecoveryVaultUnlockError.checkpointChanged
         }
@@ -138,7 +138,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
         }
         if let namespace {
           let pending = try runtime.authenticatedPendingContext(
-            namespace: namespace, reason: "Authenticate this Mac's exact pending recovery setup.",
+            namespace: namespace, reason: "Open saved recovery setup.",
             continuing: session.beginAuthentication())
           guard pending.current.checkpoint == selected.checkpoint else {
             throw V3RecoveryVaultUnlockError.checkpointChanged
@@ -147,7 +147,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
             key: try pending.loadVaultKey(), ticket: try pending.authenticationTicket())
         } else {
           let current = try runtime.authenticatedReadContext(
-            reason: "Authenticate configured recovery setup.")
+            reason: "Manage this vault's recovery keys.")
           guard current.current.checkpoint == selected.checkpoint else {
             throw V3RecoveryVaultUnlockError.checkpointChanged
           }
@@ -184,7 +184,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
       default:
         guard
           let identity = try loader.loadDeviceIdentity(
-            vaultID: vaultID, reason: "Use this Mac's recovery setup authority.")
+            vaultID: vaultID, reason: "Manage recovery setup.")
             as? any V3EnrollmentMessageSigning & V3DeviceWrappedVaultKeyUnwrapping
         else { throw V3RecoveryVaultUnlockError.identityUnavailable }
         try session.requireCurrent(authentication.ticket)
@@ -325,13 +325,13 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
       if pending != nil {
         let current = try runtime.authenticatedPendingContext(
           namespace: .transaction,
-          reason: "Authenticate this Mac's exact pending vault-key rotation.",
+          reason: "Resume the encryption-key change.",
           continuing: session.beginAuthentication())
         authenticated = current.current.checkpoint
         _ = try current.loadVaultKey()
       } else {
         let current = try runtime.authenticatedReadContext(
-          reason: "Authenticate an explicit vault-key rotation.")
+          reason: "Change this vault's encryption key.")
         authenticated = current.current.checkpoint
         _ = try current.loadVaultKey(keyID: current.current.envelope.body.fields.keyID)
       }
@@ -341,7 +341,7 @@ struct KeyRecoveryRegistrationWorkflow: Sendable {
       try validate()
       guard
         let identity = try loader.loadDeviceIdentity(
-          vaultID: vaultID, reason: "Use this Mac's vault-key rotation authority.")
+          vaultID: vaultID, reason: "Change this vault's encryption key.")
           as? any V3EnrollmentMessageSigning & V3DeviceWrappedVaultKeyUnwrapping
       else {
         throw V3RecoveryVaultUnlockError.identityUnavailable

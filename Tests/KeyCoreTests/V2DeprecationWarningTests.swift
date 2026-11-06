@@ -48,8 +48,8 @@ struct V2DeprecationWarningTests {
                 if !isV3 && terminal && !json {
                     #expect(io.stderr.components(separatedBy: "Warning:").count == 2)
                     #expect(io.stderr.contains("key migrate --check"))
-                    #expect(io.stderr.contains("without changing the vault"))
-                    #expect(io.stderr.contains("other-Mac setup and recovery limits"))
+                    #expect(io.stderr.contains("deprecated but still supported"))
+                    #expect(io.stderr.contains("key migrate --help"))
                 } else {
                     #expect(io.stderr.isEmpty)
                 }

@@ -78,7 +78,7 @@ struct V3RecoveryAdoptionService: Sendable {
       let nextKey = SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) }
       let candidate = try V3RecoveryProfileAdoptionBuilder(limits: limits).build(
         from: parent, currentEntries: initial.entries, currentVaultKey: currentVaultKey,
-        nextVaultKey: nextKey, owner: identity, reason: "Adopt Key's recovery-capable vault format"
+        nextVaultKey: nextKey, owner: identity, reason: "Update this vault to support recovery keys"
       ) { body, staged in
         try objects.requireUnsignedProjection(
           initial, body: body, parent: checkpoint, stagedEntries: staged)
@@ -171,7 +171,7 @@ struct V3RecoveryAdoptionService: Sendable {
       initial, candidate: candidate.envelope,
       stagedEntries: candidate.stagedEntries)
     try requireState(initial, checkpoint: parent.checkpoint, preparation: preparation)
-    let nextKey = try openLocal(candidate.envelope, reason: "Verify Key vault format adoption")
+    let nextKey = try openLocal(candidate.envelope, reason: "Verify access to the updated vault")
     if let expectedNextKey, nextKey != expectedNextKey {
       throw V3RecoveryProfileAdoptionError.localWrapperMismatch
     }
@@ -276,7 +276,7 @@ struct V3RecoveryAdoptionService: Sendable {
     try requireIdentity(preparation)
     let envelope = preparation.candidate.envelope
     let initial = try objects.observe(checkpoint: checkpoint, expectedBase: envelope.canonicalBytes)
-    let nextKey = try openLocal(envelope, reason: "Reconcile committed Key vault format adoption")
+    let nextKey = try openLocal(envelope, reason: "Finish the vault format update")
     try V3RecoveryEpochBoundary().verifyCurrentAuthentication(envelope, vaultKey: nextKey)
     _ = try V3EntrySnapshotValidator(limits: limits).plaintexts(
       fields: envelope.body.fields,

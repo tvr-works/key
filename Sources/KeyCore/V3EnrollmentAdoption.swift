@@ -46,7 +46,7 @@ struct V3EnrollmentAdoptionReport: Equatable, Sendable {
             "This Mac can now use the vault.",
             "Mac: \(deviceName) (role: \(role.rawValue))",
             "Vault ID: \(vaultID)",
-            "Run `key status` to check the vault."
+            "Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` to check the vault."
         ].joined(separator: "\n") + "\n"
     }
 }

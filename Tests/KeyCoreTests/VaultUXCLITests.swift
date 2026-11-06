@@ -28,7 +28,7 @@ struct VaultUXCLITests {
                 == KeyExitCode.conflict.rawValue
         )
         #expect(io.stdout.contains("Some entries have conflicting changes"))
-        #expect(io.stdout.contains("Last trusted entries: 7"))
+        #expect(io.stdout.contains("Entries (last verified on this Mac): 7"))
         #expect(io.stdout.contains("Conflicts: 2"))
         #expect(io.stdout.contains("key conflict list"))
         #expect(!io.stdout.contains("0123456789abcdef"))
@@ -119,6 +119,7 @@ struct VaultUXCLITests {
                 == KeyExitCode.securityFailure.rawValue
         )
         #expect(statusIO.stdout.contains("Keep vault files and local records intact"))
+        #expect(statusIO.stdout.contains("docs/troubleshooting.md"))
         #expect(!statusIO.stdout.contains("Next: run `key conflict list`."))
 
         let conflictIO = MemoryIO(stdinIsTTY: false)
@@ -372,7 +373,8 @@ struct VaultUXCLITests {
         #expect(response.errorCode == .recoveryRequired)
         #expect(response.exitCode == KeyExitCode.securityFailure.rawValue)
         #expect(response.errorMessage?.contains("Mac that still has access") == true)
-        #expect(response.errorMessage?.contains("permanently inaccessible") == true)
+        #expect(response.errorMessage?.contains("previously registered hardware key and the vault files") == true)
+        #expect(response.errorMessage?.contains("permanently inaccessible") == false)
     }
 
     @Test

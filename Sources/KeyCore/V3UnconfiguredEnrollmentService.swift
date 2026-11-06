@@ -18,7 +18,7 @@ struct V3UnconfiguredEnrollmentService {
         guard request.supportsDirectorySelection,
               path.hasPrefix("/"), !path.utf8.contains(0)
         else {
-            throw AppError.operationRefused("Key needs an existing vault folder for this joining step. Use `key help share` for instructions.")
+            throw AppError.operationRefused("Key needs an existing vault folder for this joining step. Use `\(KeyProductIdentity.currentProcess.cliExecutableName) help share` for instructions.")
         }
         try configStore.requireUnconfigured()
         let root = try VaultRootDirectoryHandle(opening: URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL)
@@ -72,7 +72,7 @@ struct V3UnconfiguredEnrollmentService {
                 throw AppError.operationRefused("Key could not confirm that this Mac is configured to use the approved vault. Leave this attempt intact for investigation.")
             }
             try root.requireConfiguredRootIdentity()
-            return .success((response.value ?? "") + "Key will use the existing vault at '\(root.rootURL.path)'. Run `key status`.\n")
+            return .success((response.value ?? "") + "Key will use the existing vault at '\(root.rootURL.path)'. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status`.\n")
         }
         return .success((response.value ?? "") + "This Mac is not configured to use the vault yet. Continue from this folder, or pass --vault-dir with this same folder.\n")
     }

@@ -242,7 +242,7 @@ public final class KeyXPCClientTransport: KeyServiceTransport {
         timeoutSeconds: Int
     ) -> AppError {
         if case .initializeVault = request {
-            return AppError.service("Your new vault is ready, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `key status` after it restarts. Do not run init again.")
+            return AppError.service("Your new vault is ready, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` after it restarts. Do not run init again.")
         }
         switch request {
         case .recoveryRotation:
@@ -252,11 +252,11 @@ public final class KeyXPCClientTransport: KeyServiceTransport {
         case .recovery(let action) where action.isAbandonment:
             return AppError.service("The incomplete reservation was released, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Files were retained and no vault was selected. Inspect after restart; do not assume another restore started.")
         case .recovery:
-            return AppError.service("The restored vault is selected, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `key status` after it restarts. Do not start another restore.")
+            return AppError.service("The restored vault is selected, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` after it restarts. Do not start another restore.")
         case .share(.accept), .shareInDirectory(.accept, _):
-            return AppError.service("This Mac has joined the vault, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `key status` after it restarts. You do not need to accept the invitation again.")
+            return AppError.service("This Mac has joined the vault, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` after it restarts. You do not need to accept the invitation again.")
         case .migrationApply:
-            return AppError.service("Migration completed and this Mac now uses the new vault, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `key status` after it restarts. Do not run migration again.")
+            return AppError.service("Migration completed and this Mac now uses the new vault, but \(helperName) is still restarting after \(timeoutSeconds) seconds. Run `\(KeyProductIdentity.currentProcess.cliExecutableName) status` after it restarts. Do not run migration again.")
         default:
             break
         }

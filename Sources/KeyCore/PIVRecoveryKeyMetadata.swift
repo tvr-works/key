@@ -1,10 +1,21 @@
 import CryptoKit
 import Foundation
 
-enum PIVRecoveryKeyPolicyError: Error, Equatable {
+enum PIVRecoveryKeyPolicyError: Error, Equatable, LocalizedError {
   case invalidMetadata
   case unsupportedPolicy
   case publicKeyMismatch
+
+  var errorDescription: String? {
+    switch self {
+    case .invalidMetadata:
+      "Key could not verify this security key's recovery settings. Check the supported hardware and setup requirements in the recovery guide."
+    case .unsupportedPolicy:
+      "This security key does not report the required recovery settings: generated on the key, PIN always and touch always. Review its setup before continuing."
+    case .publicKeyMismatch:
+      "The security key's certificate and reported public key do not match. Keep its existing setup unchanged while investigating."
+    }
+  }
 }
 
 /// Reported public slot metadata, not attestation, possession or proof that a

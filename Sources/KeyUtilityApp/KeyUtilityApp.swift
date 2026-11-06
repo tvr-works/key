@@ -424,7 +424,7 @@ private actor HelperRegistrationCoordinator {
         switch status {
         case .enabled:
             return .registered(
-                detail: "\(productIdentity.helperName) is registered and can launch on demand through launchd."
+                detail: "\(productIdentity.helperName) is ready. macOS can start it when a command needs it."
             )
         case .requiresApproval:
             let detail = "Allow \(productIdentity.appName) in System Settings > Login Items & Extensions so \(productIdentity.helperName) can launch. \(message ?? "")"
@@ -482,11 +482,13 @@ private struct ContentView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Label("Refresh status", systemImage: "arrow.clockwise")
                             .symbolRenderingMode(.monochrome)
                     }
                 }
                 .disabled(model.isRefreshing)
+                .accessibilityLabel("Refresh status")
+                .accessibilityValue(model.isRefreshing ? "Refreshing" : "Ready")
             }
         }
         .task {
@@ -549,12 +551,13 @@ private struct ContentView: View {
                     .font(.headline)
                 Spacer()
                 if let command = item.command {
-                    Button("Copy") {
+                    Button("Copy command") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(command, forType: .string)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .accessibilityLabel("Copy command: \(item.title)")
                 }
             }
 
@@ -721,7 +724,7 @@ private struct ContentView: View {
             registrationItem = StatusStripItem(
                 id: "registered",
                 title: "Background service",
-                value: "Approval",
+                value: "Approval needed",
                 detail: "Allow the background service in System Settings.",
                 tint: .orange
             )
@@ -776,7 +779,7 @@ private struct ContentView: View {
                 id: "unlocked",
                 title: "Vault access",
                 value: "Locked",
-                detail: "The next command that needs the vault key will ask you to authenticate.",
+                detail: "The next command that opens the vault will ask you to authenticate.",
                 tint: .secondary
             )
         }
@@ -786,36 +789,36 @@ private struct ContentView: View {
 
     private func detailRows(for snapshot: KeyAppDiagnosticsSnapshot) -> [DetailRow] {
         [
-            DetailRow(id: "app-version", label: "App Version", value: snapshot.context.appVersion.displayString, detail: nil, monospaced: false),
+            DetailRow(id: "app-version", label: "App version", value: snapshot.context.appVersion.displayString, detail: nil, monospaced: false),
             DetailRow(
                 id: "external-version",
-                label: "CLI Version",
+                label: "Terminal command version",
                 value: snapshot.shellCLIStatus.version?.displayString ?? "Not available",
                 detail: "Source: \(snapshot.shellCLIStatus.resolutionSummary)",
                 monospaced: false
             ),
             DetailRow(
                 id: "external-path",
-                label: "CLI Path",
+                label: "Terminal command path",
                 value: snapshot.shellCLIStatus.resolvedPath ?? "Not found",
                 detail: snapshot.shellCLIStatus.resolvedPath == nil
                     ? "Checked your login shell and standard Homebrew install locations."
                     : "Source: \(snapshot.shellCLIStatus.resolutionSummary)",
                 monospaced: true
             ),
-            DetailRow(id: "bundled-cli", label: "Bundled CLI", value: snapshot.context.bundledCLIPath, detail: nil, monospaced: true),
-            DetailRow(id: "config-file", label: "Config File", value: snapshot.context.configFilePath, detail: nil, monospaced: true),
+            DetailRow(id: "bundled-cli", label: "Included terminal command", value: snapshot.context.bundledCLIPath, detail: nil, monospaced: true),
+            DetailRow(id: "config-file", label: "Configuration file", value: snapshot.context.configFilePath, detail: nil, monospaced: true),
             DetailRow(
                 id: "vault-directory",
-                label: "Vault Directory",
+                label: "Vault folder",
                 value: snapshot.context.vaultDirectoryPath,
                 detail: "Source: \(snapshot.context.vaultLocationSource)",
                 monospaced: true
             ),
-            DetailRow(id: "helper-app", label: "Helper App", value: snapshot.context.helperAppPath, detail: nil, monospaced: true),
-            DetailRow(id: "helper-executable", label: "Helper Executable", value: snapshot.context.helperExecutablePath, detail: nil, monospaced: true),
+            DetailRow(id: "helper-app", label: "Background service app", value: snapshot.context.helperAppPath, detail: nil, monospaced: true),
+            DetailRow(id: "helper-executable", label: "Background service executable", value: snapshot.context.helperExecutablePath, detail: nil, monospaced: true),
             DetailRow(id: "launch-agent-plist", label: "LaunchAgent", value: snapshot.context.launchAgentPlistPath, detail: nil, monospaced: true),
-            DetailRow(id: "mach-service", label: "Mach Service", value: snapshot.context.machServiceName, detail: nil, monospaced: true)
+            DetailRow(id: "mach-service", label: "Mach service", value: snapshot.context.machServiceName, detail: nil, monospaced: true)
         ]
     }
 }

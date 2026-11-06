@@ -17,7 +17,7 @@ public enum AppError: Error, LocalizedError, Equatable {
     case operationRefused(String)
 
     static let legacyICloudKeyCreationUnsupported = AppError.operationRefused(
-        "Cannot create or replace an iCloud Keychain key for an older vault: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys can still be read and migrated. For a vault that opens on this Mac, run `key migrate --check` to prepare for migration. After migration, sync the vault folder to share it with another Mac."
+        "Cannot create or replace an iCloud Keychain key for an older vault: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys can still be read and migrated. For a vault that opens on this Mac, run `\(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check` to prepare for migration. After migration, sync the vault folder to share it with another Mac."
     )
 
     public var errorDescription: String? {

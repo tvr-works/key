@@ -80,7 +80,8 @@ struct V3DeviceWrappedVaultRuntimeTests {
         } catch let error as VaultUXServiceError {
             #expect(error == .deviceIdentityUnavailable)
             #expect(error.localizedDescription.contains("Mac that still has access"))
-            #expect(error.localizedDescription.contains("permanently inaccessible"))
+            #expect(error.localizedDescription.contains("previously registered hardware key and the vault files"))
+            #expect(!error.localizedDescription.contains("permanently inaccessible"))
         }
     }
 

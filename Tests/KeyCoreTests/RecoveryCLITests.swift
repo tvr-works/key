@@ -168,7 +168,7 @@ struct RecoveryCLITests {
         tokenID: "selected-token", recipientID: Self.recipient, deviceName: "Replacement Mac")
     #expect(transport.requests == [.recovery(request)] && captures == 1)
     #expect(io.stdout == "Selected new vault.\n")
-    #expect(io.stderr.contains("Enter PIN only in the macOS dialog"))
+    #expect(io.stderr.contains("PIN only in the macOS dialog"))
     #expect(!io.stderr.contains("must-not-read") && !io.stdout.contains("must-not-read"))
     #expect(!FileManager.default.fileExists(atPath: home.path))
   }
@@ -184,8 +184,8 @@ struct RecoveryCLITests {
     let result = app.run(arguments: arguments())
     #expect(result == (thrown ? EXIT_FAILURE : 23))
     #expect(transport.requests.count == 1 && io.stdout.isEmpty)
-    #expect(io.stderr.contains("does not establish whether selection completed"))
-    #expect(io.stderr.contains("Do not start another restore or delete state"))
+    #expect(io.stderr.contains("Could not confirm recovery finished"))
+    #expect(io.stderr.contains("Do not start another restore or delete files"))
     #expect(io.stderr.contains("key recovery resume"))
   }
 
@@ -228,7 +228,7 @@ struct RecoveryCLITests {
     #expect(f.identities.creates.value == 1)
     if interrupted {
       #expect(
-        initialIO.stdout.isEmpty && initialIO.stderr.contains("preserve state for inspection"))
+        initialIO.stdout.isEmpty && initialIO.stderr.contains("follow its error instructions"))
       #expect(f.reservations.value != nil && f.preparations.value != nil)
       #expect(try !f.config.hasConfiguration())
       let resumedHost = host(f)
@@ -265,16 +265,17 @@ struct RecoveryCLITests {
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     let resume = try #require(CLIParser.helpText(for: "recovery resume"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
-    #expect(group.contains("available in the 0.3.0 Preview beta"))
-    #expect(group.contains("Stable keeps it disabled"))
-    #expect(group.contains("click Cancel if the macOS PIN dialog remains open"))
-    #expect(group.contains("Neither selector is a secret or an approval"))
-    #expect(group.contains("does not set up, reset or write"))
-    #expect(restore.contains("destination itself must be missing"))
-    #expect(restore.contains("Recovery protection is not inherited"))
-    #expect(resume.contains("never recreates missing state"))
-    #expect(resume.contains("Status alone does not prove completion"))
-    #expect(resume.contains("do not delete records or folders to force a retry"))
+    #expect(group.contains("Preview beta feature"))
+    #expect(group.contains("disabled in Stable"))
+    #expect(group.contains("Cancel any PIN dialog left open"))
+    #expect(restore.contains("public identifiers, not secrets or approval"))
+    #expect(try #require(CLIParser.helpText(for: "recovery register"))
+      .split(whereSeparator: \.isWhitespace).joined(separator: " ").contains("does not set up, reset or write"))
+    #expect(restore.contains("destination itself must not exist"))
+    #expect(restore.contains("register recovery keys again"))
+    #expect(resume.contains("never starts a replacement restore or recreates missing files"))
+    #expect(resume.contains("Status alone does not finish an interrupted restore"))
+    #expect(resume.contains("Keep them and the vault folders intact"))
   }
 
   private func arguments(resume: Bool = false) -> [String] {

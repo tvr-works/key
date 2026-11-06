@@ -72,7 +72,7 @@ struct RecoveryProgressTests {
     #expect(io.stdout.isEmpty)
     for stage in KeyRecoveryStage.hardwareStages { #expect(io.stderr.contains(stage.instruction)) }
     #expect(io.stderr.contains("Fixture final validation failed."))
-    #expect(io.stderr.contains("Preserve token"))
+    #expect(io.stderr.contains("with the same --token and --recipient"))
   }
 
   @Test func progressIsOnlyAvailableForHardwareRequests() {

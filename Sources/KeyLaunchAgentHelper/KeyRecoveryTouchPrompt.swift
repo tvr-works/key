@@ -57,7 +57,7 @@ final class KeyRecoveryTouchPrompt: @unchecked Sendable {
             self.cancelRequest = cancelRequest
             super.init()
             alert.messageText = "Touch your YubiKey"
-            alert.informativeText = "Touch its flashing metal contact to continue. This window closes when the key operation finishes."
+            alert.informativeText = "Touch the flashing metal contact to continue."
             alert.alertStyle = .informational
             let button = alert.addButton(withTitle: "Cancel")
             button.target = self

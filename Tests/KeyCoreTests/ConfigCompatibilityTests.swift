@@ -27,9 +27,9 @@ struct ConfigCompatibilityTests {
             #expect(io.stderr.isEmpty)
         } else {
             #expect(io.stderr.components(separatedBy: "Warning:").count == 2)
-            #expect(io.stderr.contains("Reading and saving secrets still work"))
+            #expect(io.stderr.contains("deprecated but still supported"))
             #expect(io.stderr.contains("key migrate --check"))
-            #expect(io.stderr.contains("without changing the vault"))
+            #expect(io.stderr.contains("key migrate --help"))
         }
         #expect(transport.requests.isEmpty)
         #expect(try Data(contentsOf: fixture.configURL) == original)

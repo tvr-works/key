@@ -43,6 +43,8 @@ Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. 
 
 The planned 0.3.0 Preview beta includes [hardware recovery and device lifecycle commands](docs/recovery-user-guide.md), including an independent backup key. It is not yet published. Use disposable data during the beta; Stable recovery remains disabled. See the [remaining release gates](docs/0.3.0-release-readiness.md).
 
+If a command cannot continue, see [troubleshooting](docs/troubleshooting.md) for missing files, blocked vault history and interrupted operations.
+
 ## How access works
 
 When a command first needs protected key material, macOS asks you to confirm your presence using Touch ID, Apple Watch approval, or your Mac password, depending on your hardware and settings. macOS enforces this requirement on access to the protected keys themselves. Apple explains the available [macOS authentication methods](https://developer.apple.com/documentation/LocalAuthentication/LAPolicy/deviceOwnerAuthentication) and how to [enable Apple Watch approval](https://support.apple.com/en-us/102442).
@@ -65,7 +67,7 @@ Those checks matter when files arrive late, out of order, or incompletely. Key c
 > [!NOTE]
 > Your sync provider delivers files; Key decides what it can safely use. Encryption, verified history, crash-aware writes, and conflict handling belong to the device-enrolled vault, so they do not require an iCloud-specific service.
 
-These protections cannot make a provider deliver files, prevent it from deleting its copies, or recover a vault after all usable copies or all enrolled Macs are lost. Keep backups as well as another enrolled Mac. Local APFS and iCloud Drive have been directly qualified; other providers still need compatible filesystem behavior and testing. See [provider setup and conflicts](#provider-setup-and-conflicts) for the supported scope and inspection commands.
+These protections cannot make a provider deliver files or prevent it from deleting its copies. Keep a separate backup of the complete encrypted vault. Without a registered recovery key, losing every enrolled Mac also loses access. The planned Preview beta adds hardware recovery, which needs both a previously registered key and retained vault files. Keep another Mac enrolled for everyday access, too. Local APFS and iCloud Drive have been directly qualified; other providers still need compatible filesystem behavior and testing. See [provider setup and conflicts](#provider-setup-and-conflicts) for the supported scope and inspection commands.
 
 ## Install and choose a release channel
 

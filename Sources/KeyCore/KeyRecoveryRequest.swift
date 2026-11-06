@@ -29,14 +29,14 @@ public enum KeyRecoveryStage: String, Codable, Sendable, CaseIterable {
 
   public var instruction: String {
     switch self {
-    case .authenticating: "Approve the recovery key in the macOS dialog. Enter your PIN only there."
-    case .touchRequired: "Touch your flashing YubiKey's metal contact now."
-    case .hardwareCompleted: "Hardware approval completed. Finishing the recovery request."
-    case .preparingRestoredVault: "Mac approval: Prepare restored vault on this Mac. Complete recovery preparation has not been saved yet."
-    case .openingSavedPreparation: "Mac approval: Reopen saved restore preparation on this Mac."
-    case .preparationSaved: "Complete encrypted recovery preparation is saved. An interrupted restore can now be explicitly resumed."
-    case .publishingRestoredVault: "Mac approval: Publish prepared restored vault. This uses the saved preparation."
-    case .activatingRestoredVault: "Finishing restored-vault verification and activation. Further Mac approval may be required."
+    case .authenticating: "Enter the recovery key's PIN only in the macOS dialog."
+    case .touchRequired: "Touch your YubiKey's flashing metal contact."
+    case .hardwareCompleted: "Hardware approval complete."
+    case .preparingRestoredVault: "Approve on this Mac to prepare the recovered vault."
+    case .openingSavedPreparation: "Approve on this Mac to resume recovery."
+    case .preparationSaved: "Recovery preparation saved. This attempt can now resume if interrupted."
+    case .publishingRestoredVault: "Approve on this Mac to save the recovered vault."
+    case .activatingRestoredVault: "Verifying recovered access. Approve any remaining Mac prompts."
     }
   }
 }

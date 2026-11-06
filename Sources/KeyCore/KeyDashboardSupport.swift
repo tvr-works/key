@@ -368,7 +368,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
         let identity = context.productIdentity
         return KeyDashboardHero(
             title: "Welcome to \(identity.appName)",
-            detail: "\(identity.appName) stores encrypted secrets in a folder you control. Use the \(identity.cliExecutableName) command in your terminal to work with them. macOS asks you to authenticate when access is needed; \(identity.helperName), the background service, keeps that access unlocked briefly between commands."
+            detail: "Encrypted secrets in a folder you control. Use \(identity.cliExecutableName) in your terminal. macOS asks you to authenticate; \(identity.helperName) keeps access unlocked briefly between commands."
         )
     }
 
@@ -380,15 +380,15 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 detail: detail,
                 guidance: [
                     KeyDashboardGuidance(
-                        title: "Allow Key to run in the background",
-                        detail: "Approve \(context.productIdentity.appName) in Login Items & Extensions so \(context.productIdentity.appName) can handle vault commands when needed.",
+                        title: "Allow \(context.productIdentity.appName) to run in the background",
+                        detail: "Approve \(context.productIdentity.appName) in Login Items & Extensions to enable vault commands.",
                         command: nil
                     )
                 ]
             )
         case let .notRegistered(detail):
             return KeyDashboardCallout(
-                title: "Background service is not ready",
+                title: "Background service not ready",
                 detail: detail,
                 guidance: [
                     KeyDashboardGuidance(
@@ -400,7 +400,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
             )
         case let .unknown(detail):
             return KeyDashboardCallout(
-                title: "Background service status is unavailable",
+                title: "Background service status unavailable",
                 detail: detail,
                 guidance: []
             )
@@ -413,11 +413,11 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
             let identity = context.productIdentity
             return KeyDashboardCallout(
                 title: "Terminal command not found",
-                detail: "\(identity.appName) could not find an external `\(identity.cliExecutableName)` CLI through your login shell or standard Homebrew install locations. You can still use the bundled CLI directly from \(identity.appName).app.",
+                detail: "The `\(identity.cliExecutableName)` command was not found. Diagnostics show where Key looked.",
                 guidance: [
                     KeyDashboardGuidance(
                         title: "Use the command included with the app",
-                        detail: "Run the app’s bundled CLI until an external `\(identity.cliExecutableName)` install is available again.",
+                        detail: "Run this in Terminal to open help.",
                         command: bundledCLICommand("help")
                     )
                 ]
@@ -434,7 +434,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance = [
                     KeyDashboardGuidance(
                         title: "Use the command included with the app",
-                        detail: "The external `\(identity.cliExecutableName)` CLI is older than this app. Use the bundled CLI until the external CLI is updated.",
+                        detail: "Your terminal command is older than this app. Use the included command until you update it.",
                         command: bundledCLICommand("version")
                     )
                 ]
@@ -442,7 +442,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance = [
                     KeyDashboardGuidance(
                         title: "Check the terminal command",
-                        detail: "Run the CLI version command from the same shell environment you expect to use.",
+                        detail: "Run this version check in the terminal you normally use.",
                         command: "\(identity.cliExecutableName) version"
                     )
                 ]
@@ -464,7 +464,7 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
                 guidance: [
                     KeyDashboardGuidance(
                         title: "Check the terminal command",
-                        detail: "Check which `\(identity.cliExecutableName)` binary your shell environment is actually using.",
+                        detail: "Check the version of `\(identity.cliExecutableName)` that your terminal is using.",
                         command: "\(identity.cliExecutableName) version"
                     )
                 ]
@@ -475,12 +475,12 @@ public struct KeyAppDiagnosticsSnapshot: Equatable, Sendable {
 
         if let helperStatusErrorDescription, isHelperRunning {
             return KeyDashboardCallout(
-                title: "Background service status is unavailable",
+                title: "Background service status unavailable",
                 detail: helperStatusErrorDescription,
                 guidance: [
                     KeyDashboardGuidance(
                         title: "Refresh status",
-                        detail: "If the helper was shutting down while \(context.productIdentity.appName) checked it, refreshing may show its current status.",
+                        detail: "The background service may be restarting. Try refreshing.",
                         command: nil
                     )
                 ]

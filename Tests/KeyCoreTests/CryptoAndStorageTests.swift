@@ -84,7 +84,7 @@ struct CryptoAndStorageTests {
     func entryStoreRejectsTraversal() throws {
         let root = URL(fileURLWithPath: "/tmp/key-tests", isDirectory: true)
         let store = EntryStore(rootURL: root)
-        #expect(throws: AppError.invalidEntryName("Entry name must not contain '.' or '..' segments.")) {
+        #expect(throws: AppError.invalidEntryName("Entry names cannot use '.' or '..' as a path component.")) {
             try store.url(for: "../nope")
         }
     }

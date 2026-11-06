@@ -260,7 +260,7 @@ struct KeyInitializationTests {
         )
         #expect(app.run(arguments: ["init"] + (path.map { [$0] } ?? [])) == EXIT_SUCCESS)
         #expect(io.stdout == "Initialized.\n")
-        #expect(io.stderr.contains("cannot currently be recovered"))
+        #expect(io.stderr.contains("no recovery key"))
         #expect(!FileManager.default.fileExists(atPath: home.path))
     }
 
