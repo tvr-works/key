@@ -154,7 +154,8 @@ def main():
         if env["GITHUB_EVENT_NAME"] == "pull_request":
             pr = event["pull_request"]
             base = (pr.get("stack") or {}).get("base", pr["base"])["sha"]
-            paths = command("git", "diff", "--name-only", "-z", base + "..." + pr["head"]["sha"]).split("\0")
+            # Include both paths of a rename, especially inputs moved out of a shipped root.
+            paths = command("git", "diff", "--no-renames", "--name-only", "-z", base + "..." + pr["head"]["sha"]).split("\0")
         result = plan(env["GITHUB_EVENT_NAME"], event, paths)
         with open(env["GITHUB_OUTPUT"], "a") as output:
             output.write("selection=" + json.dumps(result) + "\n")
