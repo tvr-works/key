@@ -35,12 +35,16 @@ def main():
         comparison = '("Public key roundtrip", key.x963Representation == keyBytes)\n'
         for diagnostic in diagnostics:
             diagnostic.write_text(comparison + f'api_key = "{marker}"\n')
+        scanner_source = work / "Tests/CIScripts/secret_scanner_probe.py"
+        scanner_source.parent.mkdir(parents=True)
+        scanner_source.write_text(comparison + f'api_key = "{marker}"\n')
         git("add", ".")
         git("-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Add synthetic canary")
         sample.unlink()
         document.write_text(prose)
         for diagnostic in diagnostics:
             diagnostic.write_text(comparison)
+        scanner_source.write_text(comparison)
         git("add", "-u")
         git("-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Remove synthetic canary")
         report = work / "report.json"
@@ -52,10 +56,11 @@ def main():
         if result.returncode != 1 or not report.exists():
             raise RuntimeError("Scanner did not reject the synthetic commit history")
         findings = json.loads(report.read_text())
-        if len(findings) != 4 or {finding["File"] for finding in findings} != {
+        if len(findings) != 5 or {finding["File"] for finding in findings} != {
             "Sample.swift", "docs/piv-recovery-plan.md",
             "Diagnostics/signature-vector-comparison.swift",
             "Diagnostics/signature-platform-comparison.swift",
+            "Tests/CIScripts/secret_scanner_probe.py",
         }:
             raise RuntimeError("Scanner must allow reviewed expressions and detect all removed canaries")
         if marker in report.read_text() or marker in result.stdout or marker in result.stderr:
