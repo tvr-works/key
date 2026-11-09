@@ -36,6 +36,7 @@ jobs:
       - name: Check Swift correctness rules without formatting rules
         run: python3 scripts/ci-tool.py run swiftlint lint --strict --no-cache
       - name: Initialize CodeQL Swift extraction and security queries
+        id: init
         uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: swift
@@ -43,12 +44,14 @@ jobs:
           tools: linked
           queries: security-extended
       - name: Build host, CLI, helper, and shared code with bounded diagnostics
+        id: build
         timeout-minutes: 32
         run: |
           python3 scripts/verify-codeql-build.py \
             --derived-data "${RUNNER_TEMP}/CodeQLDerivedData" \
             --timeout-seconds 1800
       - name: Analyze Swift and publish CodeQL findings
+        id: analyze
         timeout-minutes: 8
         uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
@@ -61,4 +64,21 @@ jobs:
         with:
           name: static-analysis-results
           path: .build/verification/codeql*
-          retention-days: 3
+          retention-days: 14
+
+      - name: Record executed qualification evidence
+        if: always()
+        env:
+          CI_JOB_STATUS: ${{ job.status }}
+          CI_STEPS: ${{ toJSON(steps) }}
+          CI_EVIDENCE_JOB: codeql
+          CI_CODEQL_VERSION: ${{ steps.init.outputs.codeql-version }}
+        run: python3 scripts/ci-evidence.py record --job "$CI_EVIDENCE_JOB" --output .build/ci-evidence/record.json
+      - name: Retain machine-readable qualification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-evidence-codeql-${{ github.run_attempt }}
+          path: .build/ci-evidence/record.json
+          retention-days: 90
+          if-no-files-found: error
