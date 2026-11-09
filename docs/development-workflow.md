@@ -87,6 +87,8 @@ reported test totals with named skips and failure counts. Step outputs and
 failure messages are excluded. The aggregate manifest contains selected work,
 job outcomes, the job records, verification errors, and a separate PR eligibility
 Boolean. Optional qualification jobs remain explicitly skipped when unselected.
+The collector uses the runner-provided GitHub CLI with job-scoped `actions: read`
+to download evidence from its own run, within the existing Actions allowlist.
 This is CI evidence, not a signed artifact attestation or proof of release safety.
 
 The gate rejects failed, missing, duplicate, cancelled, skipped, stale-SHA and

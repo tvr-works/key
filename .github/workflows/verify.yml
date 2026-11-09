@@ -371,6 +371,9 @@ jobs:
           retention-days: 3
 
   evidence:
+    permissions:
+      contents: read
+      actions: read
     name: Verify merge eligibility
     needs: [plan, swift-test-suites, swift-tests, products, preview, repository-checks, workflows, secrets]
     if: always()
@@ -382,11 +385,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Download evidence only from this workflow run
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          pattern: ci-evidence-*-${{ github.run_attempt }}
-          path: .build/ci-records
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --pattern "ci-evidence-*-${GITHUB_RUN_ATTEMPT}" --dir .build/ci-records
       - name: Require complete executed verification
+        if: always()
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
           CI_SELECTION: ${{ needs.plan.outputs.selection || '{}' }}
