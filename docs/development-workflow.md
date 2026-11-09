@@ -78,7 +78,10 @@ The PR dependency-advisory comparison runs on PR events, where the stack's trunk
 and head are known. A manual run still checks dependency declarations and pins;
 it does not replace that PR comparison or satisfy PR required checks. Its manifest
 can report successful verification while explicitly reporting
-`merge_eligible: false`. Manual workflow buttons become available after their
+`merge_eligible: false`. The manual check is named **Record candidate verification**;
+only PR events emit **Verify merge eligibility**. GitHub evaluates native stack
+layers against the trunk rules, but that does not turn a manual event into a PR
+event or justify sharing the required check name. Manual workflow buttons become available after their
 definitions reach the default branch.
 
 ## Verification evidence and rollout

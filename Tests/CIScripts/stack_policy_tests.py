@@ -30,6 +30,12 @@ class StackVerificationPolicyTests(unittest.TestCase):
         self.assertIn("if: always() &&", jobs["swift-tests"])
         self.assertIn('run: test "$GROUP_RESULT" = success', jobs["swift-tests"])
 
+    def test_only_pr_events_emit_the_required_merge_eligibility_context(self):
+        gate = self.jobs()["evidence"]
+        self.assertIn("name: ${{ github.event_name == 'pull_request' && "
+                      "'Verify merge eligibility' || 'Record candidate verification' }}", gate)
+        self.assertNotIn("    name: Verify merge eligibility\n", gate)
+
     def test_workflows_use_only_the_agreed_pr_and_manual_triggers(self):
         expected = {
             "verify.yml": {"pull_request", "workflow_dispatch"},

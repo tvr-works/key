@@ -374,7 +374,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    name: Verify merge eligibility
+    name: ${{ github.event_name == 'pull_request' && 'Verify merge eligibility' || 'Record candidate verification' }}
     needs: [plan, swift-test-suites, swift-tests, products, preview, repository-checks, workflows, secrets]
     if: always()
     runs-on: blacksmith-4vcpu-ubuntu-2404
