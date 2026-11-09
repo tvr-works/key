@@ -1,8 +1,8 @@
 # Development and verification workflow
 
 Keep stack layers in draft while developing them. Mark a layer ready when its
-complete prefix can land. Prepare a Stable or Preview release when there is something to
-ship. CI follows those decisions; it has no weekly or monthly schedule.
+complete prefix can land. Prepare a Stable or Preview release when there is
+something to ship. CI follows those decisions; it has no weekly or monthly schedule.
 
 ## Workflows and checks
 
@@ -18,7 +18,8 @@ checks**. **Verify workflows** and **Verify secrets** remain separate jobs.
 The four Swift test groups run in parallel and feed **Verify Swift tests**.
 **Verify merge eligibility** always runs and requires all four executed group
 records, the required product checks, and successful repository checks. A draft
-gets an explicit failing eligibility result while its inexpensive checks run. **Verify products (Stable Release)** builds the unsigned app,
+gets an explicit failing eligibility result while its inexpensive checks run.
+**Verify products (Stable Release)** builds the unsigned app,
 checks bundle identities and helper isolation, and exercises its bundled CLIs.
 
 The five currently required check names and their GitHub Actions provider are recorded in
@@ -30,8 +31,8 @@ is mandatory. The maintainer's exception permission applies through PRs only.
 
 Run relevant local tests while editing. Push draft standalone PRs or update the
 layers of a registered stack to get formatting, correctness lint, dependency review,
-script checks, workflow audits, and secret scanning. These inexpensive checks do not compile the Swift test suite
-or build the app.
+script checks, workflow audits, and secret scanning. These inexpensive checks
+do not compile the Swift test suite or build the app.
 
 Keep each layer draft until its prefix is ready for full verification.
 If a ready candidate needs more development, convert it back to draft. That
@@ -76,8 +77,9 @@ gh workflow run verify.yml --ref <candidate-branch>
 The PR dependency-advisory comparison runs on PR events, where the stack's trunk
 and head are known. A manual run still checks dependency declarations and pins;
 it does not replace that PR comparison or satisfy PR required checks. Its manifest
-can report successful verification while explicitly reporting `merge_eligible: false`. Manual workflow buttons become available
-after their definitions reach the default branch.
+can report successful verification while explicitly reporting
+`merge_eligible: false`. Manual workflow buttons become available after their
+definitions reach the default branch.
 
 ## Verification evidence and rollout
 
