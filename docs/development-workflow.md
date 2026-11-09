@@ -42,7 +42,7 @@ cancels its superseded PR run and returns it to the inexpensive checks.
 
 Mark a standalone PR or stack layer ready. CI runs all four Swift groups and
 the Stable Release product check alongside the inexpensive checks. Changes to
-production sources, Xcode/configuration, package declarations or pins, CI and
+production sources, AppIcon resources, Xcode/configuration, package declarations or pins, CI and
 verification scripts, bundled CLI/release/install tests, or shipped completions
 also run one Preview Release product check. Selection uses the complete diff
 from the stack trunk, including changes in lower layers. Prose-only changes

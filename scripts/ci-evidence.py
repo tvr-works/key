@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 
 GROUPS = tuple(json.loads(Path(__file__).with_name("swift-test-groups.json").read_text()))
 SCALE_TEST = "migratesRealisticLargeMixedSnapshotWithoutChangingV2Source"
-PREVIEW_PATHS = ("Sources/", "Config/", "Key.xcodeproj/", "scripts/", "Tests/CLIScripts/",
+PREVIEW_PATHS = ("Sources/", "Config/", "AppIcon.icon/", "Key.xcodeproj/", "scripts/", "Tests/CLIScripts/",
                  "Tests/ReleaseScripts/", "Tests/PreviewScripts/", ".github/")
 
 
