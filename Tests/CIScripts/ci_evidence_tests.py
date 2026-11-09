@@ -85,9 +85,10 @@ class CandidateVerificationTests(unittest.TestCase):
 
     def test_only_the_named_optional_scale_skip_is_accepted(self):
         tests = self.records[0]["tests"]
-        tests["skipped"] = ["Genesis/" + ci.SCALE_TEST]
+        tests["skipped"] = [ci.SCALE_CASE]
         self.assertTrue(self.aggregate()["verified"])
-        for replacement in (["Other/silentlyDisabled"], ["Genesis/" + ci.SCALE_TEST] * 3):
+        for replacement in (["Other/silentlyDisabled"], [ci.SCALE_CASE] * 2,
+                            ["Other/" + ci.SCALE_TEST + "()"], [ci.SCALE_CASE + "Extra"]):
             tests["skipped"] = replacement
             self.assertFalse(self.aggregate()["verified"])
         tests["skipped"] = []
@@ -155,7 +156,7 @@ class QualificationProtocolTests(unittest.TestCase):
             records.append(evidence(job, steps, job == "migration-scale"))
             needs[job]["result"] = "success"
             self.assertTrue(result()["verified"])
-        records[-2]["tests"]["skipped"] = ["Genesis/" + ci.SCALE_TEST]
+        records[-2]["tests"]["skipped"] = [ci.SCALE_CASE]
         self.assertFalse(result()["verified"])
 
     def test_real_xunit_reports_preserve_counts_and_skip_names(self):

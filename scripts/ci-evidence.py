@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 
 GROUPS = tuple(json.loads(Path(__file__).with_name("swift-test-groups.json").read_text()))
 SCALE_TEST = "migratesRealisticLargeMixedSnapshotWithoutChangingV2Source"
+SCALE_CASE = "KeyCoreTests.V3DeviceWrappedGenesisInstallerTests/" + SCALE_TEST + "()"
 PREVIEW_PATHS = ("Sources/", "Config/", "AppIcon.icon/", "Key.xcodeproj/", "scripts/", "Tests/CLIScripts/",
                  "Tests/ReleaseScripts/", "Tests/PreviewScripts/", ".github/")
 
@@ -98,7 +99,7 @@ def verify(records, expected, identity):
             count, failed, skipped = tests.get("reported"), tests.get("failed"), tests.get("skipped")
             if type(count) is not int or count <= 0 or failed != 0 or not isinstance(skipped, list):
                 errors.append(f"Missing or failing test results: {name}")
-            elif len(skipped) >= count or any(SCALE_TEST not in test for test in skipped) or (name == "migration-scale" and skipped):
+            elif len(skipped) >= count or skipped not in ([], [SCALE_CASE]) or (name == "migration-scale" and skipped):
                 errors.append(f"Unexpected skipped tests: {name}")
         if not item.get("toolchain") or not isinstance(item.get("dependencies"), list):
             errors.append(f"Missing toolchain or dependency evidence: {name}")
