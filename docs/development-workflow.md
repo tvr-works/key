@@ -1,25 +1,28 @@
 # Development and verification workflow
 
-Keep a stack in draft while developing it. Mark its top ready when the combined
-change can land. Prepare a Stable or Preview release when there is something to
-ship. CI follows those decisions; it has no weekly or monthly schedule.
+Keep stack layers in draft while developing them. Mark a layer ready when its
+complete prefix can land. Prepare a Stable or Preview release when there is
+something to ship. CI follows those decisions; it has no weekly or monthly schedule.
 
 ## Workflows and checks
 
 | Workflow | Trigger | Work |
 |---|---|---|
-| Verify pull request | PR opened, updated, reopened, marked ready, or converted to draft; also manual | Inexpensive checks on draft standalone PRs and draft stack tops. Ready candidates also run the full merge gate. |
+| Verify pull request | PR opened, updated, reopened, marked ready, or converted to draft; also manual | Inexpensive checks on every draft. Every ready standalone PR or stack layer runs the full merge gate; relevant changes also build Preview Release. |
 | Verify release candidate | Manual | Debug and Release builds for the selected Stable or Preview product, with optional migration-scale qualification and CodeQL. |
 | Verify CodeQL | Manual, or called by release qualification | Swift security analysis on the Intel runner. |
 
 A workflow contains jobs; GitHub shows each job as a check. Formatting, lint,
 script fixtures, and dependency checks are steps within **Verify repository
 checks**. **Verify workflows** and **Verify secrets** remain separate jobs.
-The four Swift test groups run in parallel and feed the required **Verify Swift
-tests** result. **Verify products (Stable Release)** builds the unsigned app,
+The four Swift test groups run in parallel and feed **Verify Swift tests**.
+**Verify merge eligibility** always runs and requires all four executed group
+records, the required product checks, and successful repository checks. A draft
+gets an explicit failing eligibility result while its inexpensive checks run.
+**Verify products (Stable Release)** builds the unsigned app,
 checks bundle identities and helper isolation, and exercises its bundled CLIs.
 
-The five required check names and their GitHub Actions provider are recorded in
+The five currently required check names and their GitHub Actions provider are recorded in
 [the main ruleset](../.github/main-ruleset.json). Main requires PRs, blocks force
 pushes and deletion, and permits squash merges. No external reviewer approval
 is mandatory. The maintainer's exception permission applies through PRs only.
@@ -27,35 +30,40 @@ is mandatory. The maintainer's exception permission applies through PRs only.
 ## Develop a draft stack
 
 Run relevant local tests while editing. Push draft standalone PRs or update the
-top of a registered stack to get formatting, correctness lint, dependency review,
-script checks, workflow audits, and secret scanning. Intermediate stack layers
-skip repeated CI. These inexpensive checks do not compile the Swift test suite
-or build the app.
+layers of a registered stack to get formatting, correctness lint, dependency review,
+script checks, workflow audits, and secret scanning. These inexpensive checks
+do not compile the Swift test suite or build the app.
 
-Keep the top draft until the combined change is ready for full verification.
+Keep each layer draft until its prefix is ready for full verification.
 If a ready candidate needs more development, convert it back to draft. That
 cancels its superseded PR run and returns it to the inexpensive checks.
 
 ## Verify and merge a candidate
 
-Mark a standalone PR or the stack top ready. CI runs all four Swift groups and
-the Stable Release product check alongside the inexpensive checks. New pushes
+Mark a standalone PR or stack layer ready. CI runs all four Swift groups and
+the Stable Release product check alongside the inexpensive checks. Changes to
+production sources, AppIcon resources, Xcode/configuration, package declarations or pins, CI and
+verification scripts, bundled CLI/release/install tests, or shipped completions
+also run one Preview Release product check. Selection uses the complete diff
+from the stack trunk, including changes in lower layers. Prose-only changes
+avoid the additional Preview build. Manual verification includes Preview. New pushes
 to a ready candidate require another pass; an older green result does not
 verify changed source.
 
-Keep intermediate stack PRs draft while the ready top is tested. Once the top
-passes, mark the remaining layers ready and merge the complete stack with the
-native stack tools:
+Keep lower layers draft while reviewing the combined top if desired. Before
+merging, mark each layer that will land ready and wait for its own verification.
+GitHub evaluates the required checks of every merged layer. Use the native tools
+for the atomic merge:
 
 ```sh
 gh stack merge --yes --squash
 ```
 
-GitHub applies main's protections to every layer. Skipped intermediate checks
-allow the complete verified stack to merge; they do not certify an intermediate
-result. Before merging part of a stack, make the selected result its top with
-the native stack tools and verify it. GitHub supports a protection exception
-only for the bottom PR, not for merging a whole stack.
+Each ready layer verifies its prefix, so merging up to an intermediate PR remains
+supported. This costs a full verification run per ready layer. A passing top
+cannot certify an intermediate prefix: later changes might repair earlier ones.
+This avoids copying success between PRs, extra write permissions, and a custom
+stack merge service.
 
 A small Stable fix follows the same PR merge gate and can go straight to a
 Stable release without a Preview release. There is no automatic post-merge run.
@@ -68,8 +76,68 @@ gh workflow run verify.yml --ref <candidate-branch>
 
 The PR dependency-advisory comparison runs on PR events, where the stack's trunk
 and head are known. A manual run still checks dependency declarations and pins;
-it does not replace that PR comparison. Manual workflow buttons become available
-after their definitions reach the default branch.
+it does not replace that PR comparison or satisfy PR required checks. Its manifest
+can report successful verification while explicitly reporting
+`merge_eligible: false`. The manual check is named **Record candidate verification**;
+only PR events emit **Verify merge eligibility**. GitHub evaluates native stack
+layers against the trunk rules, but that does not turn a manual event into a PR
+event or justify sharing the required check name. Manual workflow buttons become available after their
+definitions reach the default branch.
+
+## Verification evidence and rollout
+
+Each macOS verification job records the actual checkout SHA, workflow run and
+attempt, OS/architecture/Xcode/Swift versions, dependency pins, step outcomes, and
+reported test totals with named skips and failure counts. Step outputs and
+failure messages are excluded. The aggregate manifest contains selected work,
+job outcomes, the job records, verification errors, and a separate PR eligibility
+Boolean. Optional qualification jobs remain explicitly skipped when unselected.
+The collector uses the runner-provided GitHub CLI with job-scoped `actions: read`
+to download evidence from its own run, within the existing Actions allowlist.
+This is CI evidence, not a signed artifact attestation or proof of release safety.
+
+The gate rejects failed, missing, duplicate, cancelled, skipped, stale-SHA and
+wrong-attempt evidence. Only the named 300-entry scale case may skip in routine
+tests; selected migration qualification permits no skips. Rerun all jobs after
+a failed run: successful records from an earlier attempt do not satisfy a new
+attempt. Cancelled or interrupted workflows may lack a final manifest and never
+certify eligibility.
+
+Routine machine-readable evidence is retained for seven days, routine raw reports
+for three days, release-qualification records/manifests for 90 days, and product
+qualification/CodeQL diagnostics for 14 days. Download the manifest and any needed
+reports before expiry when preserving release evidence. Retention does not make
+GitHub artifacts permanent.
+
+The checked-in ruleset snapshot and live settings are unchanged by this work.
+After the new check passes on a real ready PR, the minimal proposed rule is:
+
+```json
+{
+  "strict_required_status_checks_policy": true,
+  "do_not_enforce_on_create": false,
+  "required_status_checks": [
+    {"context": "Verify merge eligibility", "integration_id": 15368}
+  ]
+}
+```
+
+First add that check alongside the existing five, validate a ready PR and draft
+refusal, then remove the redundant five contexts after review. The new gate
+depends on every substantive check, including conditional Preview, so requiring
+only this gate retains their enforcement. Strict freshness requires reverifying
+after the base changes. Retain the current PR, squash, deletion/force-push and
+bypass policy unless separately reviewed. Public repositories support these
+rulesets on GitHub Free; no merge queue or paid-plan feature is required.
+
+A new gate in a branch cannot become a required check by itself. Until an
+authorized settings update, the five existing contexts remain the enforced
+policy. There is no new permission to sign, publish, update Homebrew, or change
+repository settings.
+
+References: [stack merge requirements](https://docs.github.com/en/pull-requests/reference/stacked-pull-requests),
+[required check semantics](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks),
+and [ruleset availability and freshness](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
 
 ## Choose additional qualification
 

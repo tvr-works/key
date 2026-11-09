@@ -1,10 +1,9 @@
-"""Protect final-stack CI eligibility and the full-stack comparison boundary."""
+"""Check workflow wiring while behavioral evidence tests own merge decisions."""
 
 import json
 from pathlib import Path
 import re
 import unittest
-from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,37 +15,26 @@ class StackVerificationPolicyTests(unittest.TestCase):
                           flags=re.MULTILINE)
         return {block.split(":", 1)[0].strip(): block for block in blocks if block.strip()}
 
-    def eligible(self, block, *, draft=False, position=None, event="pull_request"):
-        condition = re.search(r"^    if: (.+)$", block, re.MULTILINE)
-        self.assertIsNotNone(condition)
-        stack = SimpleNamespace(position=position, size=3) if position else None
-        github = SimpleNamespace(event_name=event, event=SimpleNamespace(
-            pull_request=SimpleNamespace(draft=draft, stack=stack)))
-        # These workflow conditions use only booleans, comparisons, and always().
-        expression = condition[1].replace("&&", " and ").replace("||", " or ")
-        expression = re.sub(r"!(?!=)", "not ", expression)
-        return bool(eval(expression, {"__builtins__": {}},
-                         {"github": github, "always": lambda: True}))
-
-    def test_drafts_run_fast_checks_and_ready_candidates_run_all_merge_checks(self):
+    def test_merge_gate_always_observes_every_required_job(self):
         jobs = self.jobs()
-        fast = {"repository-checks", "workflows", "secrets"}
-        full = fast | {"swift-test-suites", "swift-tests", "products"}
-        self.assertEqual(set(jobs), full)
-        for position in (None, 3):
-            for draft, expected in ((True, fast), (False, full)):
-                with self.subTest(position=position, draft=draft):
-                    actual = {name for name, block in jobs.items()
-                              if self.eligible(block, draft=draft, position=position)}
-                    self.assertEqual(actual, expected)
-        for draft in (False, True):
-            for position in (1, 2):
-                self.assertFalse(any(self.eligible(block, draft=draft, position=position)
-                                     for block in jobs.values()))
-        self.assertTrue(all(self.eligible(block, event="workflow_dispatch")
-                            for block in jobs.values()))
+        gate = jobs["evidence"]
+        self.assertIn("    if: always()", gate)
+        dependency_line = re.search(r"^    needs: \[(.+)\]$", gate, re.MULTILINE)[1]
+        self.assertEqual(set(dependency_line.split(", ")), set(jobs) - {"evidence"})
+        for name in ("swift-test-suites", "products", "preview"):
+            self.assertIn("    needs: plan", jobs[name])
+            self.assertIn("needs.plan.outputs.full == 'true'", jobs[name])
+        for name in ("repository-checks", "workflows", "secrets"):
+            self.assertNotRegex(jobs[name], re.compile(r"^    if:", re.MULTILINE))
+        self.assertIn("needs.plan.outputs.preview == 'true'", jobs["preview"])
         self.assertIn("if: always() &&", jobs["swift-tests"])
         self.assertIn('run: test "$GROUP_RESULT" = success', jobs["swift-tests"])
+
+    def test_only_pr_events_emit_the_required_merge_eligibility_context(self):
+        gate = self.jobs()["evidence"]
+        self.assertIn("name: ${{ github.event_name == 'pull_request' && "
+                      "'Verify merge eligibility' || 'Record candidate verification' }}", gate)
+        self.assertNotIn("    name: Verify merge eligibility\n", gate)
 
     def test_workflows_use_only_the_agreed_pr_and_manual_triggers(self):
         expected = {

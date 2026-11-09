@@ -24,3 +24,13 @@ condition = "AND"
 paths = ['''^docs/piv-recovery-plan\.md$''']
 regexTarget = "secret"
 regexes = ['''^missing/corrupt$''']
+
+[[allowlists]]
+description = "Reviewed historical public-key comparison expressions"
+condition = "AND"
+paths = [
+  '''^Diagnostics/signature-(vector|platform)-comparison\.swift$''',
+  '''^Tests/CIScripts/secret_scanner_probe\.py$'''
+]
+regexTarget = "secret"
+regexes = ['''^key\.x963Representation$''']

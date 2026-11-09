@@ -12,10 +12,27 @@ concurrency:
   group: verify-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Draft standalone PRs and stack tops run inexpensive checks.
-# Ready candidates additionally run tests and the Stable Release product gate.
-# Intermediate stack PRs skip repeated work. Qualification is manual and separate.
+# Draft PRs run inexpensive checks. Every ready layer verifies its own prefix.
+# Qualification is manual and separate; no skipped job certifies a merge.
 jobs:
+  plan:
+    name: Select candidate verification
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 3
+    outputs:
+      full: ${{ steps.selection.outputs.full }}
+      preview: ${{ steps.selection.outputs.preview }}
+      selection: ${{ steps.selection.outputs.selection }}
+    steps:
+      - name: Check out comparison history without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select verification from the complete candidate diff
+        id: selection
+        run: python3 scripts/ci-evidence.py plan --output .build/verification-plan.json
+
   swift-test-suites:
     name: Verify Swift tests (${{ matrix.name }})
     strategy:
@@ -34,7 +51,8 @@ jobs:
           - group: recovery-restore
             name: Recovery restore
             timeout: 30
-    if: github.event_name != 'pull_request' || (!github.event.pull_request.draft && (!github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size))
+    needs: plan
+    if: needs.plan.outputs.full == 'true'
     runs-on: blacksmith-6vcpu-macos-26
     timeout-minutes: ${{ matrix.timeout }}
     env:
@@ -55,13 +73,14 @@ jobs:
       - name: Resolve committed Swift dependency versions
         run: swift package resolve --force-resolved-versions
       - name: Compile package and test targets with warnings as errors
+        id: build
         run: |
           mkdir -p .build/verification
           set -o pipefail
           swift build --build-tests --force-resolved-versions -Xswiftc -warnings-as-errors \
             2>&1 | tee .build/verification/swift-build.log
       - name: Discover tests and require complete group assignments
-        id: test-group
+        id: discovery
         run: |
           swift test list --skip-build > .build/verification/swift-test-list.txt
           python3 scripts/swift-test-groups.py .build/verification/swift-test-list.txt \
@@ -70,7 +89,7 @@ jobs:
       - name: Run ${{ matrix.name }} test suites
         id: tests
         env:
-          SWIFT_TEST_FILTER: ${{ steps.test-group.outputs.filter }}
+          SWIFT_TEST_FILTER: ${{ steps.discovery.outputs.filter }}
         run: |
           mkdir -p .build/verification
           rm -f .build/verification/swift-tests*.xml
@@ -80,6 +99,7 @@ jobs:
             --xunit-output .build/verification/swift-tests.xml \
             2>&1 | tee .build/verification/swift-tests.log
       - name: Summarize executed tests and expected qualification skips
+        id: summary
         if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
         run: python3 scripts/verify-test-results.py .build/verification/swift-tests.xml
       - name: Retain Swift test reports and failure logs
@@ -90,10 +110,26 @@ jobs:
           path: .build/verification/swift-*
           retention-days: 3
 
+      - name: Record executed qualification evidence
+        if: always()
+        env:
+          CI_JOB_STATUS: ${{ job.status }}
+          CI_STEPS: ${{ toJSON(steps) }}
+          CI_EVIDENCE_JOB: swift-${{ matrix.group }}
+        run: python3 scripts/ci-evidence.py record --job "$CI_EVIDENCE_JOB" --output .build/ci-evidence/record.json --report .build/verification/swift-tests.xml
+      - name: Retain machine-readable qualification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-evidence-swift-${{ matrix.group }}-${{ github.run_attempt }}
+          path: .build/ci-evidence/record.json
+          retention-days: 7
+          if-no-files-found: error
+
   swift-tests:
     name: Verify Swift tests
     needs: swift-test-suites
-    if: always() && (github.event_name != 'pull_request' || (!github.event.pull_request.draft && (!github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size)))
+    if: always() && needs.swift-test-suites.result != 'skipped'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 2
     steps:
@@ -104,7 +140,8 @@ jobs:
 
   products:
     name: Verify products (Stable Release)
-    if: github.event_name != 'pull_request' || (!github.event.pull_request.draft && (!github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size))
+    needs: plan
+    if: needs.plan.outputs.full == 'true'
     runs-on: blacksmith-6vcpu-macos-26
     timeout-minutes: 25
     env:
@@ -122,14 +159,17 @@ jobs:
           xcodebuild -version
           swift --version
       - name: Build unsigned Release product with warnings as errors
+        id: build
         run: |
           mkdir -p .build/verification
           set -o pipefail
           scripts/verify-product.sh stable release build \
             2>&1 | tee .build/verification/release-build.log
       - name: Validate Release product identities and helper isolation
+        id: bundle
         run: scripts/verify-product.sh stable release bundle
       - name: Test Release CLI help, output streams, exits, and completions
+        id: cli
         run: scripts/verify-product.sh stable release cli
       - name: Retain product build diagnostics on failure
         if: failure()
@@ -139,9 +179,81 @@ jobs:
           path: .build/verification/*-build.log
           retention-days: 3
 
+      - name: Record executed qualification evidence
+        if: always()
+        env:
+          CI_JOB_STATUS: ${{ job.status }}
+          CI_STEPS: ${{ toJSON(steps) }}
+          CI_EVIDENCE_JOB: stable-release
+        run: python3 scripts/ci-evidence.py record --job "$CI_EVIDENCE_JOB" --output .build/ci-evidence/record.json
+      - name: Retain machine-readable qualification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-evidence-stable-release-${{ github.run_attempt }}
+          path: .build/ci-evidence/record.json
+          retention-days: 7
+          if-no-files-found: error
+
+  preview:
+    name: Verify products (Preview Release)
+    needs: plan
+    if: needs.plan.outputs.full == 'true' && needs.plan.outputs.preview == 'true'
+    runs-on: blacksmith-6vcpu-macos-26
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+    steps:
+      - name: Check out source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Confirm pinned Xcode and Swift toolchain
+        run: |
+          sw_vers
+          uname -m
+          sysctl -n hw.logicalcpu hw.memsize
+          xcodebuild -version
+          swift --version
+      - name: Build unsigned Release product with warnings as errors
+        id: build
+        run: |
+          mkdir -p .build/verification
+          set -o pipefail
+          scripts/verify-product.sh preview release build \
+            2>&1 | tee .build/verification/release-build.log
+      - name: Validate Release product identities and helper isolation
+        id: bundle
+        run: scripts/verify-product.sh preview release bundle
+      - name: Test Release CLI help, output streams, exits, and completions
+        id: cli
+        run: scripts/verify-product.sh preview release cli
+      - name: Retain product build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: product-build-preview
+          path: .build/verification/*-build.log
+          retention-days: 3
+
+      - name: Record executed qualification evidence
+        if: always()
+        env:
+          CI_JOB_STATUS: ${{ job.status }}
+          CI_STEPS: ${{ toJSON(steps) }}
+          CI_EVIDENCE_JOB: preview-release
+        run: python3 scripts/ci-evidence.py record --job "$CI_EVIDENCE_JOB" --output .build/ci-evidence/record.json
+      - name: Retain machine-readable qualification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-evidence-preview-release-${{ github.run_attempt }}
+          path: .build/ci-evidence/record.json
+          retention-days: 7
+          if-no-files-found: error
+
   repository-checks:
     name: Verify repository checks
-    if: github.event_name != 'pull_request' || !github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: blacksmith-6vcpu-macos-26
     timeout-minutes: 10
     env:
@@ -198,7 +310,6 @@ jobs:
 
   workflows:
     name: Verify workflows
-    if: github.event_name != 'pull_request' || !github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
@@ -219,7 +330,6 @@ jobs:
 
   secrets:
     name: Verify secrets
-    if: github.event_name != 'pull_request' || !github.event.pull_request.stack || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     steps:
@@ -259,3 +369,39 @@ jobs:
           name: secret-detection-results
           path: .build/verification/secrets.json
           retention-days: 3
+
+  evidence:
+    permissions:
+      contents: read
+      actions: read
+    name: ${{ github.event_name == 'pull_request' && 'Verify merge eligibility' || 'Record candidate verification' }}
+    needs: [plan, swift-test-suites, swift-tests, products, preview, repository-checks, workflows, secrets]
+    if: always()
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 5
+    steps:
+      - name: Check out source without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download evidence only from this workflow run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh run download "$GITHUB_RUN_ID" --pattern "ci-evidence-*-${GITHUB_RUN_ATTEMPT}" --dir .build/ci-records
+      - name: Require complete executed verification
+        if: always()
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+          CI_SELECTION: ${{ needs.plan.outputs.selection || '{}' }}
+        run: >-
+          python3 scripts/ci-evidence.py aggregate --mode pull-request
+          --directory .build/ci-records --output .build/qualification.json
+      - name: Retain the qualification manifest even after failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qualification-manifest-${{ github.run_attempt }}
+          path: .build/qualification.json
+          retention-days: 7
+          if-no-files-found: error
