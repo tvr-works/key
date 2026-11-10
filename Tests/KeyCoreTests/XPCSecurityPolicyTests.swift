@@ -143,7 +143,7 @@ struct XPCSecurityPolicyTests {
     @Test
     func authenticationAwareOperationsHaveLongerTimeouts() {
         #expect(KeyServiceRequest.status.responseTimeoutSeconds == 5)
-        #expect(KeyServiceRequest.lock.responseTimeoutSeconds == 5)
+        #expect(KeyServiceRequest.lock.responseTimeoutSeconds == 30)
         #expect(KeyServiceRequest.unlock.responseTimeoutSeconds == 120)
         #expect(KeyServiceRequest.get(name: "entry").responseTimeoutSeconds == 120)
         #expect(KeyServiceRequest.migrationPreflight.responseTimeoutSeconds == 120)
