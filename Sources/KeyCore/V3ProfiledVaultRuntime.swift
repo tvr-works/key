@@ -61,19 +61,21 @@ struct V3ProfiledVaultRuntime: V3ProfiledVaultServicing {
   private func selected(_ operationID: VaultTransactionOperationID? = nil, allowStale: Bool = false) throws
     -> any V3ProfiledVaultServicing
   {
-    do {
-      if let ticket = try translatingV3RecoveryRuntimeErrors({ try prepare(operationID) }) {
-        return recovery.continuingSession(ticket)
+    try permanent.translatingUnlockErrors {
+      do {
+        if let ticket = try translatingV3RecoveryRuntimeErrors({ try prepare(operationID) }) {
+          return recovery.continuingSession(ticket)
+        }
+      } catch is V3RecoveryProfileAdoptionError {
+        session.invalidate()
+        throw VaultUXServiceError.recoveryRequired
+      } catch let error as V3DeviceWrappedCatchUpError {
+        guard allowStale && (error == .temporaryUnavailable || error == .checkpointChanged) else {
+          throw error
+        }
       }
-    } catch is V3RecoveryProfileAdoptionError {
-      session.invalidate()
-      throw VaultUXServiceError.recoveryRequired
-    } catch let error as V3DeviceWrappedCatchUpError {
-      guard allowStale && (error == .temporaryUnavailable || error == .checkpointChanged) else {
-        throw error
-      }
+      return try current()
     }
-    return try current()
   }
 
   private func current() throws -> any V3ProfiledVaultServicing {

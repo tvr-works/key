@@ -277,6 +277,64 @@ struct V3RecoveryProfileCatchUpTests {
     func recordFailure() { lock.withLock { value = true } }
   }
 
+  @Test func undownloadedPermanentManifestPreservesIncompleteResponseAndExplicitStaleRead() throws {
+    let f = try Fixture()
+    defer { f.remove() }
+    try f.session.install(
+      CoreKey.oldKey, vaultID: CoreKey.vaultID, keyID: f.core.base.envelope.body.keyID)
+    let runtime = f.runtime(unavailableManifest: f.adoption.envelope.digest)
+    let handler = KeyServiceHandler(
+      keyStore: MemoryVaultKeyStore(keyData: CoreKey.oldKey),
+      entryStore: EntryStore(rootURL: f.root),
+      mutationOwner: f.owner, vaultUXService: runtime,
+      vaultReader: runtime, vaultMutator: runtime, vaultSession: runtime)
+    #expect(handler.handle(.get(name: "account/密碼")).errorCode == .vaultIncomplete)
+    #expect(handler.handle(.get(name: "account/密碼", allowStale: true)) == .success("Adoption fixture secret"))
+    #expect(f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
+  }
+
+  @Test(arguments: [
+    PreparationFailure.catchUp(.temporaryUnavailable, .vaultIncomplete),
+    .catchUp(.authenticationCancelled, .authenticationFailed),
+    .catchUp(.deviceRevoked, .recoveryRequired),
+    .unlock(.locked, .authenticationFailed),
+    .unlock(.temporaryUnavailable, .vaultIncomplete),
+    .unlock(.deviceIdentityUnavailable, .recoveryRequired),
+  ])
+  func preparationPreservesPermanentRuntimeResponseCodes(failure: PreparationFailure) throws {
+    let f = try Fixture(publishAdoption: false)
+    defer { f.remove() }
+    let composed = f.runtime()
+    let runtime = V3ProfiledVaultRuntime(
+      permanent: composed.permanent, recovery: composed.recovery,
+      isRecovery: composed.isRecovery, prepare: { _ in try failure.raise() }, session: f.session)
+    let handler = KeyServiceHandler(
+      keyStore: MemoryVaultKeyStore(keyData: CoreKey.oldKey),
+      entryStore: EntryStore(rootURL: f.root),
+      mutationOwner: f.owner, vaultUXService: runtime,
+      vaultReader: runtime, vaultMutator: runtime, vaultSession: runtime)
+    #expect(handler.handle(.get(name: "account/密碼")).errorCode == failure.expectedCode)
+    #expect(handler.handle(.unlock).errorCode == failure.expectedCode)
+  }
+
+  enum PreparationFailure: Sendable {
+    case catchUp(V3DeviceWrappedCatchUpError, KeyServiceErrorCode)
+    case unlock(V3DeviceWrappedVaultUnlockRuntimeError, KeyServiceErrorCode)
+
+    var expectedCode: KeyServiceErrorCode {
+      switch self {
+      case .catchUp(_, let code), .unlock(_, let code): code
+      }
+    }
+
+    func raise() throws -> V3DeviceWrappedVaultKeySessionStore.AuthenticationTicket? {
+      switch self {
+      case .catchUp(let error, _): throw error
+      case .unlock(let error, _): throw error
+      }
+    }
+  }
+
   private typealias CoreKey = V3RecoveryRegistrationTestSupport
 
   private final class Loader: V3DeviceWrappedIdentityLoading, @unchecked Sendable {
@@ -354,28 +412,34 @@ struct V3RecoveryProfileCatchUpTests {
       root.appendingPathComponent("entries/\(entry.context.entryID)/\(v3LowercaseHex(Data(SHA256.hash(data: entry.canonicalBytes)))).json")
     }
 
-    func runtime() -> V3ProfiledVaultRuntime {
+    func runtime(unavailableManifest: Data? = nil) -> V3ProfiledVaultRuntime {
+      let source: any V3ImmutableObjectReading
+      if let unavailableManifest {
+        source = UnavailableManifestSource(base: store, digest: unavailableManifest)
+      } else {
+        source = store
+      }
       let loader = Loader(core.member)
       let unlock = V3DeviceWrappedVaultUnlockRuntime(
-        vaultID: Core.vaultID, checkpointStore: checkpoints, source: store, cache: cache,
+        vaultID: Core.vaultID, checkpointStore: checkpoints, source: source, cache: cache,
         identityLoader: loader, session: session)
       let observation = V3LiveDeviceWrappedRepositoryObserver(
-        source: store, checkpointStore: checkpoints, cache: cache)
+        source: source, checkpointStore: checkpoints, cache: cache)
       let content = V3DeviceWrappedSameEpochCatchUpStepService(
-        vaultID: Core.vaultID, repositoryObserver: observation, source: store,
+        vaultID: Core.vaultID, repositoryObserver: observation, source: source,
         checkpointStore: checkpoints, cache: cache)
       let keys = V3DeviceWrappedKeyTransitionCatchUpStepService(
-        vaultID: Core.vaultID, stateManager: unlock, source: store, cache: cache,
+        vaultID: Core.vaultID, stateManager: unlock, source: source, cache: cache,
         loadIdentity: { _, _ in loader.identity })
       let coordinator: @Sendable (any VaultTransactionMutationOwning) -> V3DeviceWrappedCatchUpCoordinator = { owner in
         .init(vaultID: Core.vaultID, mutationOwner: owner, stateLoader: unlock,
           contentSteps: content,
           keyTransitionDiscovery: V3DeviceWrappedKeyTransitionDiscovery(
-            source: self.store, supportsRecoveryAdoption: true),
+            source: source, supportsRecoveryAdoption: true),
           keyTransitionSteps: keys)
       }
       let permanent = V3DeviceWrappedVaultRuntime(
-        runtime: V3DeviceWrappedReadOnlyVaultRuntime(source: store, unlockRuntime: unlock),
+        runtime: V3DeviceWrappedReadOnlyVaultRuntime(source: source, unlockRuntime: unlock),
         mutationService: V3DeviceWrappedVaultMutationService(
           stateLoader: unlock, objectStore: store, checkpointStore: checkpoints,
           recoveryAnchorStore: pending[0], cache: cache,
@@ -391,12 +455,30 @@ struct V3RecoveryProfileCatchUpTests {
         session: session, mutationOwner: owner)
       return .composing(
         permanent: permanent, recovery: recovery, vaultID: Core.vaultID,
-        source: store, checkpoints: checkpoints, cache: cache, identities: loader,
+        source: source, checkpoints: checkpoints, cache: cache, identities: loader,
         ownership: pending, session: session, mutationOwner: owner, makeCoordinator: coordinator)
     }
     func remove() { try? FileManager.default.removeItem(at: root) }
   }
 
+}
+
+private struct UnavailableManifestSource: V3ImmutableObjectReading {
+  let base: any V3ImmutableObjectReading
+  let digest: Data
+
+  func manifestDigests(maximumCount: Int) throws -> V3RepositoryDirectoryListing {
+    try base.manifestDigests(maximumCount: maximumCount)
+  }
+
+  func readManifest(digest: Data, maximumBytes: Int) throws -> V3RepositoryObjectRead {
+    guard digest != self.digest else { return .unavailable }
+    return try base.readManifest(digest: digest, maximumBytes: maximumBytes)
+  }
+
+  func readEntry(entryID: String, digest: Data, maximumBytes: Int) throws -> V3RepositoryObjectRead {
+    try base.readEntry(entryID: entryID, digest: digest, maximumBytes: maximumBytes)
+  }
 }
 
 private struct ProfileCatchUpSource: V3ImmutableObjectReading {
