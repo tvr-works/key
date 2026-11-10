@@ -282,6 +282,8 @@ struct V3DeviceWrappedVaultRuntime:
             return nil
         }
         switch try catchUp() {
+        case .recoveryAdoption:
+            throw V3DeviceWrappedCatchUpError.upgradeRequired
         case .current:
             return nil
         case let .contentConflict(trusted, _, _):

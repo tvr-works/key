@@ -432,6 +432,39 @@ public final class KeyServiceHandler {
                 intentStore: replacementIntentStore
             )
         )
+        let selectedRuntime: any V3ProfiledVaultServicing
+        if runtimeConfiguration.recoveryEnabled {
+            let recovery = V3RecoveryVaultRuntime(
+                vaultID: vaultID, objectStore: objectStore, checkpointStore: checkpointStore,
+                transactionOwnershipStore: recoveryAnchorStore,
+                registrationOwnershipStore: V3ImmutableTransactionRecoveryAnchorKeychainStore(
+                    configuration: runtimeConfiguration, namespace: .registration),
+                adoptionOwnershipStore: V3ImmutableTransactionRecoveryAnchorKeychainStore(
+                    configuration: runtimeConfiguration, namespace: .adoption),
+                cache: cache, identityLoader: identityManager, session: session,
+                mutationOwner: mutationOwner)
+            selectedRuntime = V3ProfiledVaultRuntime.composing(
+                permanent: runtime, recovery: recovery, vaultID: vaultID,
+                source: objectStore, checkpoints: checkpointStore, cache: cache,
+                identities: identityManager,
+                ownership: [
+                    recoveryAnchorStore,
+                    V3ImmutableTransactionRecoveryAnchorKeychainStore(
+                        configuration: runtimeConfiguration, namespace: .registration),
+                    V3ImmutableTransactionRecoveryAnchorKeychainStore(
+                        configuration: runtimeConfiguration, namespace: .adoption),
+                ], session: session, mutationOwner: mutationOwner,
+                makeCoordinator: { owner in
+                    V3DeviceWrappedCatchUpCoordinator(
+                        vaultID: vaultID, mutationOwner: owner,
+                        stateLoader: unlockRuntime, contentSteps: contentCatchUpSteps,
+                        keyTransitionDiscovery: V3DeviceWrappedKeyTransitionDiscovery(
+                            source: objectStore, supportsRecoveryAdoption: true),
+                        keyTransitionSteps: keyTransitionCatchUpSteps)
+                })
+        } else {
+            selectedRuntime = runtime
+        }
         return KeyServiceHandler(
             keyStore: keyStore,
             entryStore: entryStore,
@@ -452,10 +485,10 @@ public final class KeyServiceHandler {
             },
             revocationService: revocationService,
             replacementService: replacementService,
-            vaultUXService: runtime,
-            vaultReader: runtime,
-            vaultMutator: runtime,
-            vaultSession: runtime,
+            vaultUXService: selectedRuntime,
+            vaultReader: selectedRuntime,
+            vaultMutator: selectedRuntime,
+            vaultSession: selectedRuntime,
             configuredVaultID: vaultID,
             replacementAdmissionState: replacementAdmissionState
         )

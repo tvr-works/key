@@ -32,14 +32,17 @@ struct V3DeviceWrappedKeyTransitionDiscovery:
     }
 
     private let source: any V3ImmutableObjectReading
+    private let supportsRecoveryAdoption: Bool
     private let limits: V3ManifestRepositoryLimits
     private let validator: V3DeviceWrappedEnrollmentTransitionValidator
 
     init(
         source: any V3ImmutableObjectReading,
-        limits: V3ManifestRepositoryLimits = .standard
+        limits: V3ManifestRepositoryLimits = .standard,
+        supportsRecoveryAdoption: Bool = false
     ) {
         self.source = source
+        self.supportsRecoveryAdoption = supportsRecoveryAdoption
         self.limits = limits
         validator = V3DeviceWrappedEnrollmentTransitionValidator(
             limits: limits
@@ -154,6 +157,11 @@ struct V3DeviceWrappedKeyTransitionDiscovery:
                         continue
                     } catch {
                         throw V3DeviceWrappedCatchUpError.recoveryRequired
+                    }
+                    if supportsRecoveryAdoption,
+                       (try? V3RecoveryManifestCodec().parseEnvelope(data)) != nil {
+                        candidates.append(Candidate(manifestData: data, manifestDigest: digest))
+                        continue
                     }
                     // An active owner authorized this exact direct child. An
                     // older client must stop before publishing a sibling.
