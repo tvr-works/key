@@ -15,7 +15,7 @@ enum CLIHelp {
 
     3. Store independent backup keys separately.
 
-    To recover, you need the encrypted vault files and a previously registered key. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
+    To recover, run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
 
     A key cannot replace missing files. Key cannot prove that every newer file has synchronized.
 

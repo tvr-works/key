@@ -10,13 +10,13 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 ## Stable 0.3.0 and the 0.4.0 roadmap
 
-[Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) shipped as build 37. During the beta checks, a lock immediately after changing folders timed out on the Air. Two consecutive locks reproduced the five-second timeout on the Mini with the old helper already gone and its replacement scheduled. The Stable candidate allows 30 seconds for the lock reply and still requires confirmed helper termination. The final signed Stable package needs one restore, edit, lock and reopen on disposable data, isolated from the installed Stable vault. The documented manual Cancel workaround for a lingering PIN dialog is accepted for 0.3.0 Stable. Revisit it in a later version.
+[Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) shipped as build 37. During the beta checks, a lock immediately after changing folders timed out on the Air. Two consecutive locks reproduced the five-second timeout on the Mini with the old helper already gone and its replacement scheduled. The Stable candidate allows 30 seconds for the lock reply and still requires confirmed helper termination. In the same two-lock check, the revised signed Preview CLI completed the second lock in 10.1 seconds and launchd reported the helper stopped. The final signed Stable package needs one restore, edit, lock and reopen on disposable data, isolated from the installed Stable vault. The documented manual Cancel workaround for a lingering PIN dialog is accepted for 0.3.0 Stable. Revisit it in a later version.
 
 For 0.4.0, let someone move a saved authenticator to another app by retrieving its Base32 setup secret. Use `--totp-secret` on `add`, `edit`, `get` and `copy`. Plain `get` and `copy` continue to return the current one-time code for TOTP entries. Keep the existing `--totp` spelling on `add` and `edit` for 0.4.0, warn on stderr with the replacement, and retire the alias in a later breaking release before 1.0. During feature design, settle whether revealing or copying the setup secret requires fresh Mac approval.
 
 ## 0.3.0 release preparation
 
-Status on 2026-11-04: prepare `v0.3.0-beta.1` in the Preview channel with hardware recovery, including independent backup keys. Stable recovery stays disabled until a separate promotion review. Neither version has been published. The [release readiness record](0.3.0-release-readiness.md) owns the current checklist, evidence dispositions, beta limitations and final-source verification. Historical results below retain their original scope.
+The [beta readiness record](0.3.0-release-readiness.md) preserves the qualification scope, known limits and signed public package results.
 
 ### What users will get
 

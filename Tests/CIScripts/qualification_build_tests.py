@@ -98,7 +98,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 
-    def test_public_beta_flag_cannot_bypass_private_qualification_choice(self):
+    def test_public_flag_cannot_bypass_private_qualification_choice(self):
         self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",
             KEY_MIGRATION_QUALIFICATION_RECOVERY="0", KEY_MIGRATION_QUALIFICATION_INSTALL="1")
         for component in ("APP", "HELPER"):
@@ -106,7 +106,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.environment["QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT"] = component
                 result = self.run_builder()
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("must not inherit public Preview recovery", result.stderr)
+                self.assertIn("must not inherit public recovery", result.stderr)
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 
