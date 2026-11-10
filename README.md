@@ -6,7 +6,7 @@ Key is a secret manager for macOS, used from your terminal. It combines familiar
 
 ## Quick start
 
-The commands below work in released Stable `0.2.0`. The development build also supports [first-time vault setup](#unreleased-first-time-vault-setup), without first creating and migrating a Keychain-backed vault. Setup and CLI improvements are planned for [0.3.0](docs/release.md#030-release-preparation), which is still being tested for release. The planned Preview beta includes hardware recovery; Stable recovery remains disabled pending a separate promotion review.
+Stable 0.2.0 supports the everyday commands below. [Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) adds [first-time vault setup](#first-time-vault-setup), device enrollment from a synced folder, and hardware recovery. Use `key-preview` for the beta examples.
 
 After installing Key, add a secret from a secure prompt:
 
@@ -41,7 +41,7 @@ key copy "$(key list | fzf)"
 
 Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
 
-The planned 0.3.0 Preview beta includes [hardware recovery and device lifecycle commands](docs/recovery-user-guide.md), including an independent backup key. It is not yet published. Use disposable data during the beta; Stable recovery remains disabled. See the [remaining release gates](docs/0.3.0-release-readiness.md).
+The [hardware recovery guide](docs/recovery-user-guide.md) explains how to register a key and an independent backup. Try Preview with disposable data.
 
 If a command cannot continue, see [troubleshooting](docs/troubleshooting.md) for missing files, blocked vault history and interrupted operations.
 
@@ -67,7 +67,7 @@ Those checks matter when files arrive late, out of order, or incompletely. Key c
 > [!NOTE]
 > Your sync provider delivers files; Key decides what it can safely use. Encryption, verified history, crash-aware writes, and conflict handling belong to the device-enrolled vault, so they do not require an iCloud-specific service.
 
-These protections cannot make a provider deliver files or prevent it from deleting its copies. Keep a separate backup of the complete encrypted vault. Without a registered recovery key, losing every enrolled Mac also loses access. The planned Preview beta adds hardware recovery, which needs both a previously registered key and retained vault files. Keep another Mac enrolled for everyday access, too. Local APFS and iCloud Drive have been directly qualified; other providers still need compatible filesystem behavior and testing. See [provider setup and conflicts](#provider-setup-and-conflicts) for the supported scope and inspection commands.
+These protections cannot make a provider deliver files or prevent it from deleting its copies. Keep a separate backup of the complete encrypted vault. Without a registered recovery key, losing every enrolled Mac also loses access. Hardware recovery in 0.3 requires both a previously registered key and retained vault files. Keep another Mac enrolled for everyday access, too. Local APFS and iCloud Drive have been directly qualified; other providers still need compatible filesystem behavior and testing. See [provider setup and conflicts](#provider-setup-and-conflicts) for the supported scope and inspection commands.
 
 ## Install and choose a release channel
 
@@ -76,9 +76,9 @@ Install Stable for ordinary use. Key Stable and Key Preview are separate install
 | Channel | Current release | App and CLI | Homebrew cask | Purpose |
 |---|---|---|---|---|
 | Stable | `0.2.0` | `Key.app`, `key` | `key` | Ordinary use |
-| Preview | `0.2.0-beta.1` | `Key Preview.app`, `key-preview` | `key@beta` | Isolated prerelease testing |
+| Preview | `0.3.0-beta.1` | `Key Preview.app`, `key-preview` | `key@beta` | Isolated prerelease testing |
 
-The published Preview beta predates Stable `0.2.0`; install it only when you specifically need to reproduce that prerelease. Preview does not read or modify Stable configuration, vault selection, or Keychain state.
+Preview uses its own configuration, vault selection, and Keychain credentials.
 
 > [!IMPORTANT]
 > Keep at least two Macs enrolled in a device-enrolled vault. If every enrolled Mac and its access credentials are lost, the vault is permanently unrecoverable in `0.2.0`. A backup of the vault folder alone cannot restore access. There is no password, cloud escrow, support override, or hidden recovery path.
@@ -116,11 +116,11 @@ key-preview version
 key-preview status
 ```
 
-The current Preview is older than Stable `0.2.0`. Do not point it at the live Stable vault; use its isolated default vault or a disposable copy. In the examples below, replace `key` with `key-preview` when reproducing Preview behavior.
+Use a disposable vault for Preview. Substitute `key-preview` for `key` in the examples below.
 
-## Unreleased: first-time vault setup
+## First-time vault setup
 
-The development build adds `key init [directory]`. This command is not available in Stable `0.2.0`. After installing a build that includes it and opening Key once, initialize a brand-new vault in your current empty directory:
+Version 0.3 adds `key init [directory]`. After opening the app once, initialize a brand-new vault in your current empty directory:
 
 ```sh
 key init
@@ -136,13 +136,13 @@ key init "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Key Vault"
 
 Key checks that this Mac can reopen the new vault, then saves the settings that future commands will use. It refuses nonempty directories, destination symlinks, and any existing configuration, including malformed configuration. Hidden files count as contents. It never overwrites an existing vault or switches away from a configured one. Unlike Git, rerunning init does not reinitialize anything. Use `key init -- -vault` for a directory name beginning with a dash.
 
-In this development build, creating a new vault requires `key init`. Ordinary vault commands and config reads or writes fail with setup guidance when no config exists; they do not create a default folder, config, or legacy vault key. `key help`, `key version`, and `key lock` remain available before setup. Existing configured vaults do not need to run init again.
+In 0.3, creating a new vault requires `key init`. Ordinary vault commands and config reads or writes fail with setup guidance when no config exists; they do not create a default folder, config, or legacy vault key. `key help`, `key version`, and `key lock` remain available before setup. Existing configured vaults do not need to run init again.
 
 If a configured folder or an older vault's Keychain key is missing, Key reports the problem instead of creating a replacement. Restore the existing vault or key. After deliberately moving the complete vault, use `key config set vault-dir <existing-directory>` to correct its path; the destination must already exist, and this preserves the selected vault ID. A directory replaced while the helper is running is refused until the helper restarts.
 
 Init means **create a new vault**, not open a vault synchronized from another Mac. Use [device enrollment](#enrolling-another-mac) for that. An empty local directory listing cannot prove that a provider has no files waiting to arrive. Key checks for unexpected arrivals during initialization but does not control provider delivery.
 
-In the development build, a new Mac can join directly from the existing synced vault folder. Do not run init first. The folder contains the files, but the existing Mac must still invite and approve the new Mac before it can use them.
+In 0.3, a new Mac can join directly from the existing synced vault folder. Do not run init first. The folder contains the files, but the existing Mac must still invite and approve the new Mac before it can use them.
 
 On the joining Mac, after the existing Mac creates an invitation:
 
@@ -283,7 +283,7 @@ Do not repoint one product at another product's live vault. If the default direc
 
 ## Command reference
 
-In the development build, `key help` shows an overview. Use `key help init`, `key help share`, or `key <command> --help` for options, safety notes, and examples. Nested commands have their own help, such as `key share join --help` or `key help share join`; `-h` also works. These help topics are not available in Stable `0.2.0`. Storage-format numbers remain available in `key status --verbose` and JSON diagnostics; they describe vault compatibility, not the app version.
+In 0.3, `key help` shows an overview. Use `key help init`, `key help share`, or `key <command> --help` for options, safety notes, and examples. Nested commands have their own help, such as `key share join --help` or `key help share join`; `-h` also works. These help topics are not available in Stable `0.2.0`. Storage-format numbers remain available in `key status --verbose` and JSON diagnostics; they describe vault compatibility, not the app version.
 
 Options can appear before or after positional arguments. Use `--` before a name or path that begins with a dash. Help takes precedence over other arguments and never starts a vault operation, even when the rest of the command is incomplete or invalid. Invalid operational commands still fail with the existing usage exit code; their error wording and usage layout now come from Swift Argument Parser. Supply `--name` exactly once and `--vault-dir` at most once where supported. Secrets still belong at the hidden prompt or on standard input, never in command arguments.
 
@@ -291,7 +291,7 @@ Help paragraphs and descriptions wrap to the terminal width, or the `COLUMNS` ov
 
 ```text
 key status [--json | --verbose]           Explain vault health and the next safe action
-key init [directory]                      Create a new vault and use it on this Mac (unreleased)
+key init [directory]                      Create a new vault and use it on this Mac (0.3)
 key unlock                                Unlock the vault before running other commands
 key lock                                  Lock the vault on this Mac
 

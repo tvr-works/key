@@ -32,4 +32,4 @@ Use an abandon command only when the error explicitly identifies an eligible ear
 
 A Mac that still has access can invite this one again; see `key share --help` or `key-preview share --help`.
 
-If no enrolled Mac is available, Preview hardware recovery requires a key registered before access was lost and the encrypted vault files. See the [recovery guide](recovery-user-guide.md). Stable does not enable hardware recovery. The vault folder alone cannot restore access; there is no password or support override.
+If no enrolled Mac is available, hardware recovery in 0.3 requires a key registered before access was lost and the encrypted vault files. See the [recovery guide](recovery-user-guide.md). Stable 0.2.0 predates hardware recovery. The vault folder alone cannot restore access; there is no password or support override.

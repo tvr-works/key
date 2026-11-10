@@ -8,6 +8,12 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## Stable 0.3.0 and the 0.4.0 roadmap
+
+[Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) shipped as build 37. During the beta checks, a lock immediately after changing folders timed out on the Air. Two consecutive locks reproduced the five-second timeout on the Mini with the old helper already gone and its replacement scheduled. The Stable candidate allows 30 seconds for the lock reply and still requires confirmed helper termination. The final signed Stable package needs one restore, edit, lock and reopen on disposable data, isolated from the installed Stable vault. The documented manual Cancel workaround for a lingering PIN dialog is accepted for 0.3.0 Stable. Revisit it in a later version.
+
+For 0.4.0, let someone move a saved authenticator to another app by retrieving its Base32 setup secret. Use `--totp-secret` on `add`, `edit`, `get` and `copy`. Plain `get` and `copy` continue to return the current one-time code for TOTP entries. Keep the existing `--totp` spelling on `add` and `edit` for 0.4.0, warn on stderr with the replacement, and retire the alias in a later breaking release before 1.0. During feature design, settle whether revealing or copying the setup secret requires fresh Mac approval.
+
 ## 0.3.0 release preparation
 
 Status on 2026-11-04: prepare `v0.3.0-beta.1` in the Preview channel with hardware recovery, including independent backup keys. Stable recovery stays disabled until a separate promotion review. Neither version has been published. The [release readiness record](0.3.0-release-readiness.md) owns the current checklist, evidence dispositions, beta limitations and final-source verification. Historical results below retain their original scope.
@@ -22,13 +28,9 @@ Status on 2026-11-04: prepare `v0.3.0-beta.1` in the Preview channel with hardwa
 
 Existing configured vaults do not need init or automatic migration. Legacy reads, writes and explicit migration remain supported. No legacy write cutoff or persisted-mode removal is part of this release. Recovery adoption is explicit and makes older apps refuse the adopted vault.
 
-### Remaining gates
+### Beta qualification completed November 10
 
-The necessary remaining live work is one recovery-format partial-delivery case and representative checks on the exact signed/notarized public Preview package. Reuse the completed two-key and two-Mac lifecycle evidence; do not provision another credential or repeat every interruption natively. The readiness record explains each removed test and its coverage limits.
-
-Public Preview uses its own signed beta flag. Stable always refuses recovery. The ZIP verifier continues rejecting private-test opt-in and requires Boolean beta enablement in both Preview app and helper. The public beta accepts the documented manual-Cancel workaround for a lingering PIN dialog; Stable promotion needs a separate decision.
-
-Run current-source automated checks and hosted CI after authorized push, then qualify the final artifact before publication. Preserve Stable, existing Preview and both physical keys. Choose disposable installation state before any live command. Local commits do not authorize a push, tag, notarization upload, release or tap update. The local version commit prepares `0.3.0-beta.1`, build 36; check the ordinary Preview artifact ledger for intervening builds before signing. Separately namespaced qualification timestamp counters are not the public counter.
+The [readiness record](0.3.0-release-readiness.md) records the two final live checks and the shipped build. The [release qualification](https://github.com/tvr-works/key/actions/runs/42724653368) and [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/1) passed.
 
 ### Single-Mac checkpoint, 2026-10-29
 

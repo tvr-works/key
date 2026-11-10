@@ -1,6 +1,6 @@
 # Recovering a vault with a hardware key
 
-Hardware recovery is included in the planned 0.3.0 Preview beta, which is not yet published. Stable keeps it disabled. Use disposable data during the beta. These examples use `key-preview`, the Preview command; it has separate settings and access credentials from Stable's `key` command.
+Hardware recovery is available in [Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) and the Stable 0.3.0 candidate. The examples use `key-preview`. Use `key` with Stable 0.3.0. Each product has its own configuration and Mac credentials. Use disposable data during the beta.
 
 A registered recovery key gives you another way to open your secrets if your enrolled Macs are lost. **You need both the recovery key and the encrypted vault files.** The hardware key does not contain a copy of your vault. Keep a separate backup of the complete vault folder.
 
@@ -100,7 +100,7 @@ Check the recovered entries, then lock and reopen the vault without the hardware
 
 A timeout or lost reply does not prove that nothing changed. Keep the source, destination, configuration and saved records intact. Do not run init or start a replacement restore.
 
-If macOS leaves a PIN dialog open after the operation stops, click **Cancel** before another attempt. This is a known beta limitation; the expired request cannot save a recovery result. The workaround must be reviewed before Stable promotion.
+If macOS leaves a PIN dialog open after the operation stops, click **Cancel** before another attempt. The expired request cannot save a recovery result.
 
 Use the original paths and IDs to continue a saved attempt:
 
