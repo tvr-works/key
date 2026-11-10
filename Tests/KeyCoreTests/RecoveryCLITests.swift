@@ -258,15 +258,14 @@ struct RecoveryCLITests {
   }
 
   @Test
-  func helpExplainsBetaAvailabilitySelectorsAuthenticationAndInterruption() throws {
+  func helpExplainsRecoveryRequirementsSelectorsAuthenticationAndInterruption() throws {
     let group = try #require(CLIParser.helpText(for: "recovery"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     let restore = try #require(CLIParser.helpText(for: "recovery restore"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     let resume = try #require(CLIParser.helpText(for: "recovery resume"))
       .split(whereSeparator: \.isWhitespace).joined(separator: " ")
-    #expect(group.contains("Preview beta feature"))
-    #expect(group.contains("disabled in Stable"))
+    #expect(group.contains("encrypted files and a previously registered hardware key"))
     #expect(group.contains("Cancel any PIN dialog left open"))
     #expect(restore.contains("public identifiers, not secrets or approval"))
     #expect(try #require(CLIParser.helpText(for: "recovery register"))

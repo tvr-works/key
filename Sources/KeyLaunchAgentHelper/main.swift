@@ -251,7 +251,7 @@ private final class KeyAgentService: NSObject, KeyXPCProtocol, @unchecked Sendab
     utilityListener.activate()
 
     withExtendedLifetime((cliDelegate, utilityDelegate, cliListener, utilityListener)) {
-        if configuration.experimentalRecoveryEnabled {
+        if configuration.recoveryEnabled {
             _ = NSApplication.shared.setActivationPolicy(.accessory)
             NSApplication.shared.run()
         } else {

@@ -62,7 +62,7 @@ for kind in app helper; do
   cp "${source_plist}" "${temporary_directory}/${kind}.plist"
   # Qualification remains explicitly controlled by its private opt-in, even
   # after the ordinary Preview beta enables recovery in shipping metadata.
-  /usr/libexec/PlistBuddy -c 'Set :KeyPreviewRecoveryEnabled false' "${temporary_directory}/${kind}.plist"
+  /usr/libexec/PlistBuddy -c 'Set :KeyRecoveryEnabled false' "${temporary_directory}/${kind}.plist"
   if [[ "${recovery}" == 1 ]]; then
     /usr/libexec/PlistBuddy -c 'Add :KeyExperimentalRecoveryEnabled bool true' "${temporary_directory}/${kind}.plist"
   fi
@@ -109,8 +109,8 @@ for info in "${app_info}" "${helper_info}"; do
     echo 'built qualification component has the wrong product variant' >&2
     exit 1
   fi
-  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyPreviewRecoveryEnabled' "${info}")" != false ]]; then
-    echo 'built qualification component must not inherit public Preview recovery' >&2
+  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyRecoveryEnabled' "${info}")" != false ]]; then
+    echo 'built qualification component must not inherit public recovery' >&2
     exit 1
   fi
   enabled="$(/usr/libexec/PlistBuddy -c 'Print :KeyExperimentalRecoveryEnabled' "${info}" 2>/dev/null || true)"

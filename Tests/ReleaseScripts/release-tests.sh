@@ -119,7 +119,7 @@ create_test_product_bundle() {
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
-  <key>KeyPreviewRecoveryEnabled</key><true/>
+  <key>KeyRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${helper_path}/Contents/Info.plist" <<EOF
@@ -131,7 +131,7 @@ EOF
   <key>CFBundleShortVersionString</key><string>${marketing_version}</string>
   <key>CFBundleVersion</key><string>${build_version}</string>
   <key>KeyProductVariant</key><string>${variant}</string>
-  <key>KeyPreviewRecoveryEnabled</key><true/>
+  <key>KeyRecoveryEnabled</key><true/>
 </dict></plist>
 EOF
   cat > "${agent_path}" <<EOF
@@ -246,29 +246,16 @@ for variant in stable preview; do
     -c "Add :com.apple.application-identifier string 9Q355KSV85.${fixture_identifier}" \
     -c 'Add :com.apple.developer.team-identifier string 9Q355KSV85' \
     "${fixture_app_entitlements}" >/dev/null
-  # A Preview helper without smart-card access was previously accepted by the
-  # release gate even though TKSmartCardSlotManager.default must return nil.
-  if [[ "${variant}" == preview ]]; then
-    cp "${repo_root}/Config/KeyLaunchAgentHelper.entitlements" "${fixture_helper_entitlements}"
-    /usr/libexec/PlistBuddy -c 'Set :keychain-access-groups:0 9Q355KSV85.work.tvr.key.preview.shared' \
-      "${fixture_helper_entitlements}"
-    reject_signing_fixture "${fixture_app}" 'helper is missing required entitlement com.apple.security.smartcard'
-  fi
   cp "${fixture_config}" "${fixture_helper_entitlements}"
   verify_signing_fixture "${fixture_app}"
-  if [[ "${variant}" == preview ]]; then
-    for bad_type in 'bool false' 'string true' 'integer 1'; do
-      /usr/libexec/PlistBuddy -c 'Delete :com.apple.security.smartcard' \
-        -c "Add :com.apple.security.smartcard ${bad_type}" "${fixture_helper_entitlements}"
-      reject_signing_fixture "${fixture_app}" 'helper smart-card entitlement must be boolean true'
-    done
-    cp "${fixture_config}" "${fixture_helper_entitlements}"
-  else
-    /usr/libexec/PlistBuddy -c 'Add :com.apple.security.smartcard bool true' \
-      "${fixture_helper_entitlements}"
-    reject_signing_fixture "${fixture_app}" 'helper contains unexpected entitlements'
-    cp "${fixture_config}" "${fixture_helper_entitlements}"
-  fi
+  /usr/libexec/PlistBuddy -c 'Delete :com.apple.security.smartcard' "${fixture_helper_entitlements}"
+  reject_signing_fixture "${fixture_app}" 'helper is missing required entitlement com.apple.security.smartcard'
+  for bad_type in 'bool false' 'string true' 'integer 1'; do
+    /usr/libexec/PlistBuddy -c "Add :com.apple.security.smartcard ${bad_type}" "${fixture_helper_entitlements}"
+    reject_signing_fixture "${fixture_app}" 'helper smart-card entitlement must be boolean true'
+    /usr/libexec/PlistBuddy -c 'Delete :com.apple.security.smartcard' "${fixture_helper_entitlements}"
+  done
+  cp "${fixture_config}" "${fixture_helper_entitlements}"
   /usr/libexec/PlistBuddy -c 'Add :com.apple.security.get-task-allow bool true' \
     "${fixture_helper_entitlements}"
   reject_signing_fixture "${fixture_app}" 'helper contains unexpected entitlements'
@@ -408,7 +395,7 @@ for fixture_variant in stable preview; do
   fi
   set_artifact_project_version "${fixture_version}" 11
   for fixture_component in app helper; do
-    for fixture_flag in KeyExperimentalRecoveryEnabled KeyPreviewRecoveryEnabled; do
+    for fixture_flag in KeyExperimentalRecoveryEnabled KeyRecoveryEnabled; do
     for fixture_setting in missing false true string-true string-false integer; do
       recovery_package="${artifact_fixture_root}/recovery-${fixture_variant}-${fixture_component}-${fixture_flag}-${fixture_setting}"
       recovery_zip="${recovery_package:h}/${recovery_package:t}-zip/${fixture_zip_name}"
@@ -448,10 +435,10 @@ for fixture_variant in stable preview; do
         fi
         fixture_error='public release artifact must keep experimental recovery disabled'
       else
-        if [[ "${fixture_variant}" == stable || "${fixture_setting}" == true ]]; then
+        if [[ "${fixture_setting}" == true ]]; then
           fixture_accepted=true
         fi
-        fixture_error='public Preview artifact must enable Preview recovery with boolean true'
+        fixture_error='public release artifact must enable recovery with boolean true'
       fi
       if [[ "${fixture_accepted}" == true ]]; then
         [[ "${fixture_result}" == 0 ]]

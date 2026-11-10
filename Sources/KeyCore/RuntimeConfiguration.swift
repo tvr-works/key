@@ -6,7 +6,7 @@ public struct RuntimeConfiguration: Equatable, Sendable {
     public let vaultAccount: String
     public let useDataProtectionKeychain: Bool
     public let qualificationNamespace: String?
-    public let experimentalRecoveryEnabled: Bool
+    public let recoveryEnabled: Bool
 
     public var vaultService: String {
         productIdentity.vaultKeyService
@@ -37,13 +37,13 @@ public struct RuntimeConfiguration: Equatable, Sendable {
         vaultAccount: String = "default-vault",
         useDataProtectionKeychain: Bool = true,
         qualificationNamespace: String? = nil,
-        experimentalRecoveryEnabled: Bool = false
+        recoveryEnabled: Bool = false
     ) {
         self.productIdentity = productIdentity
         self.vaultAccount = vaultAccount
         self.useDataProtectionKeychain = useDataProtectionKeychain
         self.qualificationNamespace = qualificationNamespace
-        self.experimentalRecoveryEnabled = experimentalRecoveryEnabled && productIdentity.variant == .preview
+        self.recoveryEnabled = recoveryEnabled
     }
 
     public static func live(bundle: Bundle = .main) -> RuntimeConfiguration {
@@ -88,8 +88,8 @@ public struct RuntimeConfiguration: Equatable, Sendable {
                 ?? "default-vault",
             useDataProtectionKeychain: true,
             qualificationNamespace: qualificationNamespace,
-            experimentalRecoveryEnabled: enabledBoolean("KeyPreviewRecoveryEnabled", in: bundle)
-                || enabledBoolean("KeyExperimentalRecoveryEnabled", in: bundle)
+            recoveryEnabled: enabledBoolean("KeyRecoveryEnabled", in: bundle)
+                || (productIdentity.variant == .preview && enabledBoolean("KeyExperimentalRecoveryEnabled", in: bundle))
         )
     }
 }

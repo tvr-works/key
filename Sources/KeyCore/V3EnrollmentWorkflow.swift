@@ -137,7 +137,7 @@ func makeLiveV3EnrollmentWorkflowService(
     let transaction = V3ImmutableTransactionRecoveryAnchorKeychainStore(configuration: runtimeConfiguration)
     let registration = V3ImmutableTransactionRecoveryAnchorKeychainStore(configuration: runtimeConfiguration, namespace: .registration)
     let adoption = V3ImmutableTransactionRecoveryAnchorKeychainStore(configuration: runtimeConfiguration, namespace: .adoption)
-    let recoveryAdoption: (any V3EnrollmentFirstTrustAdopting)? = runtimeConfiguration.experimentalRecoveryEnabled
+    let recoveryAdoption: (any V3EnrollmentFirstTrustAdopting)? = runtimeConfiguration.recoveryEnabled
         ? V3RecoveryEnrollmentProductAdoption(
             source: objectStore, checkpoints: checkpointStore,
             ownership: transaction, registration: registration, adoption: adoption,
@@ -201,7 +201,7 @@ func makeLiveV3EnrollmentWorkflowService(
         deviceWrappedAdoption: profiledAdoption,
         validateInvitation: { invitation in
             if case .recovery = try v3EnrollmentParentProfile(invitation, source: objectStore) {
-                guard runtimeConfiguration.experimentalRecoveryEnabled else {
+                guard runtimeConfiguration.recoveryEnabled else {
                     throw V3DeviceWrappedEnrollmentAdoptionError.upgradeRequired
                 }
                 guard #available(macOS 26.0, *) else {

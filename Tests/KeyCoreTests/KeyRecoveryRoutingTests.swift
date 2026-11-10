@@ -134,9 +134,8 @@ struct KeyRecoveryRoutingTests {
   @Test(arguments: [
     RuntimeConfiguration(productIdentity: .stable),
     RuntimeConfiguration(productIdentity: .preview),
-    RuntimeConfiguration(productIdentity: .stable, experimentalRecoveryEnabled: true),
   ])
-  func liveProductsKeepRecoveryDisabled(configuration: RuntimeConfiguration) throws {
+  func productsWithoutRecoveryOptInRefuseRecovery(configuration: RuntimeConfiguration) throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     let host = KeyServiceHost.live(
       keyStore: MemoryVaultKeyStore(), configStore: .init(homeDirectoryURL: root),

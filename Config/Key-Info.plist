@@ -20,7 +20,7 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>KeychainAccessGroup</key>
 	<string>$(KEY_KEYCHAIN_ACCESS_GROUP)</string>
-	<key>KeyPreviewRecoveryEnabled</key>
+	<key>KeyRecoveryEnabled</key>
 	<true/>
 	<key>KeyProductVariant</key>
 	<string>$(KEY_PRODUCT_VARIANT)</string>

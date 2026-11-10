@@ -205,7 +205,7 @@ public final class KeyServiceHandler {
         )
         // Durable replacement can outlive deletion of the old checkpoint or
         // identity. Fence ordinary work before any profile/runtime composition.
-        if runtimeConfiguration.experimentalRecoveryEnabled,
+        if runtimeConfiguration.recoveryEnabled,
            [.cleanupPending, .enrollmentPending].contains(replacementAdmissionState) {
             return KeyServiceHandler(
                 keyStore: keyStore, entryStore: entryStore, configStore: configStore,
@@ -213,7 +213,7 @@ public final class KeyServiceHandler {
                 replacementAdmissionState: replacementAdmissionState)
         }
         let session = V3DeviceWrappedVaultKeySessionStore()
-        if runtimeConfiguration.experimentalRecoveryEnabled,
+        if runtimeConfiguration.recoveryEnabled,
            case .recovery = try v3SelectedCheckpointProfile(
                vaultID: vaultID, checkpoints: checkpointStore, source: objectStore, cache: cache
            ).profile {

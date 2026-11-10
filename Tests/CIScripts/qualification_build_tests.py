@@ -36,7 +36,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
     if os.environ.get('QUALIFICATION_TEST_BAD_COMPONENT') == kind:
         info['KeyExperimentalRecoveryEnabled'] = False
     if os.environ.get('QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT') == kind:
-        info['KeyPreviewRecoveryEnabled'] = True
+        info['KeyRecoveryEnabled'] = True
     path = dest / 'Contents/Info.plist'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(plistlib.dumps(info))
@@ -73,7 +73,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertIn("Built without installing or launching", result.stdout)
                 for info_path in (self.work / "build").rglob("Info.plist"):
                     info = plistlib.loads(info_path.read_bytes())
-                    self.assertIs(info["KeyPreviewRecoveryEnabled"], False)
+                    self.assertIs(info["KeyRecoveryEnabled"], False)
                     if info["KeyProductVariant"] == product:
                         self.assertEqual(info.get("KeyExperimentalRecoveryEnabled", False), recovery == "1")
 

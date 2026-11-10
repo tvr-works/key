@@ -90,27 +90,27 @@ public final class KeyServiceHost {
             },
             configuredDirectory: { try configStore.load().vaultDirectoryURL },
             enroll: { request, path in try enrollment.handle(request, path: path) },
-            recovery: runtimeConfiguration.experimentalRecoveryEnabled
+            recovery: runtimeConfiguration.recoveryEnabled
                 ? V3RecoveryRestoreWorkflow.live(configStore: configStore, runtimeConfiguration: runtimeConfiguration).capability : nil,
-            reviewRecovery: runtimeConfiguration.experimentalRecoveryEnabled
+            reviewRecovery: runtimeConfiguration.recoveryEnabled
                 ? { request, scope in try KeyRecoveryReviewWorkflow.live().handle(request, scope: scope) } : nil,
-            registerRecovery: runtimeConfiguration.experimentalRecoveryEnabled
+            registerRecovery: runtimeConfiguration.recoveryEnabled
                 ? { request, scope in
                     try scope.requireCurrent()
                     let workflow = try KeyRecoveryRegistrationWorkflow.live(configStore: configStore, configuration: runtimeConfiguration)
                     try scope.requireCurrent()
                     return try workflow.handle(request, scope: scope)
                 } : nil,
-            rotateRecovery: runtimeConfiguration.experimentalRecoveryEnabled
+            rotateRecovery: runtimeConfiguration.recoveryEnabled
                 ? { request, scope in
                     try scope.requireCurrent()
                     let workflow = try KeyRecoveryRegistrationWorkflow.live(configStore: configStore, configuration: runtimeConfiguration)
                     try scope.requireCurrent()
                     return try workflow.rotate(request, scope: scope)
                 } : nil,
-            recoverySharing: runtimeConfiguration.experimentalRecoveryEnabled
+            recoverySharing: runtimeConfiguration.recoveryEnabled
                 ? .live(configStore: configStore, keyStore: keyStore, configuration: runtimeConfiguration) : nil,
-            removeRecoveryRecipient: runtimeConfiguration.experimentalRecoveryEnabled
+            removeRecoveryRecipient: runtimeConfiguration.recoveryEnabled
                 ? { request, scope in
                     try scope.requireCurrent()
                     let workflow = try KeyRecoveryRecipientRemovalWorkflow.live(
@@ -121,7 +121,7 @@ public final class KeyServiceHost {
                     return .recoveryRecipientRemoval(result)
                 } : nil,
             requireNoPendingReplacement: {
-                guard runtimeConfiguration.experimentalRecoveryEnabled,
+                guard runtimeConfiguration.recoveryEnabled,
                       try configStore.hasConfiguration(),
                       let vaultID = try configStore.configuredVaultRuntimeSelection().vaultID
                 else { return }
