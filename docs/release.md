@@ -8,6 +8,12 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## 0.3.1 recovery-format fix
+
+Prepared locally as 0.3.1 build 39. This fixes an enrolled Mac reporting “Newer authenticated vault history requires a newer version of Key” after another Mac enables recovery, even when both run 0.3.0. The receiving Mac now verifies the signed format change against its trusted vault history, opens its own wrapped key, and checks that every entry kept its original value before accepting the new format. It can then catch up through later recovery-key registrations and continue ordinary reads and saves.
+
+Recovery registration does not need to be repeated. The fix preserves refusal of competing history, missing or changed files, pending local operations, and cancelled authentication. Fifteen disposable software-fixture tests cover the transition and failure cases. Relevant existing catch-up regressions, unsigned Stable and Preview builds, CLI checks, style, static analysis and script checks passed. The signed disposable two-Mac check is being prepared. Existing real-vault state and hardware credentials are outside that test.
+
 ## Stable 0.3.0 and the 0.4.0 roadmap
 
 [Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) shipped as build 37. During the beta checks, a lock immediately after changing folders timed out on the Air. Two consecutive locks reproduced the five-second timeout on the Mini with the old helper already gone and its replacement scheduled. The Stable candidate allows 30 seconds for the lock reply and still requires confirmed helper termination. In the same two-lock check, the revised signed Preview CLI completed the second lock in 10.1 seconds and launchd reported the helper stopped.
