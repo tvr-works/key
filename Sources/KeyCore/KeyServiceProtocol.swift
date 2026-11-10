@@ -78,8 +78,12 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
 
     public var responseTimeoutSeconds: Int? {
         switch self {
-        case .status, .lock:
+        case .status:
             5
+        case .lock:
+            // A previous lock or configuration change can have just stopped the
+            // helper. Allow launchd its relaunch interval before expecting a reply.
+            30
         case .vaultStatus, .listConflicts, .showConflict, .share(.devices):
             30
         case .unlock, .get, .getConflictValue, .migrationPreflight:

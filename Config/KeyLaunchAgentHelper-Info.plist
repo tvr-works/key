@@ -26,7 +26,7 @@
 	<string>$(KEY_HELPER_BUNDLE_IDENTIFIER)</string>
 	<key>KeychainAccessGroup</key>
 	<string>$(KEY_KEYCHAIN_ACCESS_GROUP)</string>
-	<key>KeyPreviewRecoveryEnabled</key>
+	<key>KeyRecoveryEnabled</key>
 	<true/>
 	<key>KeyProductVariant</key>
 	<string>$(KEY_PRODUCT_VARIANT)</string>

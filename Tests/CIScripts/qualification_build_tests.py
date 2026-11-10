@@ -36,7 +36,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
     if os.environ.get('QUALIFICATION_TEST_BAD_COMPONENT') == kind:
         info['KeyExperimentalRecoveryEnabled'] = False
     if os.environ.get('QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT') == kind:
-        info['KeyPreviewRecoveryEnabled'] = True
+        info['KeyRecoveryEnabled'] = True
     path = dest / 'Contents/Info.plist'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(plistlib.dumps(info))
@@ -73,7 +73,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertIn("Built without installing or launching", result.stdout)
                 for info_path in (self.work / "build").rglob("Info.plist"):
                     info = plistlib.loads(info_path.read_bytes())
-                    self.assertIs(info["KeyPreviewRecoveryEnabled"], False)
+                    self.assertIs(info["KeyRecoveryEnabled"], False)
                     if info["KeyProductVariant"] == product:
                         self.assertEqual(info.get("KeyExperimentalRecoveryEnabled", False), recovery == "1")
 
@@ -98,7 +98,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 
-    def test_public_beta_flag_cannot_bypass_private_qualification_choice(self):
+    def test_public_flag_cannot_bypass_private_qualification_choice(self):
         self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",
             KEY_MIGRATION_QUALIFICATION_RECOVERY="0", KEY_MIGRATION_QUALIFICATION_INSTALL="1")
         for component in ("APP", "HELPER"):
@@ -106,7 +106,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.environment["QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT"] = component
                 result = self.run_builder()
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("must not inherit public Preview recovery", result.stderr)
+                self.assertIn("must not inherit public recovery", result.stderr)
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 

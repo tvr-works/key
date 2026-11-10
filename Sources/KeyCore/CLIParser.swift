@@ -330,7 +330,7 @@ private struct KeyArguments: ParsableCommand {
 
     struct Recovery: ParsableCommand {
         static let configuration = CommandConfiguration(
-            commandName: "recovery", abstract: "Set up hardware recovery or recover a vault (Preview beta).",
+            commandName: "recovery", abstract: "Set up hardware recovery or recover a vault.",
             discussion: CLIHelp.recovery, subcommands: [Tokens.self, Credential.self, Register.self, Pending.self, Adopt.self, Rotate.self, RemoveRecipient.self, Review.self, Restore.self, Resume.self, Abandon.self]
         )
 

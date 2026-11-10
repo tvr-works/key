@@ -5,7 +5,7 @@ enum CLIHelp {
     static let troubleshootingURL = "https://github.com/tvr-works/key/blob/main/docs/troubleshooting.md"
 
     static let recovery = """
-    Hardware recovery is a Preview beta feature; disabled in Stable. Use disposable data during the beta.
+    Recover a vault using its encrypted files and a previously registered hardware key.
 
     Before you need recovery:
 
@@ -15,7 +15,7 @@ enum CLIHelp {
 
     3. Store independent backup keys separately.
 
-    To recover, you need the encrypted vault files and a previously registered key. Run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
+    To recover, run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review, then \(KeyProductIdentity.currentProcess.cliExecutableName) recovery restore. Restore creates a separate vault on a Mac with no configured vault. Register recovery keys again afterward.
 
     A key cannot replace missing files. Key cannot prove that every newer file has synchronized.
 
@@ -49,7 +49,7 @@ enum CLIHelp {
     """
 
     static let recoveryRegistration = """
-    Register a hardware key to recover this vault if your Macs are lost. Preview beta only; use disposable data. First run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt.
+    Register a hardware key to recover this vault if your Macs are lost. First run \(KeyProductIdentity.currentProcess.cliExecutableName) recovery adopt.
 
     Prepare the physical key using the hardware setup guide: P-256 generated in PIV slot 9d, a matching certificate, PIN-always and touch-always settings, and protected administration credentials. Key does not set up, reset or write to the physical key.
 
@@ -91,7 +91,7 @@ enum CLIHelp {
 
     An interactive review shows the selected recovery key and how many recovery keys will remain. Type REMOVE to confirm. Removing the last key instead requires typing REMOVE LAST RECOVERY KEY after acknowledging that recovery will be unavailable until another key is registered. There is no noninteractive override.
 
-    If interrupted, preserve files and local records. Run this command again to review and explicitly finish the same saved removal; it never silently starts a replacement candidate. No automatic retry is made. This workflow is available in the 0.3.0 Preview beta; disabled in Stable.
+    If interrupted, preserve files and local records. Run this command again to review and explicitly finish the same saved removal; it never silently starts a replacement candidate. No automatic retry is made.
     """
 
     static let recoveryRotation = """
@@ -113,7 +113,7 @@ enum CLIHelp {
     """
 
     static let recoveryRestore = """
-    Recover into a new vault on a Mac with no configured vault. Available in the Preview beta; disabled in Stable. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help for prerequisites.
+    Recover into a new vault on a Mac with no configured vault. See \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help for prerequisites.
 
     Use --name for this Mac's name. Supply --source, --destination, --token and --recipient exactly once. Use the complete IDs from \(KeyProductIdentity.currentProcess.cliExecutableName) recovery review; the recovery key ID is not a certificate fingerprint. These IDs are public identifiers, not secrets or approval to restore. Paths may be absolute or relative to the current directory.
 

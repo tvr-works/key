@@ -4,17 +4,17 @@ import Testing
 
 struct KeyProductIdentityTests {
     @Test
-    func recoveryRequiresAnExplicitPreviewBuildGate() {
-        #expect(!RuntimeConfiguration(productIdentity: .stable).experimentalRecoveryEnabled)
-        #expect(!RuntimeConfiguration(productIdentity: .preview).experimentalRecoveryEnabled)
-        #expect(!RuntimeConfiguration(productIdentity: .stable, experimentalRecoveryEnabled: true).experimentalRecoveryEnabled)
-        #expect(RuntimeConfiguration(productIdentity: .preview, experimentalRecoveryEnabled: true).experimentalRecoveryEnabled)
+    func recoveryRequiresAnExplicitBuildGate() {
+        #expect(!RuntimeConfiguration(productIdentity: .stable).recoveryEnabled)
+        #expect(!RuntimeConfiguration(productIdentity: .preview).recoveryEnabled)
+        #expect(RuntimeConfiguration(productIdentity: .stable, recoveryEnabled: true).recoveryEnabled)
+        #expect(RuntimeConfiguration(productIdentity: .preview, recoveryEnabled: true).recoveryEnabled)
     }
 
     @Test
-    func signedBundleRecoveryFlagsRequireBooleanPreviewOptIn() throws {
+    func publicRecoveryRequiresBooleanOptInAndPrivateOverrideIsPreviewOnly() throws {
         for variant in KeyProductVariant.allCases {
-            for flag in ["KeyPreviewRecoveryEnabled", "KeyExperimentalRecoveryEnabled"] {
+            for flag in ["KeyRecoveryEnabled", "KeyExperimentalRecoveryEnabled"] {
                 for value: Any in [true, false, "true", "false", 1, 0] {
                     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                     defer { try? FileManager.default.removeItem(at: root) }
@@ -28,12 +28,13 @@ struct KeyProductIdentityTests {
                     try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
                         .write(to: contents.appendingPathComponent("Info.plist"))
                     let bundle = try #require(Bundle(url: contents.deletingLastPathComponent()))
-                    let expected = variant == .preview && type(of: value) == Bool.self && (value as? Bool == true)
-                    #expect(RuntimeConfiguration.live(bundle: bundle).experimentalRecoveryEnabled == expected)
+                    let allowed = flag == "KeyRecoveryEnabled" || variant == .preview
+                    let expected = allowed && type(of: value) == Bool.self && (value as? Bool == true)
+                    #expect(RuntimeConfiguration.live(bundle: bundle).recoveryEnabled == expected)
                 }
             }
         }
-        #expect(!RuntimeConfiguration.live().experimentalRecoveryEnabled)
+        #expect(!RuntimeConfiguration.live().recoveryEnabled)
     }
 
     @Test
