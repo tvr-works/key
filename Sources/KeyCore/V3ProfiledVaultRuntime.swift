@@ -35,10 +35,12 @@ struct V3ProfiledVaultRuntime: V3ProfiledVaultServicing {
       permanent: permanent, recovery: recovery, isRecovery: isRecovery,
       prepare: { operationID in
         guard try !isRecovery() else { return nil }
+        let admission = session.beginAuthentication()
         let owner: any VaultTransactionMutationOwning = operationID.map {
           DirectVaultTransactionMutationOwner(operationID: $0)
         } ?? mutationOwner
         return try owner.perform(.catchUpVault) { context in
+          try session.requireCurrent(admission)
           guard try !isRecovery() else { return nil }
           let direct = DirectVaultTransactionMutationOwner(operationID: context.operationID)
           guard case .recoveryAdoption(let parent, let bytes) = try makeCoordinator(direct).catchUp()
@@ -60,9 +62,12 @@ struct V3ProfiledVaultRuntime: V3ProfiledVaultServicing {
     -> any V3ProfiledVaultServicing
   {
     do {
-      if let ticket = try prepare(operationID) {
+      if let ticket = try translatingV3RecoveryRuntimeErrors({ try prepare(operationID) }) {
         return recovery.continuingSession(ticket)
       }
+    } catch is V3RecoveryProfileAdoptionError {
+      session.invalidate()
+      throw VaultUXServiceError.recoveryRequired
     } catch let error as V3DeviceWrappedCatchUpError {
       guard allowStale && (error == .temporaryUnavailable || error == .checkpointChanged) else {
         throw error

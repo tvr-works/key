@@ -48,7 +48,7 @@ struct V3RecoveryProfileCatchUpTests {
     let data = try Data(contentsOf: path)
     try FileManager.default.removeItem(at: path)
     let runtime = f.runtime()
-    #expect(throws: (any Error).self) {
+    #expect(throws: VaultUXServiceError.vaultIncomplete) {
       _ = try runtime.read(name: "account/密碼", allowStale: allowStale)
     }
     #expect(f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
@@ -145,6 +145,138 @@ struct V3RecoveryProfileCatchUpTests {
     #expect(f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
   }
 
+  @Test func signedAdoptionThatChangesPlaintextCannotAdvanceTheCheckpoint() throws {
+    let f = try Fixture(publishAdoption: false)
+    defer { f.remove() }
+    let original = f.adoption
+    var staged = original.stagedEntries
+    let index = try #require(staged.firstIndex { $0.context.type == .secret })
+    staged[index] = try V3EntryCipher().seal(
+      "Changed by a signed but invalid adoption", context: staged[index].context,
+      vaultKey: CoreKey.nextKey)
+    let old = original.envelope.body
+    let body = try V3RecoveryManifestBody(
+      fields: V3DeviceWrappedManifestFields(
+        vaultID: old.fields.vaultID, keyID: old.fields.keyID,
+        authorityTransitionID: old.fields.authorityTransitionID,
+        devices: old.fields.devices, wrappedKeys: old.fields.wrappedKeys,
+        entries: staged.map { V3ResealedEntry(encryptedEntry: $0).manifestEntry }),
+      epochSigningKey: old.epochSigningKey, transitionProof: old.transitionProof,
+      recovery: old.recovery)
+    let invalid = try f.core.resign(original, body: body, staged: staged)
+    try f.seed(invalid.envelope.canonicalBytes, entries: staged)
+    #expect(throws: VaultUXServiceError.recoveryRequired) { try f.runtime().unlock() }
+    #expect(f.core.member.unwraps == 2)
+    #expect(f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
+    #expect(!f.session.hasResidentKey)
+  }
+
+  @Test(arguments: [false, true])
+  func cancelledHandoffCannotStartColdAuthentication(explicitUnlock: Bool) throws {
+    let f = try Fixture()
+    defer { f.remove() }
+    f.checkpoints.value = f.head.canonicalBytes
+    let composed = f.runtime()
+    try f.session.install(
+      CoreKey.nextKey, vaultID: CoreKey.vaultID, keyID: f.adoption.envelope.body.fields.keyID)
+    let ticket = f.session.beginAuthentication()
+    let runtime = V3ProfiledVaultRuntime(
+      permanent: composed.permanent, recovery: composed.recovery,
+      isRecovery: composed.isRecovery,
+      prepare: { _ in
+        f.session.invalidate()
+        return ticket
+      }, session: f.session)
+    #expect(throws: (any Error).self) {
+      if explicitUnlock {
+        try runtime.unlock()
+      } else {
+        _ = try runtime.read(name: "account/密碼", allowStale: false)
+      }
+    }
+    #expect(f.core.member.unwraps == 0)
+    #expect(!f.session.hasResidentKey)
+  }
+
+  @Test func offlineMemberAdvancesEarlierContentBeforeTheFormatTransition() throws {
+    let f = try Fixture(publishAdoption: false)
+    defer { f.remove() }
+    let before = f.runtime()
+    try f.owner.perform(.editEntry) { operation in
+      try before.authorizeMutation()
+      try before.edit(
+        name: "account/密碼", secret: "edited before adoption", type: .secret,
+        operationID: operation.operationID)
+    }
+    let checkpoint = try V3ManifestCheckpoint(canonicalBytes: #require(f.checkpoints.value))
+    let repository = V3ExactTransitionRepository(source: f.store, limits: .standard)
+    let parent = try V3DeviceWrappedManifestEnvelopeCodec().parse(
+      repository.readManifest(checkpoint.envelopeDigest))
+    var entries: [V3EntryObjectKey: V3EncryptedEntry] = [:]
+    for record in parent.body.fields.entries {
+      let address = try V3RecoveryMergeMutationValidator.address(record)
+      entries[address] = try V3EntryCipher().parse(repository.readEntry(address))
+    }
+    let adoption = try V3RecoveryProfileAdoptionBuilder().build(
+      from: .init(checkpoint: checkpoint, envelope: parent), currentEntries: entries,
+      currentVaultKey: CoreKey.oldKey, nextVaultKey: CoreKey.nextKey,
+      owner: f.core.owner, reason: "Software adoption after earlier content")
+    try f.seed(adoption.envelope.canonicalBytes, entries: adoption.stagedEntries)
+    f.checkpoints.value = f.core.base.checkpoint.canonicalBytes
+    f.session.invalidate()
+    #expect(try f.runtime().read(name: "account/密碼", allowStale: false).plaintext == "edited before adoption")
+    #expect(f.checkpoints.value == (try V3ManifestCheckpoint(
+      vaultID: CoreKey.vaultID, envelopeDigest: adoption.envelope.digest)).canonicalBytes)
+  }
+
+  @Test func lockWhileWaitingForMutationOwnershipCannotStartAuthentication() throws {
+    let owner = WaitingOwner()
+    let f = try Fixture(mutationOwner: owner)
+    defer { f.remove() }
+    let runtime = f.runtime()
+    let completion = DispatchGroup()
+    let result = ReadFailure()
+    completion.enter()
+    DispatchQueue.global().async {
+      defer { completion.leave() }
+      do {
+        _ = try runtime.read(name: "account/密碼", allowStale: false)
+      } catch {
+        result.recordFailure()
+      }
+    }
+    #expect(owner.entered.wait(timeout: .now() + 5) == .success)
+    runtime.lock()
+    owner.release.signal()
+    #expect(completion.wait(timeout: .now() + 5) == .success)
+    #expect(result.failed)
+    #expect(f.core.member.unwraps == 0)
+    #expect(f.checkpoints.value == f.core.base.checkpoint.canonicalBytes)
+  }
+
+  private final class WaitingOwner: VaultTransactionMutationOwning, @unchecked Sendable {
+    let entered = DispatchSemaphore(value: 0)
+    let release = DispatchSemaphore(value: 0)
+    private let owner = VaultTransactionMutationOwner()
+    func perform<T>(
+      _ kind: VaultTransactionMutationKind,
+      _ body: (VaultTransactionMutationContext) throws -> T
+    ) throws -> T {
+      entered.signal()
+      guard release.wait(timeout: .now() + 5) == .success else {
+        throw V3RecoveryValidationError.sourceChanged
+      }
+      return try owner.perform(kind, body)
+    }
+  }
+
+  private final class ReadFailure: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    var failed: Bool { lock.withLock { value } }
+    func recordFailure() { lock.withLock { value = true } }
+  }
+
   private typealias CoreKey = V3RecoveryRegistrationTestSupport
 
   private final class Loader: V3DeviceWrappedIdentityLoading, @unchecked Sendable {
@@ -165,10 +297,14 @@ struct V3RecoveryProfileCatchUpTests {
     let pending = [Publication.Ownership(), Publication.Ownership(), Publication.Ownership()]
     let cache: V3CheckpointManifestFilesystemCache
     let session = V3DeviceWrappedVaultKeySessionStore()
-    let owner = VaultTransactionMutationOwner()
+    let owner: any VaultTransactionMutationOwning
     var head: V3ManifestCheckpoint
 
-    init(registrations: Int = 0, publishAdoption: Bool = true) throws {
+    init(
+      registrations: Int = 0, publishAdoption: Bool = true,
+      mutationOwner: any VaultTransactionMutationOwning = VaultTransactionMutationOwner()
+    ) throws {
+      owner = mutationOwner
       core = try .init()
       adoption = try core.build()
       root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
