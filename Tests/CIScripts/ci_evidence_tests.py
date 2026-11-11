@@ -111,7 +111,8 @@ class CandidateVerificationTests(unittest.TestCase):
         for path in ("Sources/KeyCore/KeyProductIdentity.swift", "Config/Key-Info.plist",
                      "AppIcon.icon/icon.json", "AppIcon.icon/Assets/Shape 2.png",
                      "Key.xcodeproj/project.pbxproj", "Package.resolved", "scripts/verify-product.sh",
-                     "Tests/CLIScripts/help-tests.sh", ".github/workflows/verify.yml", "completions/_key"):
+                     "Tests/CLIScripts/help-tests.sh", "Tests/ScriptFixtures/completion-manifest.json",
+                     ".github/workflows/verify.yml", "completions/_key"):
             with self.subTest(path=path):
                 self.selection = ci.plan("pull_request", event(), [path])
                 self.assertFalse(self.aggregate()["verified"])

@@ -1,275 +1,813 @@
 #compdef key
 
-typeset -ga _key_commands
-_key_commands=(
-  'init:create a new vault and use it on this Mac'
-  'config:read or update config values'
-  'status:explain vault health'
-  'conflict:review conflicting entries and choose what to keep'
-  'share:add another Mac or manage vault access'
-  'get:print a secret'
-  'copy:copy a secret to the clipboard'
-  'add:add a new secret from stdin or prompt'
-  'edit:update a secret from stdin or prompt'
-  'duplicate:duplicate an entry'
-  'rename:rename an entry'
-  'remove:remove a secret'
-  'list:list stored secrets'
-  'migrate:check or migrate an older vault'
-  'unlock:unlock the vault before running other commands'
-  'lock:lock the vault on this Mac'
-  'version:print the CLI version'
-  'help:show this help'
-)
-
-_key_vault_root() {
-  local vault_root
-
-  vault_root="$(command key config get vault-dir 2>/dev/null)"
-  [[ -n "${vault_root}" ]] || return 1
-
-  while [[ "${vault_root}" != "/" && "${vault_root}" == */ ]]; do
-    vault_root="${vault_root%/}"
-  done
-
-  print -r -- "${vault_root}"
+__key_complete() {
+    local -ar non_empty_completions=("${@:#(|:*)}")
+    local -ar empty_completions=("${(M)@:#(|:*)}")
+    _describe -V '' non_empty_completions -- empty_completions -P $'\'\''
 }
 
-_key_collect_entries() {
-  local vault_root
-  local -a entries
-
-  vault_root="$(_key_vault_root)"
-  [[ -d "${vault_root}" ]] || return 1
-
-  entries=("${(@f)$(command find -L "${vault_root}" -type f -name '*.secret' -print 2>/dev/null | sed -e "s#^${vault_root}/##" -e 's/\.secret$//' | LC_ALL=C sort -u)}")
-  (( ${#entries[@]} )) || return 1
-
-  print -rl -- "${entries[@]}"
-}
-
-_key_collect_paths() {
-  local vault_root
-  local -a paths
-
-  vault_root="$(_key_vault_root)"
-  [[ -d "${vault_root}" ]] || return 1
-
-  paths=("${(@f)$(command find -L "${vault_root}" \( -type d -o -type f -name '*.secret' \) -print 2>/dev/null | sed -e "s#^${vault_root}\$##" -e "s#^${vault_root}/##" -e 's/\.secret$//' -e '/^$/d' -e '/\.secret$/d' | LC_ALL=C sort -u)}")
-  (( ${#paths[@]} )) || return 1
-
-  print -rl -- "${paths[@]}"
-}
-
-_key_complete_entries() {
-  local expl
-  local -a entries
-
-  entries=("${(@f)$(_key_collect_entries)}") || return 1
-  _wanted key-entries expl 'key entry' compadd -Q -a entries
-}
-
-_key_complete_paths() {
-  local expl
-  local -a paths
-
-  paths=("${(@f)$(_key_collect_paths)}") || return 1
-  _wanted key-paths expl 'key path' compadd -Q -a paths
-}
-
-local curcontext="$curcontext" state line
-typeset -A opt_args
-
-_arguments -C \
-  '1:command:->command' \
-  '*::arg:->args'
-
-case "${state}" in
-  command)
-    _describe -t commands 'key command' _key_commands
-    ;;
-  args)
-    if (( CURRENT == 2 )) && [[ "${words[1]}" != help ]]; then
-      compadd -- -h --help
+__key_custom_complete() {
+    local -a completions
+    completions=("${(@f)"$("${command_name}" "${@}" "${command_line[@]}")"}")
+    if [[ "${#completions[@]}" -gt 1 ]]; then
+        __key_complete "${completions[@]:0:-1}"
     fi
-    case "${words[1]}" in
-      init)
-        _arguments '(-h --help)'{-h,--help}'[show setup instructions]' '1:directory:_files -/'
+}
+
+__key_cursor_index_in_current_word() {
+    if [[ -z "${QIPREFIX}${IPREFIX}${PREFIX}" ]]; then
+        printf 0
+    else
+        printf %s "${#${(z)LBUFFER}[-1]}"
+    fi
+}
+
+_key() {
+    emulate -RL zsh -G
+    setopt extendedglob nullglob numericglobsort
+    unsetopt aliases banghist
+
+    local -xr SAP_SHELL=zsh
+    local -x SAP_SHELL_VERSION
+    SAP_SHELL_VERSION="$(builtin emulate zsh -c 'printf %s "${ZSH_VERSION}"')"
+    local -r SAP_SHELL_VERSION
+
+    local context state state_descr line
+    local -A opt_args
+
+    local -r command_name="${words[1]}"
+    local -ar command_line=("${words[@]}")
+    local -ir current_word_index="$((CURRENT - 1))"
+
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'init:Create a new vault and use it on this Mac.'
+            'share:Add another Mac to an existing vault or manage access.'
+            'add:Save a secret or authenticator setup secret.'
+            'edit:Replace a saved secret or authenticator setup secret.'
+            'get:Print a secret or current one-time code.'
+            'copy:Copy a secret or current one-time code to the clipboard.'
+            'list:List saved entry names.'
+            'duplicate:Copy an entry under another name.'
+            'rename:Change an entry'\''s name.'
+            'remove:Delete an entry after confirmation.'
+            'status:Check vault health without editing its contents.'
+            'conflict:Review conflicting entries and choose what to keep.'
+            'config:Show or change this Mac'\''s vault settings.'
+            'migrate:Check or migrate a vault in the older format.'
+            'recovery:Set up hardware recovery or recover a vault.'
+            'unlock:Unlock the vault before running other commands.'
+            'lock:Lock the vault on this Mac.'
+            'version:Show the installed CLI'\''s version and build number.'
+            'help:Show subcommand help information.'
+        )
+        _describe -V subcommand subcommands && ret=0
         ;;
-      config)
-        if (( CURRENT == 2 )); then
-          _describe -t config-commands 'config command' \
-            'get:print a config value' \
-            'set:update a config value' \
-            'list:list config values'
-        else
-          case "${words[2]}" in
-            get)
-              _arguments \
-                '1:key:(vault-dir)'
-              ;;
-            set)
-              _arguments \
-                '1:key:(vault-dir)' \
-                '2:path:_files -/'
-              ;;
-            list)
-              ;;
-          esac
-        fi
-        ;;
-      get)
-        _arguments \
-          '--totp-secret[print the Base32 authenticator setup secret]' \
-          '--allow-stale[read the last complete trusted version while newer files are unavailable]' \
-          '1:entry:_key_complete_entries'
-        ;;
-      copy)
-        _arguments \
-          '--totp-secret[copy the Base32 authenticator setup secret]' \
-          '--allow-stale[read the last complete trusted version while newer files are unavailable]' \
-          '1:entry:_key_complete_entries'
-        ;;
-      status)
-        _arguments \
-          '--json[print stable machine-readable status]' \
-          '--verbose[include storage format and verified-history identifiers]'
-        ;;
-      conflict)
-        if (( CURRENT == 2 )); then
-          _describe -t conflict-commands 'conflict command' \
-            'list:list unresolved content conflicts' \
-            'show:show verified versions of a conflict' \
-            'get:print one conflicted secret version' \
-            'copy:copy one conflicted secret version' \
-            'resolve:resolve every current conflict together'
-        else
-          case "${words[2]}" in
-            list)
-              _arguments \
-                '--json[print stable machine-readable conflict summaries]'
-              ;;
-            show)
-              _arguments \
-                '--json[print stable machine-readable conflict detail]' \
-                '1:conflict ID:'
-              ;;
-            get|copy)
-              _arguments \
-                '1:conflict ID:' \
-                '2:version ID:'
-              ;;
-            resolve)
-              _arguments \
-                '*:resolution in conflict-id=version-id form:'
-              ;;
-          esac
-        fi
-        ;;
-      share)
-        if (( CURRENT == 2 )); then
-          _describe -t share-commands 'share command' \
-            'devices:list Macs recorded for this vault' \
-            'revoke:review and remove a Mac from the vault' \
-            'invitations:list short-lived vault invitations' \
-            'invite:invite another Mac' \
-            'join:request access from this Mac' \
-            'requests:list answers to an invitation' \
-            'compare:compare one device pair' \
-            'approve:approve the compared joining Mac' \
-            'accept:finish joining the approved vault'
-        else
-          case "${words[2]}" in
-            devices)
-              _arguments \
-                '--json[print stable machine-readable device inventory]'
-              ;;
-            revoke)
-              _arguments '1:device ID:'
-              ;;
-            invitations)
-              _arguments '--vault-dir[existing vault folder]:directory:_files -/'
-              ;;
-            invite)
-              _arguments \
-                '--name[existing name of the Mac creating the invitation]:device name:'
-              ;;
-            join)
-              _arguments \
-                '1:invitation ID:' \
-                '--name[name to give this joining Mac]:device name:' \
-                '--vault-dir[existing vault folder]:directory:_files -/'
-              ;;
-            requests)
-              _arguments \
-                '1:invitation ID:'
-              ;;
-            compare)
-              _arguments \
-                '1:vault ID:' \
-                '2:invitation ID:' \
-                '3:join request ID:' \
-                '--vault-dir[existing vault folder]:directory:_files -/'
-              ;;
-            approve)
-              _arguments \
-                '1:vault ID:' \
-                '2:invitation ID:' \
-                '3:comparison code:'
-              ;;
-            accept)
-              _arguments \
-                '1:vault ID:' \
-                '2:invitation ID:' \
-                '3:comparison code:' \
-                '--vault-dir[existing vault folder]:directory:_files -/'
-              ;;
-          esac
-        fi
-        ;;
-      add)
-        _arguments \
-          '--totp-secret[store a Base32 authenticator setup secret]' \
-          '1:path:_key_complete_paths'
-        ;;
-      edit)
-        _arguments \
-          '--totp-secret[store a Base32 authenticator setup secret]' \
-          '1:entry:_key_complete_entries'
-        ;;
-      duplicate)
-        _arguments \
-          '1:source entry:_key_complete_entries' \
-          '2:destination path:_key_complete_paths' \
-          '--force[overwrite an existing destination]'
-        ;;
-      rename)
-        _arguments \
-          '1:source entry:_key_complete_entries' \
-          '2:destination path:_key_complete_paths' \
-          '--force[overwrite an existing destination]'
-        ;;
-      remove)
-        _arguments \
-          '1:entry:_key_complete_entries' \
-          '--force[skip the confirmation prompt]'
-        ;;
-      migrate)
-        _arguments \
-          '--check[check readiness without changing the vault]' \
-          '--apply[create and verify a migrated copy, then use it on this Mac]'
-        ;;
-      list|unlock|lock)
-        ;;
-      version)
-        _arguments \
-          '--json[print version info as JSON]'
-        ;;
-      help)
-        local -a help_topics
-        help_topics=("${(@)_key_commands:#help:*}")
-        _describe -t commands 'help topic' help_topics
+    arg)
+        case "${words[1]}" in
+        init|share|add|edit|get|copy|list|duplicate|rename|remove|status|conflict|config|migrate|recovery|unlock|lock|version|help)
+            "_key_${words[1]}" && ret=0
+            ;;
+        esac
         ;;
     esac
-    ;;
-esac
+
+    return "${ret}"
+}
+
+_key_init() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':directory:_files -/'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'devices:List enrolled Macs and their recorded names.'
+            'invite:Create an invitation on a Mac that already has access.'
+            'invitations:Find invitations in the existing vault folder.'
+            'join:Request access from the joining Mac.'
+            'requests:Review requests on the Mac that created the invitation.'
+            'compare:Show the comparison code and Mac names for this attempt.'
+            'approve:Approve access on the Mac that created the invitation.'
+            'accept:Verify approved access and configure the joining Mac.'
+            'revoke:Review and remove a Mac'\''s access.'
+        )
+        _describe -V subcommand subcommands && ret=0
+        ;;
+    arg)
+        case "${words[1]}" in
+        devices|invite|invitations|join|requests|compare|approve|accept|revoke)
+            "_key_share_${words[1]}" && ret=0
+            ;;
+        esac
+        ;;
+    esac
+
+    return "${ret}"
+}
+
+_key_share_devices() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable device information.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_invite() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--name[This Mac'\''s readable name. Required; specify exactly once.]:this-mac-name:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_invitations() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--vault-dir[An existing vault directory. Specify at most once; never switches a configured Mac to another vault.]:path:_files -/'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_join() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':invitation-id:'
+        '*--name[This Mac'\''s readable name. Required; specify exactly once.]:this-mac-name:'
+        '*--vault-dir[An existing vault directory. Specify at most once; never switches a configured Mac to another vault.]:path:_files -/'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_requests() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':invitation-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_compare() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':vault-id:'
+        ':invitation-id:'
+        ':request-id:'
+        '*--vault-dir[An existing vault directory. Specify at most once; never switches a configured Mac to another vault.]:path:_files -/'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_approve() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':vault-id:'
+        ':invitation-id:'
+        ':comparison-code:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_accept() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':vault-id:'
+        ':invitation-id:'
+        ':comparison-code:'
+        '*--vault-dir[An existing vault directory. Specify at most once; never switches a configured Mac to another vault.]:path:_files -/'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_share_revoke() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':device-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_add() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':name:{__key_custom_complete ---completion add -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--totp-secret[Store a Base32 authenticator setup secret to generate one-time codes.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_edit() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':name:{__key_custom_complete ---completion edit -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--totp-secret[Store a Base32 authenticator setup secret to generate one-time codes.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_get() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':name:{__key_custom_complete ---completion get -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--totp-secret[Return the Base32 setup secret instead of a one-time code.]'
+        '--allow-stale[Read the last complete version verified on this Mac, even if out of date.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_copy() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':name:{__key_custom_complete ---completion copy -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--totp-secret[Return the Base32 setup secret instead of a one-time code.]'
+        '--allow-stale[Read the last complete version verified on this Mac, even if out of date.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_list() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_duplicate() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':source:{__key_custom_complete ---completion duplicate -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        ':destination:{__key_custom_complete ---completion duplicate -- positional@1 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--force[Replace an existing destination without asking for confirmation.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_rename() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':source:{__key_custom_complete ---completion rename -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        ':destination:{__key_custom_complete ---completion rename -- positional@1 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--force[Replace an existing destination without asking for confirmation.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_remove() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':name:{__key_custom_complete ---completion remove -- positional@0 "${current_word_index}" "$(__key_cursor_index_in_current_word)"}'
+        '--force[Delete without asking for confirmation.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_status() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable status with stable field names and codes.]'
+        '--verbose[Include storage-format and verified-history identifiers.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_conflict() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'list:List the current conflicts.'
+            'show:Show the choices for one conflict.'
+            'get:Print one conflicting secret version.'
+            'copy:Copy one conflicting secret version to the clipboard.'
+            'resolve:Choose a version for every current conflict.'
+        )
+        _describe -V subcommand subcommands && ret=0
+        ;;
+    arg)
+        case "${words[1]}" in
+        list|show|get|copy|resolve)
+            "_key_conflict_${words[1]}" && ret=0
+            ;;
+        esac
+        ;;
+    esac
+
+    return "${ret}"
+}
+
+_key_conflict_list() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable conflicts.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_conflict_show() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':conflict-id:'
+        '--json[Print machine-readable conflict details.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_conflict_get() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':conflict-id:'
+        ':version-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_conflict_copy() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':conflict-id:'
+        ':version-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_conflict_resolve() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*:conflict-id=version-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_config() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'get:Print one setting.'
+            'set:Change a setting in existing configuration.'
+            'list:Print this Mac'\''s vault settings.'
+        )
+        _describe -V subcommand subcommands && ret=0
+        ;;
+    arg)
+        case "${words[1]}" in
+        get|set|list)
+            "_key_config_${words[1]}" && ret=0
+            ;;
+        esac
+        ;;
+    esac
+
+    return "${ret}"
+}
+
+_key_config_get() {
+    local -i ret=1
+    local -ar _name=('vault-dir' 'keychain-mode')
+    local -ar arg_specs=(
+        ':name:{__key_complete "${_name[@]}"}'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_config_set() {
+    local -i ret=1
+    local -ar _name=('vault-dir' 'keychain-mode')
+    local -ar arg_specs=(
+        ':name:{__key_complete "${_name[@]}"}'
+        ':value:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_config_list() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_migrate() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--check[Use --check to inspect readiness or --apply to create and verify a migrated copy.]'
+        '--apply[Use --check to inspect readiness or --apply to create and verify a migrated copy.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'tokens:List connected security keys and their token IDs.'
+            'credential:Check a security key'\''s recovery setup without PIN or touch.'
+            'register:Register recovery keys for this vault or check their status.'
+            'pending:List operation records saved on this Mac.'
+            'adopt:Update this vault to support recovery keys.'
+            'rotate:Change this vault'\''s encryption key without a hardware key.'
+            'remove-recipient:Review and remove one recovery key from this vault.'
+            'review:Check a vault'\''s public history against a recovery key.'
+            'restore:Restore verified contents into a new vault on an unconfigured Mac.'
+            'resume:Continue the restore attempt saved on this Mac.'
+            'abandon:Release an early restore attempt that cannot resume.'
+        )
+        _describe -V subcommand subcommands && ret=0
+        ;;
+    arg)
+        case "${words[1]}" in
+        tokens|credential|register|pending|adopt|rotate|remove-recipient|review|restore|resume|abandon)
+            "_key_recovery_${words[1]}" && ret=0
+            ;;
+        esac
+        ;;
+    esac
+
+    return "${ret}"
+}
+
+_key_recovery_tokens() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable public observations.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_credential() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--token[Complete connected token ID. Required exactly once.]:id:'
+        '--json[Print machine-readable public observations.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_register() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+        '(-): :->command'
+        '(-)*:: :->arg'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+    case "${state}" in
+    command)
+        local -ar subcommands=(
+            'status:Check registered recovery keys using Mac authentication.'
+            'prepare:Save a registration attempt and export its recovery setup file.'
+            'resume-export:Export the saved registration to a new setup file.'
+            'finish:Verify the setup file and hardware approval, then register the key.'
+            'abandon:Release an early registration attempt that cannot resume.'
+        )
+        _describe -V subcommand subcommands && ret=0
+        ;;
+    arg)
+        case "${words[1]}" in
+        status|prepare|resume-export|finish|abandon)
+            "_key_recovery_register_${words[1]}" && ret=0
+            ;;
+        esac
+        ;;
+    esac
+
+    return "${ret}"
+}
+
+_key_recovery_register_status() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable registration status.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_register_prepare() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--token[The complete token ID of the connected key.]:id:'
+        '*--recipient[The complete recovery key ID from recovery credential.]:id:'
+        '*--export-anchor[A new recovery setup file to install on the key with vendor tools.]:path:_files'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_register_resume-export() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--token[The complete token ID of the connected key.]:id:'
+        '*--recipient[The complete recovery key ID from recovery credential.]:id:'
+        '*--export-anchor[A new recovery setup file to install on the key with vendor tools.]:path:_files'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_register_finish() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--token[The complete token ID of the connected key.]:id:'
+        '*--recipient[The complete recovery key ID from recovery credential.]:id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_register_abandon() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':operation-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_pending() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable saved operation IDs.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_adopt() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--resume[Complete original adoption operation ID; never substitutes a new attempt.]:id:'
+        '--abandon[Release an early attempt that cannot resume; requires its original operation ID.]:id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_rotate() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--resume[Complete original locally owned rotation operation ID.]:id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_remove-recipient() {
+    local -i ret=1
+    local -ar arg_specs=(
+        ':recipient-id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_review() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--source[Existing source vault folder. Required exactly once.]:path:_files -/'
+        '*--token[Complete token ID from key recovery tokens. Required exactly once.]:id:'
+        '--json[Print machine-readable public observations.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_restore() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--source[Existing source vault folder. Required exactly once.]:path:_files -/'
+        '*--destination[New vault folder for restore, or the exact existing destination for resume. Required exactly once.]:path:_files -/'
+        '*--token[Exact connected token ID. Required exactly once; never automatically selected.]:id:'
+        '*--recipient[Complete recovery key ID, not a certificate fingerprint. Required exactly once.]:id:'
+        '*--name[This Mac'\''s readable name. Required; specify exactly once.]:this-mac-name:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_resume() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--source[Existing source vault folder. Required exactly once.]:path:_files -/'
+        '*--destination[New vault folder for restore, or the exact existing destination for resume. Required exactly once.]:path:_files -/'
+        '*--token[Exact connected token ID. Required exactly once; never automatically selected.]:id:'
+        '*--recipient[Complete recovery key ID, not a certificate fingerprint. Required exactly once.]:id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_recovery_abandon() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*--source[Original source vault folder.]:path:_files -/'
+        '*--destination[Original destination folder.]:path:_files -/'
+        '*--vault-id[Complete source vault ID reported by resume.]:id:'
+        '*--operation[Complete original operation ID reported by resume.]:id:'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_unlock() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_lock() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_version() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '--json[Print machine-readable version information.]'
+        '(-h --help)'{-h,--help}'[Show help information.]'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+_key_help() {
+    local -i ret=1
+    local -ar arg_specs=(
+        '*:subcommands:'
+    )
+    _arguments -w -s -S : "${arg_specs[@]}" && ret=0
+
+    return "${ret}"
+}
+
+if [[ "${funcstack[1]}" = _key ]]; then
+    _key "${@}"
+else
+    compdef _key key
+fi

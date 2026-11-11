@@ -55,6 +55,9 @@ case "${operation}" in
       build
     ;;
   bundle) scripts/verify-product-bundle.sh "${variant}" "${product}" ;;
-  cli) zsh Tests/CLIScripts/help-tests.sh "${product}/Contents/MacOS/${cli}" ;;
+  cli)
+    zsh Tests/CLIScripts/help-tests.sh "${product}/Contents/MacOS/${cli}"
+    python3 Tests/CLIScripts/completion-tests.py "${product}/Contents/MacOS/${cli}"
+    ;;
   *) echo 'expected build, bundle, cli, or codeql' >&2; exit 1 ;;
 esac

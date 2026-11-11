@@ -31,17 +31,30 @@ key lock
 
 `key unlock` authenticates in advance. Otherwise, the first operation that needs key material prompts through macOS. Key Agent keeps an unlocked session copy in memory for a short idle window so separate CLI invocations can reuse it.
 
-To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format. Version 0.4.0 uses `--totp-secret`; 0.3.x uses `--totp`. You can also combine entry names with shell tools such as [`fzf`](https://github.com/junegunn/fzf):
+To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format. Version 0.4.0 uses `--totp-secret`; 0.3.x uses `--totp`.
 
 ```sh
 key add --totp-secret github/mfa
 key copy github/mfa
-key copy "$(key list | fzf)"
 ```
 
 With 0.4.0, use `key copy --totp-secret github/mfa` to move an authenticator to another app, or `key get --totp-secret github/mfa` to print its setup secret. Ordinary `get` and `copy` still return the current one-time code. Anyone with the setup secret can generate future codes. Setup-secret reads use the same authenticated vault session as password reads; they do not request fresh approval while that session remains unlocked.
 
 The older `--totp` spelling on `add` and `edit` still works in 0.4.0 and prints a deprecation warning to stderr. It will be removed in a later breaking release before 1.0. Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
+
+Starting with 0.4.1, Tab completes commands, options, and saved entry names. For current-format vaults, suggestions use names last seen on this Mac without asking for authentication. Changes from another Mac appear after Key next opens the vault. Reading or copying an entry still uses the normal authentication and verification checks.
+
+`key list` prints one entry name per line for shell tools such as [`fzf`](https://github.com/junegunn/fzf). This zsh helper lets you choose a name and copy its value; cancelling the picker leaves the clipboard alone:
+
+```zsh
+kc() {
+  setopt localoptions pipefail
+  local entry
+  entry=$(key list | fzf) || return
+  [[ -n "$entry" ]] || return
+  key copy -- "$entry"
+}
+```
 
 The [hardware recovery guide](docs/recovery-user-guide.md) explains how to register a key and an independent backup. Hardware recovery is available in Stable from 0.3.0. Try it with disposable data first.
 

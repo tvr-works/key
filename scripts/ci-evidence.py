@@ -14,7 +14,7 @@ GROUPS = tuple(json.loads(Path(__file__).with_name("swift-test-groups.json").rea
 SCALE_TEST = "migratesRealisticLargeMixedSnapshotWithoutChangingV2Source"
 SCALE_CASE = "KeyCoreTests.V3DeviceWrappedGenesisInstallerTests/" + SCALE_TEST + "()"
 PREVIEW_PATHS = ("Sources/", "Config/", "AppIcon.icon/", "Key.xcodeproj/", "scripts/", "Tests/CLIScripts/",
-                 "Tests/ReleaseScripts/", "Tests/PreviewScripts/", ".github/")
+                 "Tests/ReleaseScripts/", "Tests/PreviewScripts/", "Tests/ScriptFixtures/", ".github/")
 
 
 def command(*args):
