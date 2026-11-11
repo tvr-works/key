@@ -4,6 +4,99 @@ import Testing
 
 struct KeyCLIApplicationTests {
     @Test
+    func authenticatorCommandsPreserveDefaultCodesWhileExportingSetupSecret() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let keys = MemoryVaultKeyStore(keyData: Data((0 ..< 32).map(UInt8.init)))
+        let session = SessionVaultKeyStore(underlying: keys)
+        let handler = KeyServiceHandler(
+            keyStore: session, entryStore: EntryStore(rootURL: root),
+            now: { Date(timeIntervalSince1970: 59) })
+        let seed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+        func run(_ arguments: [String], input: String = "") -> (Int32, MemoryIO, MemoryClipboard) {
+            let io = MemoryIO(stdinIsTTY: false, stdoutIsTTY: false, pipedInput: input)
+            let clipboard = MemoryClipboard()
+            let app = KeyCLIApplication(
+                transport: MemoryTransport(handler: handler.handle), io: io, clipboard: clipboard)
+            return (app.run(arguments: arguments), io, clipboard)
+        }
+        #expect(run(["add", "--totp-secret", "account/mfa"], input: seed).0 == EXIT_SUCCESS)
+        #expect(run(["get", "account/mfa"]).1.stdout == "287082")
+        #expect(run(["copy", "account/mfa"]).2.copiedText == "287082")
+        let exported = run(["get", "--totp-secret", "account/mfa"])
+        #expect(exported.0 == EXIT_SUCCESS && exported.1.stdout == seed)
+        #expect(exported.1.stderr.isEmpty)
+        #expect(run(["copy", "--totp-secret", "account/mfa"]).2.copiedText == seed)
+        #expect(keys.loadCount == 1)
+        #expect(run(["lock"]).0 == EXIT_SUCCESS)
+        #expect(run(["get", "--totp-secret", "account/mfa"]).1.stdout == seed)
+        #expect(keys.loadCount == 2)
+    }
+
+    @Test(arguments: [false, true])
+    func setupSecretGetUsesExplicitRequestAndPreservesOutputRules(terminal: Bool) {
+        let seed = "JBSWY3DPEHPK3PXP"
+        let transport = MemoryTransport { request in
+            #expect(request == .getTOTPSecret(name: "account/mfa", allowStale: true))
+            return .success(seed)
+        }
+        let io = MemoryIO(stdinIsTTY: false, stdoutIsTTY: terminal)
+        let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
+        #expect(app.run(arguments: ["get", "account/mfa", "--totp-secret", "--allow-stale"]) == EXIT_SUCCESS)
+        #expect(io.stdout == seed + (terminal ? "\n" : ""))
+        #expect(io.stderr.isEmpty)
+    }
+
+    @Test
+    func setupSecretCopyNeverPrintsTheSeedAndDoesNotReplaceClipboardOnFailure() throws {
+        let seed = "JBSWY3DPEHPK3PXP"
+        for succeeds in [true, false] {
+            let transport = MemoryTransport { request in
+                #expect(request == .getTOTPSecret(name: "account/mfa", allowStale: false))
+                return succeeds ? .success(seed) : .failure(AppError.authFailed("Cancelled"))
+            }
+            let io = MemoryIO(stdinIsTTY: false)
+            let clipboard = MemoryClipboard()
+            try clipboard.copy("previous")
+            let app = KeyCLIApplication(transport: transport, io: io, clipboard: clipboard)
+            #expect(app.run(arguments: ["copy", "--totp-secret", "account/mfa"])
+                == (succeeds ? EXIT_SUCCESS : KeyServiceErrorCode.authenticationFailed.exitCode.rawValue))
+            #expect(io.stdout.isEmpty)
+            #expect(!io.stderr.contains(seed))
+            #expect(clipboard.copiedText == (succeeds ? seed : "previous"))
+        }
+    }
+
+    @Test(arguments: ["add", "edit"])
+    func deprecatedTOTPFlagWarnsOnlyOnStderr(operation: String) {
+        let transport = MemoryTransport { request in
+            let expected: KeyServiceRequest = operation == "add"
+                ? .addManual(name: "account/mfa", secret: "JBSWY3DPEHPK3PXP", type: .totp)
+                : .editManual(name: "account/mfa", secret: "JBSWY3DPEHPK3PXP", type: .totp)
+            #expect(request == expected)
+            return .success()
+        }
+        let io = MemoryIO(stdinIsTTY: false, pipedInput: "jbsw y3dp ehpk 3pxp")
+        let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
+        #expect(app.run(arguments: [operation, "--totp", "account/mfa"]) == EXIT_SUCCESS)
+        #expect(io.stdout.isEmpty)
+        #expect(io.stderr == "Warning: --totp is deprecated. Use --totp-secret.\n")
+        #expect(transport.requests.count == 1)
+    }
+
+    @Test
+    func literalDeprecatedFlagAsEntryNameDoesNotWarn() {
+        let transport = MemoryTransport { request in
+            #expect(request == .addManual(name: "--totp", secret: "value", type: .secret))
+            return .success()
+        }
+        let io = MemoryIO(stdinIsTTY: false, pipedInput: "value")
+        let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
+        #expect(app.run(arguments: ["add", "--", "--totp"]) == EXIT_SUCCESS)
+        #expect(io.stdout.isEmpty && io.stderr.isEmpty)
+    }
+
+    @Test
     func currentProcessVersionResolvesThroughSymlinkIntoAppBundle() throws {
         let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -1093,7 +1186,7 @@ struct KeyCLIApplicationTests {
         let clipboard = MemoryClipboard()
         let app = KeyCLIApplication(transport: transport, io: io, clipboard: clipboard)
 
-        #expect(app.run(arguments: ["add", "--totp", "aws/prod/token"]) == EXIT_SUCCESS)
+        #expect(app.run(arguments: ["add", "--totp-secret", "aws/prod/token"]) == EXIT_SUCCESS)
         #expect(io.stdout == "")
         #expect(io.stderr == "")
     }
@@ -1108,7 +1201,7 @@ struct KeyCLIApplicationTests {
         let clipboard = MemoryClipboard()
         let app = KeyCLIApplication(transport: transport, io: io, clipboard: clipboard)
 
-        #expect(app.run(arguments: ["add", "--totp", "aws/prod/token"]) == EXIT_FAILURE)
+        #expect(app.run(arguments: ["add", "--totp-secret", "aws/prod/token"]) == EXIT_FAILURE)
         #expect(io.stderr == "Enter a Base32 authenticator setup secret, not a current one-time code or a full otpauth:// URL.\n")
     }
 
@@ -1702,6 +1795,28 @@ struct KeyServiceHandlerTests {
         ))
         #expect(addResponse == .success())
         #expect(handler.handle(.get(name: "mail/mfa")) == .success("287082"))
+        #expect(handler.handle(.getTOTPSecret(name: "mail/mfa", allowStale: false))
+            == .success("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"))
+        #expect(handler.handle(.get(name: "mail/mfa")) == .success("287082"))
+    }
+
+    @Test
+    func setupSecretReadRefusesOrdinarySecretsAndPreservesReadErrors() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let keys = MemoryVaultKeyStore(keyData: Data((0 ..< 32).map(UInt8.init)))
+        let handler = KeyServiceHandler(keyStore: keys, entryStore: EntryStore(rootURL: root))
+        #expect(handler.handle(.addManual(name: "password", secret: "private-value", type: .secret)) == .success())
+        let response = handler.handle(.getTOTPSecret(name: "password", allowStale: false))
+        #expect(response.exitCode != EXIT_SUCCESS)
+        #expect(response.value == nil)
+        #expect(response.errorMessage?.contains("not an authenticator") == true)
+        #expect(response.errorMessage?.contains("private-value") == false)
+        #expect(handler.handle(.getTOTPSecret(name: "missing", allowStale: false)).errorCode == .entryNotFound)
+        keys.error = AppError.authFailed("Cancelled")
+        let cancelled = handler.handle(.getTOTPSecret(name: "password", allowStale: false))
+        #expect(cancelled.errorCode == .authenticationFailed)
+        #expect(cancelled.value == nil)
     }
 
     @Test

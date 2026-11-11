@@ -10,6 +10,24 @@ struct V3RecoveryVaultRuntimeTests {
   private typealias Epochs = V3RecoveryCatchUpTestSupport
   private typealias Core = V3RecoveryRegistrationTestSupport
 
+  @Test func helperReadsSetupSecretThroughEncryptedRecoveryRuntime() throws {
+    let f = try Fixture(cold: true)
+    defer { f.disk.disk.remove() }
+    let runtime = f.runtime()
+    let handler = KeyServiceHandler(
+      keyStore: MemoryVaultKeyStore(), entryStore: EntryStore(rootURL: f.disk.disk.root),
+      mutationOwner: f.owner, vaultUXService: runtime, vaultReader: runtime,
+      vaultSession: runtime, configuredVaultID: Core.vaultID)
+    #expect(handler.handle(.getTOTPSecret(name: "fixture/totp", allowStale: false))
+      == .success("JBSWY3DPEHPK3PXP"))
+    #expect(handler.handle(.lock) == .success())
+    #expect(handler.handle(.getTOTPSecret(name: "fixture/totp", allowStale: true))
+      == .success("JBSWY3DPEHPK3PXP"))
+    let ordinary = handler.handle(.getTOTPSecret(name: "fixture/secret", allowStale: false))
+    #expect(ordinary.exitCode != EXIT_SUCCESS && ordinary.value == nil)
+    #expect(f.disk.pending.allSatisfy { $0.value == nil })
+  }
+
   @Test func coldUnlockCatchesUpMixedHistoryThenReadsSavesAndReopens() throws {
     let f = try Fixture(cold: true)
     defer { f.disk.disk.remove() }

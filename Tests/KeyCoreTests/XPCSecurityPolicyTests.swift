@@ -37,6 +37,7 @@ struct XPCSecurityPolicyTests {
         .setVaultDirectory(path: "/tmp/vault"),
         .setKeychainMode(.local),
         .get(name: "entry"),
+        .getTOTPSecret(name: "entry", allowStale: false),
         .addManual(name: "entry", secret: "secret", type: .secret),
         .editManual(name: "entry", secret: "secret", type: .secret),
         .copyEntry(source: "source", destination: "destination", force: false),
@@ -49,6 +50,21 @@ struct XPCSecurityPolicyTests {
         for request in allRequests {
             #expect(KeyXPCClientRole.fullCLI.authorizes(request))
         }
+    }
+
+    @Test(arguments: [false, true])
+    func setupSecretRequestHasDistinctWireKindAndPreservesStaleChoice(allowStale: Bool) throws {
+        let request = KeyServiceRequest.getTOTPSecret(name: "account/mfa", allowStale: allowStale)
+        let encoded = try JSONEncoder().encode(request)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        #expect(object["kind"] as? String == "getTOTPSecret")
+        #expect(object["kind"] as? String != "get")
+        #expect(try JSONDecoder().decode(KeyServiceRequest.self, from: encoded) == request)
+        #expect(request.responseTimeoutSeconds == 120)
+        #expect(!request.requiresHelperShutdownAfterSuccess)
+        let minimal = Data(#"{"kind":"getTOTPSecret","name":"account/mfa"}"#.utf8)
+        #expect(try JSONDecoder().decode(KeyServiceRequest.self, from: minimal)
+            == .getTOTPSecret(name: "account/mfa", allowStale: false))
     }
 
     @Test

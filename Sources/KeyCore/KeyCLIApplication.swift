@@ -29,8 +29,11 @@ public final class KeyCLIApplication {
     @discardableResult
     public func run(arguments: [String]) -> Int32 {
         do {
-            let command = try CLIParser.parse(arguments: arguments)
-            return try execute(command)
+            let parsed = try CLIParser.parseWithWarnings(arguments: arguments)
+            for warning in parsed.warnings {
+                io.writeStderr(warning + "\n")
+            }
+            return try execute(parsed.command)
         } catch let error as AppError {
             io.writeStderr("\(error.localizedDescription)\n")
             return error.exitCode.rawValue
@@ -105,10 +108,16 @@ public final class KeyCLIApplication {
                 .get(name: name, allowStale: allowStale)
             )
             return try handle(response, for: command)
-        case let .copy(name, allowStale):
-            response = try transport.send(
+        case let .getTOTPSecret(name, allowStale):
+            response = try transport.send(.getTOTPSecret(name: name, allowStale: allowStale))
+            return try handle(response, for: command)
+        case let .copy(name, allowStale), let .copyTOTPSecret(name, allowStale):
+            let request: KeyServiceRequest = if case .copyTOTPSecret = command {
+                .getTOTPSecret(name: name, allowStale: allowStale)
+            } else {
                 .get(name: name, allowStale: allowStale)
-            )
+            }
+            response = try transport.send(request)
             let exitCode = try handle(response, for: command)
             guard exitCode == EXIT_SUCCESS, let value = response.value else {
                 return exitCode
@@ -156,13 +165,13 @@ public final class KeyCLIApplication {
             if let value = response.value, !value.isEmpty {
                 io.writeStdout(value)
             }
-        case .get(name: _, allowStale: _):
+        case .get, .getTOTPSecret:
             if let value = response.value {
                 io.writeStdout(formattedGetOutput(value))
             }
         case .status, .conflict, .recoveryReview, .recoveryRegistration, .recoveryRotation, .recoveryRecipientRemoval:
             break
-        case .copy(name: _, allowStale: _), .add, .edit, .duplicate,
+        case .copy, .copyTOTPSecret, .add, .edit, .duplicate,
             .rename, .remove:
             break
         }

@@ -67,6 +67,8 @@ public enum Command: Equatable {
     case lock
     case get(name: String, allowStale: Bool)
     case copy(name: String, allowStale: Bool)
+    case getTOTPSecret(name: String, allowStale: Bool)
+    case copyTOTPSecret(name: String, allowStale: Bool)
     case add(name: String, type: SecretEntryType)
     case edit(name: String, type: SecretEntryType)
     case duplicate(source: String, destination: String, force: Bool)

@@ -1,8 +1,8 @@
 # PIV catastrophe recovery implementation plan
 
-Current checkpoint: November 4, 2026. The [0.3.0 release readiness record](0.3.0-release-readiness.md) owns the current beta checklist and final review. Q1 independent-key recovery, Q2 two-Mac lifecycle and Q3 recipient removal passed at their recorded private-artifact scope. Recovered-vault editing/reopening and the Mac-only cancellation/resume and competing-client cases also passed. Final-source checks, one provider-delivery case and the exact public artifact remain.
+Current status: November 10, 2026. Hardware recovery shipped in Stable 0.3.0. Stable 0.3.1 fixes ordinary access on an enrolled Mac after another Mac enables recovery; the published package passed both-Mac upgrade and real-vault verification with both recovery keys still registered. The [release record and 0.4.0 roadmap](release.md#stable-030-and-the-040-roadmap) own current work. The implementation milestones and acceptance records below preserve the earlier plan and its qualification limits.
 
-The public Preview beta is being prepared with recovery enabled; Stable recovery remains disabled. The owner accepted manual Cancel for a lingering PIN dialog for beta only, with reconsideration before Stable. Standalone old-binary execution, new hardware allocation for recovered-vault re-registration, native faults at every durable phase and physical certificate/reset exercises are no longer beta gates. Their software/source evidence and untested native boundaries are recorded explicitly in the readiness record.
+The owner accepted manual Cancel for a lingering PIN dialog for 0.3.0 Stable and deferred reconsideration to a later version. Standalone old-binary execution, new hardware allocation for recovered-vault re-registration, native faults at every durable phase and physical certificate/reset exercises were omitted from the scoped release gates. Their software/source evidence and untested native boundaries remain recorded in the [readiness record](0.3.0-release-readiness.md).
 
 The [contract](piv-recovery-contract.md) owns protocol/security requirements; the [signed ledger](piv-recovery-signed-test.md) owns observed results and artifact identities. This plan authorizes no hardware administration, authentication, real-vault conversion, installation, push or release.
 
@@ -157,7 +157,7 @@ A signed PreviewDebug qualification app built from `df8b5be` plus the retained b
 
 Logs, the exact build-input patch, component hashes, metadata and tool/OS identities are retained under `.build/piv-preparation-20261103/`. All 350 before/after protected Stable/Preview file hashes and helper-registration-presence checks matched. That is the recorded preservation scope, not a whole-Keychain or whole-system audit. The remaining work is the fixture/support/PIN-dialog decisions, Q1–Q7 at their unqualified boundaries, final integrated review, public enablement and exact release-package qualification.
 
-## Next milestones
+## Historical next milestones, superseded by the release record
 
 1. Finish current-source review and automated checks on this branch; retain incremental local commits until push is authorized.
 2. Run the single recovery-format provider-delivery case with the Air when the owner is ready. Preserve both hardware setups and Stable.

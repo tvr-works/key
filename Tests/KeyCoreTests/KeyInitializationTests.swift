@@ -59,6 +59,7 @@ struct KeyInitializationTests {
         }, initialize: { _ in Issue.record("Only init can initialize"); return "" })
         let requests: [KeyServiceRequest] = [
             .vaultStatus, .unlock, .list, .get(name: "one"),
+            .getTOTPSecret(name: "one", allowStale: false),
             .migrationPreflight, .migrationApply, .listConflicts,
             .showConflict(id: "conflict"), .getConflictValue(id: "conflict", versionID: "version"),
             .resolveConflicts([]), .share(.devices),

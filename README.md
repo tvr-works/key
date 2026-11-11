@@ -31,17 +31,19 @@ key lock
 
 `key unlock` authenticates in advance. Otherwise, the first operation that needs key material prompts through macOS. Key Agent keeps an unlocked session copy in memory for a short idle window so separate CLI invocations can reuse it.
 
-To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format with `--totp`. You can also combine entry names with shell tools such as [`fzf`](https://github.com/junegunn/fzf):
+To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format. Version 0.4.0 uses `--totp-secret`; 0.3.x uses `--totp`. You can also combine entry names with shell tools such as [`fzf`](https://github.com/junegunn/fzf):
 
 ```sh
-key add --totp github/mfa
+key add --totp-secret github/mfa
 key copy github/mfa
 key copy "$(key list | fzf)"
 ```
 
-Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
+With 0.4.0, use `key copy --totp-secret github/mfa` to move an authenticator to another app, or `key get --totp-secret github/mfa` to print its setup secret. Ordinary `get` and `copy` still return the current one-time code. Anyone with the setup secret can generate future codes. Setup-secret reads use the same authenticated vault session as password reads; they do not request fresh approval while that session remains unlocked.
 
-The [hardware recovery guide](docs/recovery-user-guide.md) explains how to register a key and an independent backup. Try Preview with disposable data.
+The older `--totp` spelling on `add` and `edit` still works in 0.4.0 and prints a deprecation warning to stderr. It will be removed in a later breaking release before 1.0. Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
+
+The [hardware recovery guide](docs/recovery-user-guide.md) explains how to register a key and an independent backup. Hardware recovery is available in Stable from 0.3.0. Try it with disposable data first.
 
 If a command cannot continue, see [troubleshooting](docs/troubleshooting.md) for missing files, blocked vault history and interrupted operations.
 
@@ -297,8 +299,10 @@ key lock                                  Lock the vault on this Mac
 
 key get <name> [--allow-stale]            Print a secret or current TOTP code
 key copy <name> [--allow-stale]           Copy a secret or current TOTP code
-key add [--totp] <name>                   Add a secret from stdin or a secure prompt
-key edit [--totp] <name>                  Update a secret
+key get --totp-secret <name>              Print an authenticator setup secret (0.4)
+key copy --totp-secret <name>             Copy an authenticator setup secret (0.4)
+key add [--totp-secret] <name>            Add a secret from stdin or a secure prompt
+key edit [--totp-secret] <name>           Update a secret
 key duplicate <src> <dst> [--force]       Duplicate an entry
 key rename <src> <dst> [--force]          Rename an entry
 key remove <name> [--force]               Remove an entry
