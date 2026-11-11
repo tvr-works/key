@@ -36,7 +36,7 @@ struct CLIEntryCompletionTests {
         #expect(fixture.suggestions(folders: true) == (names + ["work/", "個人/"]).sorted())
     }
 
-    @Test(arguments: ["missing", "malformed", "oversized", "wrong-vault", "symlink", "directory", "fifo"])
+    @Test(arguments: ["missing", "malformed", "oversized", "wrong-vault", "wrong-vault-body", "unknown-profile", "symlink", "directory", "fifo"])
     func unavailableOrUnsafeCacheReturnsNoHints(kind: String) throws {
         let fixture = try Fixture()
         defer { fixture.remove() }
@@ -47,6 +47,13 @@ struct CLIEntryCompletionTests {
             try V3RecoveryRegistrationTestSupport.Fixture().parent.canonicalBytes.write(
                 to: fixture.cache.deletingLastPathComponent().appendingPathComponent(UUID().uuidString + ".json")
             )
+        case "wrong-vault-body", "unknown-profile":
+            let data = try V3RecoveryRegistrationTestSupport.Fixture().parent.canonicalBytes
+            let text = String(decoding: data, as: UTF8.self)
+            let altered = kind == "wrong-vault-body"
+                ? text.replacingOccurrences(of: Fixture.vaultID, with: UUID().uuidString.lowercased())
+                : text.replacingOccurrences(of: "\"profileVersion\":3", with: "\"profileVersion\":99")
+            try Data(altered.utf8).write(to: fixture.cache)
         case "symlink":
             let target = fixture.home.appendingPathComponent("target.json")
             try V3RecoveryRegistrationTestSupport.Fixture().parent.canonicalBytes.write(to: target)
@@ -66,6 +73,15 @@ struct CLIEntryCompletionTests {
         let preview = KeyConfigStore(productIdentity: .preview, homeDirectoryURL: fixture.home)
         #expect(CLIEntryCompletion.suggestions(configStore: preview, includeFolders: false).isEmpty)
         #expect(!FileManager.default.fileExists(atPath: preview.initializationConfigFileURL.path))
+    }
+
+    @Test
+    func missingCurrentCacheNeverFallsBackToProviderFiles() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try FileManager.default.createDirectory(at: fixture.vault, withIntermediateDirectories: true)
+        try Data().write(to: fixture.vault.appendingPathComponent("not-a-current-entry.secret"))
+        #expect(fixture.suggestions().isEmpty)
     }
 
     @Test

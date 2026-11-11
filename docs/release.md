@@ -8,13 +8,21 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## 0.4.1 entry-name completion fix
+
+The next release candidate is 0.4.1 build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
+
+Argument Parser generates command, flag and filesystem completion from the CLI declarations. Release packaging generates the zsh script from the packaged CLI. CI exercises real Tab keystrokes in an isolated shell, including slash prefixes, source and destination names, spaces, punctuation, Unicode and filesystem arguments. The local signed Preview check also verified a real disposable `key list` → `fzf` → `key copy` workflow, cancellation without copying, and updated suggestions after rename and lock without starting the helper. The test finished locked; Stable, its configuration and the real vault matched the pre-test snapshot. No hardware key was used.
+
+This candidate still requires PR review and CI, shipping-package verification and publication before release.
+
 ## 0.4.0 authenticator setup secrets
 
-The release candidate is 0.4.0 build 40. Use `--totp-secret` consistently on `add`, `edit`, `get` and `copy` to save an authenticator setup secret or retrieve it for another app. Plain `get` and `copy` continue to return the current one-time code. Setup-secret reads use the existing authenticated session, as password reads do. A separate helper request prevents an older helper from treating a setup-secret read as an ordinary code read. The flag refuses ordinary password entries and retains the existing stale-read and history-verification rules.
+[Stable 0.4.0](https://github.com/tvr-works/key/releases/tag/v0.4.0) shipped November 11, 2026, as build 40. Use `--totp-secret` consistently on `add`, `edit`, `get` and `copy` to save an authenticator setup secret or retrieve it for another app. Plain `get` and `copy` continue to return the current one-time code. Setup-secret reads use the existing authenticated session, as password reads do. A separate helper request prevents an older helper from treating a setup-secret read as an ordinary code read. The flag refuses ordinary password entries and retains the existing stale-read and history-verification rules.
 
 The existing `--totp` spelling remains accepted on `add` and `edit` for 0.4.0, with a deprecation warning on stderr. Help and completion advertise `--totp-secret`. Retire the alias in a later breaking release before 1.0. No storage-format change, new recovery ceremony or hardware-key administration is part of this feature. The documented PIN-dialog workaround remains a separate follow-up.
 
-[PR #97](https://github.com/tvr-works/key/pull/97) tracks release qualification. The scoped native check uses a separately identified signed Preview app and disposable TOTP data to check code and setup-secret output, clipboard behavior, alias compatibility and lock/reopen. Existing recovery and two-Mac lifecycle evidence remains applicable; this change does not repeat those hardware sessions. Final release qualification includes Stable Debug and Release product checks and CodeQL. Final package signature, notarization, Gatekeeper, checksum and Homebrew checks remain part of the operator runbook below.
+[PR #97](https://github.com/tvr-works/key/pull/97) merged after green CI, Stable Debug and Release qualification, and CodeQL with zero findings. A separately identified signed Preview app passed disposable TOTP code and setup-secret reads, clipboard checks, alias compatibility and lock/reopen. The shipping package passed signature, notarization, Gatekeeper and checksum checks. The [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/4) and its required and post-merge checks passed. The Mini was upgraded and verified with an exact value comparison across lock/reopen, unchanged configuration and encrypted files, and both recovery registrations intact. The Air was not upgraded during that work. No physical key was changed.
 
 ## 0.3.1 recovery-format fix
 
@@ -386,40 +394,22 @@ No local tap checkout or cross-repository Actions credential is required.
 
 ## Test zsh completion locally
 
-Use an isolated shell so the completion path and `compinit` order are unambiguous:
+Build the CLI and run the isolated real-shell test from the repository root:
 
-```zsh
-zsh -f
-autoload -Uz compinit
-fpath=(/Users/tim.vanreenen/Code/key/completions $fpath)
-compinit -i
+```sh
+swift build
+python3 Tests/CLIScripts/completion-tests.py .build/debug/key
 ```
 
-The `fpath` update must happen before `compinit`.
-If you change the completion file and want to reload it in the same shell, rerun `compinit -i`.
+The test uses an anonymous software manifest, a disposable home directory and a real zsh line editor. It sends Tab keystrokes without running vault operations, contacting Key Agent or reading your configured vault. Product verification runs it against both Stable and Preview builds. It also checks that the shipped Stable completion script matches the parser-generated output.
 
-To test dynamic entry completion against a fake vault:
+After changing CLI declarations, regenerate the checked-in zsh script:
 
-```zsh
-mkdir -p /tmp/keycomp/github /tmp/keycomp/personal
-touch /tmp/keycomp/github/personal.secret
-touch /tmp/keycomp/personal/gmail.secret
-zstyle ':completion:*:*:key:*' vault-root /tmp/keycomp
+```sh
+.build/debug/key --generate-completion-script zsh > completions/_key
 ```
 
-Then verify:
-
-```zsh
-key <TAB><TAB>
-key get <TAB><TAB>
-key edit <TAB><TAB>
-key copy <TAB><TAB>
-```
-
-Expected behavior:
-
-- `key <TAB><TAB>` offers `get`, `copy`, `add`, `edit`, `duplicate`, `rename`, `remove`, `list`, `unlock`, `lock`, `version`, and `help`
-- `key get <TAB><TAB>` offers `github/personal` and `personal/gmail`
+Homebrew installs the packaged script in its standard zsh completion directory. For manual installation, generate the script into a directory on your shell's `fpath`, then restart the shell. The entry suggestions are not `key list`: list retains normal authenticated vault access and its plain one-name-per-line output for tools such as `fzf`.
 
 ## Verify signing inputs
 
