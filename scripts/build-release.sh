@@ -36,7 +36,6 @@ staging_app="${release_root}/${app_name}"
 package_root="${release_root}/${package_root_name}"
 submission_zip="${release_root}/${artifact_name%.zip}-for-notary.zip"
 final_zip="${release_root}/${artifact_name}"
-completion_source="${repo_root}/completions/_key"
 
 mkdir -p "${release_root}"
 rm -rf \
@@ -75,12 +74,9 @@ cp -R "${staging_app}" "${package_root}/${app_name}"
 
 package_entries=("${app_name}")
 if [[ "${variant}" == "stable" ]]; then
-  if [[ ! -f "${completion_source}" ]]; then
-    echo "missing zsh completion at ${completion_source}" >&2
-    exit 1
-  fi
   mkdir -p "${package_root}/completions"
-  cp "${completion_source}" "${package_root}/completions/_key"
+  "${package_root}/${app_name}/Contents/MacOS/key" --generate-completion-script zsh \
+    > "${package_root}/completions/_key"
   package_entries+=("completions")
 fi
 
