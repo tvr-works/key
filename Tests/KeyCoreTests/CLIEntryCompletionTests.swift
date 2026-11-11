@@ -96,6 +96,33 @@ struct CLIEntryCompletionTests {
         #expect(fixture.suggestions(folders: true) == ["example/", "example/entry"])
     }
 
+    @Test
+    func legacyNamesPreserveTheirBytesWithoutModernNormalizationRules() throws {
+        let fixture = try Fixture(legacy: true)
+        defer { fixture.remove() }
+        try FileManager.default.createDirectory(at: fixture.vault, withIntermediateDirectories: true)
+        let names = ["cafe\u{301}", "old\\name", " colon:name "]
+        let store = EntryStore(rootURL: fixture.vault)
+        for name in names {
+            try store.validateEntryName(name)
+            try Data().write(to: store.url(for: name))
+        }
+        let expected = try store.listEntries().map { Data($0.utf8) }
+        #expect(fixture.suggestions().map { Data($0.utf8) } == expected)
+    }
+
+    @Test
+    func legacyControlCharactersCannotInjectCompletionProtocolLines() throws {
+        let fixture = try Fixture(legacy: true)
+        defer { fixture.remove() }
+        try FileManager.default.createDirectory(at: fixture.vault, withIntermediateDirectories: true)
+        let store = EntryStore(rootURL: fixture.vault)
+        for name in ["ordinary", "line\nbreak", "tab\tname", "escape\u{1B}name"] {
+            try Data().write(to: store.url(for: name))
+        }
+        #expect(fixture.suggestions() == ["ordinary"])
+    }
+
     private struct Fixture {
         static let vaultID = V3RecoveryRegistrationTestSupport.vaultID
         let home: URL

@@ -119,6 +119,23 @@ def main():
         finally:
             shell.close()
         assert not (home / 'offline-vault').exists()
+        # Legacy filenames can contain non-NFC Unicode, backslashes and edge
+        # spaces. The modern name policy must not hide or rewrite these names.
+        legacy = home / 'legacy-vault'
+        legacy.mkdir()
+        legacy_names = ["cafe\u0301", r"old\name", r"old\:name", " spaced name "]
+        for name in legacy_names:
+            (legacy / (name + '.secret')).touch()
+        (support / 'config.toml').write_text(f'vault_dir = "{legacy}"\nkeychain_mode = "local"\n')
+        shell = Shell(env, completion)
+        try:
+            prefixes = ['caf', r'old\\n', r'old\\\:', r'\ sp']
+            for prefix, name in zip(prefixes, legacy_names):
+                actual = shell.complete(f'{command} get {prefix}')
+                assert shlex.split(actual) == [command, 'get', name], repr(actual)
+        finally:
+            shell.close()
+        print('Generated zsh: legacy Unicode bytes, backslashes, colons and edge spaces passed.')
         print('Generated zsh: commands, flags, hierarchy, both transfer arguments, quoting, Unicode, and filesystem Tab completion passed.')
 
 

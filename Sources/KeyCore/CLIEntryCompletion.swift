@@ -15,7 +15,10 @@ enum CLIEntryCompletion {
             )
             // zsh's _describe interprets a colon as a description separator.
             return CompletionShell.requesting == .zsh
-                ? names.map { $0.replacingOccurrences(of: ":", with: "\\:") }
+                ? names.map {
+                    $0.replacingOccurrences(of: "\\", with: "\\\\")
+                        .replacingOccurrences(of: ":", with: "\\:")
+                }
                 : names
         }
     }
@@ -28,13 +31,19 @@ enum CLIEntryCompletion {
             let selection = try configStore.configuredVaultRuntimeSelection()
             let names: [String]
             if let vaultID = selection.vaultID {
-                names = try cachedNames(configStore: configStore, vaultID: vaultID)
+                names = try cachedNames(configStore: configStore, vaultID: vaultID).filter(isValidV3EntryName)
             } else {
                 // Older vaults name entries directly in their filesystem.
                 _ = try VaultRootDirectoryHandle(opening: selection.rootURL)
-                names = try EntryStore(rootURL: selection.rootURL).listEntries()
+                let store = EntryStore(rootURL: selection.rootURL)
+                names = try store.listEntries().filter {
+                    // Preserve legacy spelling and Unicode bytes. Only control
+                    // characters are unsuitable for the line-based shell protocol.
+                    (try? store.validateEntryName($0)) != nil
+                        && !$0.unicodeScalars.contains(where: isV3ControlCharacter)
+                }
             }
-            var candidates = Set(names.filter(isValidV3EntryName))
+            var candidates = Set(names)
             if includeFolders {
                 for name in Array(candidates) {
                     let parts = name.split(separator: "/")
