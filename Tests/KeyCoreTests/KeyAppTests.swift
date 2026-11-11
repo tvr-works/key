@@ -1702,6 +1702,28 @@ struct KeyServiceHandlerTests {
         ))
         #expect(addResponse == .success())
         #expect(handler.handle(.get(name: "mail/mfa")) == .success("287082"))
+        #expect(handler.handle(.getTOTPSecret(name: "mail/mfa", allowStale: false))
+            == .success("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"))
+        #expect(handler.handle(.get(name: "mail/mfa")) == .success("287082"))
+    }
+
+    @Test
+    func setupSecretReadRefusesOrdinarySecretsAndPreservesReadErrors() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let keys = MemoryVaultKeyStore(keyData: Data((0 ..< 32).map(UInt8.init)))
+        let handler = KeyServiceHandler(keyStore: keys, entryStore: EntryStore(rootURL: root))
+        #expect(handler.handle(.addManual(name: "password", secret: "private-value", type: .secret)) == .success())
+        let response = handler.handle(.getTOTPSecret(name: "password", allowStale: false))
+        #expect(response.exitCode != EXIT_SUCCESS)
+        #expect(response.value == nil)
+        #expect(response.errorMessage?.contains("not an authenticator") == true)
+        #expect(response.errorMessage?.contains("private-value") == false)
+        #expect(handler.handle(.getTOTPSecret(name: "missing", allowStale: false)).errorCode == .entryNotFound)
+        keys.error = AppError.authFailed("Cancelled")
+        let cancelled = handler.handle(.getTOTPSecret(name: "password", allowStale: false))
+        #expect(cancelled.errorCode == .authenticationFailed)
+        #expect(cancelled.value == nil)
     }
 
     @Test

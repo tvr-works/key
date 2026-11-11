@@ -5,6 +5,28 @@ import Testing
 @Suite
 struct V3ReadOnlyServiceIntegrationTests {
     @Test
+    func setupSecretReadsUseTheSelectedReaderAndKeepStalePolicy() throws {
+        let root = temporaryV3ServiceDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let reader = RecordingV3VaultReader(value: .init(type: .totp, plaintext: "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"))
+        let keys = RecordingV3VaultKeyStore()
+        let handler = KeyServiceHandler(
+            keyStore: keys, entryStore: EntryStore(rootURL: root),
+            now: { Date(timeIntervalSince1970: 59) },
+            mutationOwner: VaultTransactionMutationOwner(),
+            vaultReader: reader
+        )
+        #expect(handler.handle(.getTOTPSecret(name: "account/mfa", allowStale: true))
+            == .success("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"))
+        #expect(handler.handle(.get(name: "account/mfa")) == .success("287082"))
+        #expect(reader.readRequests == [
+            V3ReadRequest(name: "account/mfa", allowStale: true),
+            V3ReadRequest(name: "account/mfa", allowStale: false)
+        ])
+        #expect(keys.createIfMissingValues.isEmpty)
+    }
+
+    @Test
     func migrationDeviceNamePrefersNormalizedMacNameThenHostName() {
         #expect(KeyServiceHandler.currentDeviceDisplayName(
             localizedName: "  Cafe\u{301} Mac  ",
@@ -263,6 +285,11 @@ private final class RecordingV3VaultReader:
     private var unlocks = 0
     private var reads: [V3ReadRequest] = []
     private var lists: [Bool] = []
+    private let value: VaultReadValue
+
+    init(value: VaultReadValue = .init(type: .secret, plaintext: "v3 value")) {
+        self.value = value
+    }
 
     var unlockCount: Int {
         lock.withLock { unlocks }
@@ -292,7 +319,7 @@ private final class RecordingV3VaultReader:
                 allowStale: allowStale
             ))
         }
-        return VaultReadValue(type: .secret, plaintext: "v3 value")
+        return value
     }
 
     func list(allowStale: Bool) throws -> [String] {

@@ -290,6 +290,7 @@ private extension KeyServiceRequest {
         case .setVaultDirectory: "vault directory configuration"
         case .setKeychainMode: "keychain configuration"
         case .get: "get"
+        case .getTOTPSecret: "get authenticator setup secret"
         case .addManual: "add"
         case .editManual: "edit"
         case .copyEntry: "copy"

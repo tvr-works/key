@@ -62,6 +62,7 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
     case setVaultDirectory(path: String)
     case setKeychainMode(KeychainMode)
     case get(name: String, allowStale: Bool)
+    case getTOTPSecret(name: String, allowStale: Bool)
     case addManual(name: String, secret: String, type: SecretEntryType)
     case editManual(name: String, secret: String, type: SecretEntryType)
     case copyEntry(source: String, destination: String, force: Bool)
@@ -86,7 +87,7 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
             30
         case .vaultStatus, .listConflicts, .showConflict, .share(.devices):
             30
-        case .unlock, .get, .getConflictValue, .migrationPreflight:
+        case .unlock, .get, .getTOTPSecret, .getConflictValue, .migrationPreflight:
             120
         case .recovery(let request):
             request.maximumDurationSeconds + 30
@@ -158,6 +159,7 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
         case setVaultDirectory
         case setKeychainMode
         case get
+        case getTOTPSecret
         case addManual
         case editManual
         case copyEntry
@@ -243,6 +245,11 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
                     Bool.self,
                     forKey: .allowStale
                 ) ?? false
+            )
+        case .getTOTPSecret:
+            self = .getTOTPSecret(
+                name: try container.decode(String.self, forKey: .name),
+                allowStale: try container.decodeIfPresent(Bool.self, forKey: .allowStale) ?? false
             )
         case .addManual:
             self = .addManual(
@@ -335,6 +342,12 @@ public enum KeyServiceRequest: Codable, Equatable, Sendable {
             try container.encode(mode, forKey: .keychainMode)
         case let .get(name, allowStale):
             try container.encode(Kind.get, forKey: .kind)
+            try container.encode(name, forKey: .name)
+            if allowStale {
+                try container.encode(true, forKey: .allowStale)
+            }
+        case let .getTOTPSecret(name, allowStale):
+            try container.encode(Kind.getTOTPSecret, forKey: .kind)
             try container.encode(name, forKey: .name)
             if allowStale {
                 try container.encode(true, forKey: .allowStale)

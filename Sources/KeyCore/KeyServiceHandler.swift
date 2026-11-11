@@ -773,28 +773,14 @@ public final class KeyServiceHandler {
                 try setKeychainMode(mode)
                 return .success()
             case let .get(name, allowStale):
-                if let vaultReader {
-                    let value = try vaultReader.read(
-                        name: name,
-                        allowStale: allowStale
-                    )
-                    return .success(
-                        try renderValue(
-                            for: value.type,
-                            decryptedValue: value.plaintext
-                        )
-                    )
+                let value = try readValue(name: name, allowStale: allowStale)
+                return .success(try renderValue(for: value.type, decryptedValue: value.plaintext))
+            case let .getTOTPSecret(name, allowStale):
+                let value = try readValue(name: name, allowStale: allowStale)
+                guard value.type == .totp else {
+                    throw AppError.invalidSecret("'\(name)' is not an authenticator. Omit --totp-secret to read a regular secret.")
                 }
-                try vaultUXService.authorizeRead(
-                    name: name,
-                    allowStale: allowStale
-                )
-                let encrypted = try entryStore.load(name)
-                let keyData = try loadVaultKey(
-                    reason: "Unlock key vault to read '\(name)'."
-                )
-                let decrypted = try decryptSecret(encrypted, named: name, keyData: keyData)
-                return .success(try renderValue(for: encrypted.type, decryptedValue: decrypted))
+                return .success(try TOTPGenerator.normalizeBase32Seed(value.plaintext))
             case let .addManual(name, secret, type):
                 if let vaultMutator {
                     try vaultMutator.add(
@@ -1492,6 +1478,19 @@ public final class KeyServiceHandler {
         stateQueue.sync {
             currentKeychainMode
         }
+    }
+
+    private func readValue(name: String, allowStale: Bool) throws -> VaultReadValue {
+        if let vaultReader {
+            return try vaultReader.read(name: name, allowStale: allowStale)
+        }
+        try vaultUXService.authorizeRead(name: name, allowStale: allowStale)
+        let encrypted = try entryStore.load(name)
+        let keyData = try loadVaultKey(reason: "Unlock key vault to read '\(name)'.")
+        return try VaultReadValue(
+            type: encrypted.type,
+            plaintext: decryptSecret(encrypted, named: name, keyData: keyData)
+        )
     }
 
     private func normalizeSecret(_ secret: String, for type: SecretEntryType) throws -> String {
