@@ -8,6 +8,14 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## 0.4.0 authenticator setup secrets
+
+The release candidate is 0.4.0 build 40. Use `--totp-secret` consistently on `add`, `edit`, `get` and `copy` to save an authenticator setup secret or retrieve it for another app. Plain `get` and `copy` continue to return the current one-time code. Setup-secret reads use the existing authenticated session, as password reads do. A separate helper request prevents an older helper from treating a setup-secret read as an ordinary code read. The flag refuses ordinary password entries and retains the existing stale-read and history-verification rules.
+
+The existing `--totp` spelling remains accepted on `add` and `edit` for 0.4.0, with a deprecation warning on stderr. Help and completion advertise `--totp-secret`. Retire the alias in a later breaking release before 1.0. No storage-format change, new recovery ceremony or hardware-key administration is part of this feature. The documented PIN-dialog workaround remains a separate follow-up.
+
+[PR #97](https://github.com/tvr-works/key/pull/97) tracks release qualification. The scoped native check uses a separately identified signed Preview app and disposable TOTP data to check code and setup-secret output, clipboard behavior, alias compatibility and lock/reopen. Existing recovery and two-Mac lifecycle evidence remains applicable; this change does not repeat those hardware sessions. Final release qualification includes Stable Debug and Release product checks and CodeQL. Final package signature, notarization, Gatekeeper, checksum and Homebrew checks remain part of the operator runbook below.
+
 ## 0.3.1 recovery-format fix
 
 [Stable 0.3.1](https://github.com/tvr-works/key/releases/tag/v0.3.1) shipped November 10, 2026, as build 39. It fixes an enrolled Mac reporting “Newer authenticated vault history requires a newer version of Key” after another Mac enables recovery, even when both run 0.3.0. The receiving Mac verifies the signed format change against its trusted vault history, opens its own wrapped key, and checks that every entry kept its original value before accepting the new format. It can then catch up through later recovery-key registrations and continue ordinary reads and saves. Recovery registration does not need to be repeated.
@@ -26,9 +34,7 @@ The Air's first unlock reached the CLI's two-minute limit after delayed authenti
 
 [Stable 0.3.0](https://github.com/tvr-works/key/releases/tag/v0.3.0) shipped as build 38 with hardware recovery enabled. Both available Macs had existing Stable configurations, so the owner accepted the gap in testing the final Stable package from an unconfigured macOS account. The published Preview beta restored all 13 test entries and passed the edit, lock and reopen checks. Stable publication still required verification of the final ZIP's signature, helper permissions, notarization and checksum. The documented manual Cancel workaround for a lingering PIN dialog was accepted for 0.3.0 Stable and remains deferred to a later version.
 
-The unreleased 0.4.0 work adds `--totp-secret` consistently on `add`, `edit`, `get` and `copy`, so someone can move a saved authenticator to another app. Plain `get` and `copy` continue to return the current one-time code. Setup-secret reads use the existing authenticated session, as password reads do. A separate helper request prevents an older helper from treating a setup-secret read as an ordinary code read. The flag refuses ordinary password entries and retains the existing stale-read and history-verification rules.
-
-The existing `--totp` spelling remains accepted on `add` and `edit` for 0.4.0, with a deprecation warning on stderr. Help and completion advertise `--totp-secret`. Retire the alias in a later breaking release before 1.0. No storage-format change, new recovery ceremony or hardware-key administration is part of this feature. The documented PIN-dialog workaround remains a separate follow-up.
+The [0.4.0 candidate](#040-authenticator-setup-secrets) adds authenticator setup-secret export and one consistent flag spelling. Its release qualification is separate from the completed recovery lifecycle checks.
 
 ## 0.3.0 release preparation
 
