@@ -2,6 +2,35 @@ import Testing
 @testable import KeyCore
 
 struct CLIParserTests {
+    @Test(arguments: ["get", "copy"], [false, true])
+    func parsesSetupSecretReads(operation: String, stale: Bool) throws {
+        let flags = ["--totp-secret"] + (stale ? ["--allow-stale"] : [])
+        let expected: Command = operation == "get"
+            ? .getTOTPSecret(name: "account/mfa", allowStale: stale)
+            : .copyTOTPSecret(name: "account/mfa", allowStale: stale)
+        #expect(try CLIParser.parse(arguments: [operation, "account/mfa"] + flags) == expected)
+        #expect(try CLIParser.parse(arguments: [operation] + flags + ["account/mfa"]) == expected)
+    }
+
+    @Test(arguments: ["add", "edit"])
+    func canonicalSetupSecretFlagAndDeprecatedAliasHaveTheSameMeaning(operation: String) throws {
+        let expected: Command = operation == "add"
+            ? .add(name: "account/mfa", type: .totp)
+            : .edit(name: "account/mfa", type: .totp)
+        #expect(try CLIParser.parse(arguments: [operation, "--totp-secret", "account/mfa"]) == expected)
+        #expect(try CLIParser.parse(arguments: [operation, "--totp", "account/mfa"]) == expected)
+        #expect(throws: AppError.self) {
+            try CLIParser.parse(arguments: [operation, "--totp", "--totp-secret", "account/mfa"])
+        }
+    }
+
+    @Test(arguments: ["get", "copy"])
+    func oldWriteOnlyAliasIsNotAcceptedForReads(operation: String) {
+        #expect(throws: AppError.self) {
+            try CLIParser.parse(arguments: [operation, "--totp", "account/mfa"])
+        }
+    }
+
     @Test
     func parsesHelp() throws {
         let command = try CLIParser.parse(arguments: ["help"])

@@ -4,11 +4,15 @@ import Foundation
 /// Translates command-line syntax into requests without performing vault operations.
 public enum CLIParser {
     public static func parse(arguments: [String]) throws -> Command {
+        try parseWithWarnings(arguments: arguments).command
+    }
+
+    static func parseWithWarnings(arguments: [String]) throws -> (command: Command, warnings: [String]) {
         guard !arguments.isEmpty else { throw AppError.usage(usageText) }
         do {
             var parsed = try KeyArguments.parseAsRoot(arguments)
             if let request = parsed as? any CLIRequest {
-                return request.command
+                return (request.command, request.warnings)
             }
             if parsed is KeyArguments || !type(of: parsed).configuration.subcommands.isEmpty {
                 throw AppError.usage(KeyArguments.helpMessage(for: type(of: parsed), columns: helpColumns)
@@ -21,8 +25,8 @@ public enum CLIParser {
             do {
                 try parsed.run()
             } catch {
-                return .help(text: KeyArguments.fullMessage(for: error, columns: helpColumns)
-                    .trimmingCharacters(in: .newlines))
+                return (.help(text: KeyArguments.fullMessage(for: error, columns: helpColumns)
+                    .trimmingCharacters(in: .newlines)), [])
             }
             throw AppError.usage(usageText)
         } catch let error as AppError {
@@ -31,7 +35,7 @@ public enum CLIParser {
             let text = KeyArguments.fullMessage(for: error, columns: helpColumns)
                 .trimmingCharacters(in: .newlines)
             if KeyArguments.exitCode(for: error) == .success {
-                return .help(text: text)
+                return (.help(text: text), [])
             }
             throw AppError.usage(text)
         }
@@ -67,6 +71,11 @@ public enum CLIParser {
 /// These declarations describe syntax only; KeyCLIApplication owns execution.
 private protocol CLIRequest: ParsableCommand {
     var command: Command { get }
+    var warnings: [String] { get }
+}
+
+private extension CLIRequest {
+    var warnings: [String] { [] }
 }
 
 private struct KeyArguments: ParsableCommand {
@@ -140,6 +149,8 @@ private struct KeyArguments: ParsableCommand {
 
     struct ReadOptions: ParsableArguments {
         @Argument(help: "The saved entry name.") var name: String
+        @Flag(help: "Return the Base32 setup secret instead of a one-time code.")
+        var totpSecret = false
         @Flag(help: "Read the last complete version verified on this Mac, even if out of date.")
         var allowStale = false
     }
@@ -150,7 +161,11 @@ private struct KeyArguments: ParsableCommand {
             discussion: CLIHelp.read
         )
         @OptionGroup var entry: ReadOptions
-        var command: Command { .get(name: entry.name, allowStale: entry.allowStale) }
+        var command: Command {
+            entry.totpSecret
+                ? .getTOTPSecret(name: entry.name, allowStale: entry.allowStale)
+                : .get(name: entry.name, allowStale: entry.allowStale)
+        }
     }
 
     struct Copy: CLIRequest {
@@ -159,14 +174,28 @@ private struct KeyArguments: ParsableCommand {
             discussion: CLIHelp.read
         )
         @OptionGroup var entry: ReadOptions
-        var command: Command { .copy(name: entry.name, allowStale: entry.allowStale) }
+        var command: Command {
+            entry.totpSecret
+                ? .copyTOTPSecret(name: entry.name, allowStale: entry.allowStale)
+                : .copy(name: entry.name, allowStale: entry.allowStale)
+        }
     }
 
     struct WriteOptions: ParsableArguments {
         @Argument(help: "The entry name to save.") var name: String
         @Flag(help: "Store a Base32 authenticator setup secret to generate one-time codes.")
-        var totp = false
-        var type: SecretEntryType { totp ? .totp : .secret }
+        var totpSecret = false
+        @Flag(name: .customLong("totp"), help: .hidden)
+        var legacyTOTP = false
+        mutating func validate() throws {
+            guard !(totpSecret && legacyTOTP) else {
+                throw ValidationError("Use --totp-secret or its deprecated alias --totp, not both.")
+            }
+        }
+        var type: SecretEntryType { totpSecret || legacyTOTP ? .totp : .secret }
+        var warnings: [String] {
+            legacyTOTP ? ["Warning: --totp is deprecated. Use --totp-secret."] : []
+        }
     }
 
     struct Add: CLIRequest {
@@ -176,15 +205,17 @@ private struct KeyArguments: ParsableCommand {
         )
         @OptionGroup var entry: WriteOptions
         var command: Command { .add(name: entry.name, type: entry.type) }
+        var warnings: [String] { entry.warnings }
     }
 
     struct Edit: CLIRequest {
         static let configuration = CommandConfiguration(
             commandName: "edit", abstract: "Replace a saved secret or authenticator setup secret.",
-            discussion: CLIHelp.write + "\n\nUse --totp again when replacing an authenticator setup secret."
+            discussion: CLIHelp.write + "\n\nUse --totp-secret again when replacing an authenticator setup secret."
         )
         @OptionGroup var entry: WriteOptions
         var command: Command { .edit(name: entry.name, type: entry.type) }
+        var warnings: [String] { entry.warnings }
     }
 
     struct TransferOptions: ParsableArguments {

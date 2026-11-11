@@ -75,6 +75,23 @@ for columns in 40 60 80; do
   ' "$scratch/stdout"
 done
 
+# Authenticator flags use the same standard label and continuation columns.
+for columns in 40 60 80; do
+  for topic in get copy add edit; do
+    COLUMNS="$columns" "$cli" "$topic" --help >"$scratch/stdout"
+    awk '
+      /^OPTIONS:/ { inOptions = 1; next }
+      /^  --totp-secret / {
+        if (match($0, /(Return|Store)/) != 27) exit 1
+        seen++
+      }
+      inOptions && /^ +[^ -]/ { if (match($0, /[^ ]/) != 27) exit 1 }
+      /^  --totp / { exit 1 }
+      END { if (seen != 1) exit 1 }
+    ' "$scratch/stdout"
+  done
+done
+
 # Built-in help takes precedence, including over otherwise invalid input.
 "$cli" migrate --apply --help >"$scratch/stdout" 2>"$scratch/stderr"
 [[ ! -s "$scratch/stderr" ]]

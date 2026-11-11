@@ -120,11 +120,13 @@ case "${state}" in
         ;;
       get)
         _arguments \
+          '--totp-secret[print the Base32 authenticator setup secret]' \
           '--allow-stale[read the last complete trusted version while newer files are unavailable]' \
           '1:entry:_key_complete_entries'
         ;;
       copy)
         _arguments \
+          '--totp-secret[copy the Base32 authenticator setup secret]' \
           '--allow-stale[read the last complete trusted version while newer files are unavailable]' \
           '1:entry:_key_complete_entries'
         ;;
@@ -227,12 +229,12 @@ case "${state}" in
         ;;
       add)
         _arguments \
-          '--totp[store a Base32 authenticator setup secret]' \
+          '--totp-secret[store a Base32 authenticator setup secret]' \
           '1:path:_key_complete_paths'
         ;;
       edit)
         _arguments \
-          '--totp[store a Base32 authenticator setup secret]' \
+          '--totp-secret[store a Base32 authenticator setup secret]' \
           '1:entry:_key_complete_entries'
         ;;
       duplicate)

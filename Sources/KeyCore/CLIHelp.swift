@@ -244,21 +244,24 @@ enum CLIHelp {
     """
 
     static let read = """
+    For authenticators, get and copy return the current one-time code. Use --totp-secret to retrieve the Base32 setup secret for another authenticator app. Anyone with that secret can generate future codes.
+
     --allow-stale allows reading the last complete version already verified on this Mac when newer files are unavailable or have competing edits. The files for that verified version must still be available on this Mac; this option cannot restore missing files. The value may be out of date. It does not bypass failed security checks.
 
     Examples:
       \(KeyProductIdentity.currentProcess.cliExecutableName) get github/personal
       \(KeyProductIdentity.currentProcess.cliExecutableName) copy github/personal
+      \(KeyProductIdentity.currentProcess.cliExecutableName) copy --totp-secret github/mfa
     """
 
     static let write = """
     Type the secret at the hidden prompt, or pipe it through standard input. Do not put the secret in the command's arguments.
 
-    --totp stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL.
+    --totp-secret stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL. The older --totp spelling is deprecated.
 
     Examples:
       \(KeyProductIdentity.currentProcess.cliExecutableName) add github/personal
-      \(KeyProductIdentity.currentProcess.cliExecutableName) edit --totp github/mfa
+      \(KeyProductIdentity.currentProcess.cliExecutableName) edit --totp-secret github/mfa
     """
 
     static let unlock = """

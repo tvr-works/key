@@ -3,6 +3,26 @@ import Testing
 @testable import KeyCore
 
 struct UserFacingHelpTests {
+    @Test(arguments: ["add", "edit", "get", "copy"])
+    func authenticatorCommandsAdvertiseOneConsistentSetupSecretFlag(topic: String) throws {
+        let help = try #require(CLIParser.helpText(for: topic))
+        #expect(help.contains("--totp-secret"))
+        let words = help.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        if topic == "get" || topic == "copy" {
+            #expect(words.contains("current one-time code"))
+            #expect(words.contains("generate future codes"))
+        } else {
+            #expect(words.contains("older --totp spelling is deprecated"))
+        }
+        let io = MemoryIO(stdinIsTTY: false)
+        let app = KeyCLIApplication(transport: MemoryTransport { _ in
+            Issue.record("Help must not contact the helper")
+            return .failure("Unexpected request")
+        }, io: io, clipboard: MemoryClipboard())
+        #expect(app.run(arguments: [topic, "--help"]) == EXIT_SUCCESS)
+        #expect(io.stderr.isEmpty)
+    }
+
     @Test(arguments: [
         "init", "share", "config", "migrate", "status", "conflict", "get", "copy",
         "add", "edit", "duplicate", "rename", "remove", "unlock", "lock", "list", "version",
