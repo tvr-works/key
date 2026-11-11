@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0410001C0410001C0410001 /* CLIEntryCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0410002C0410002C0410002 /* CLIEntryCompletion.swift */; };
 		D60700000000000000000002 /* V3RecoverySameEpochCatchUpService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60700000000000000000001 /* V3RecoverySameEpochCatchUpService.swift */; };
 		D60800000000000000000002 /* V3RecoveryManifestReconciliation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60800000000000000000001 /* V3RecoveryManifestReconciliation.swift */; };
 		D60900000000000000000002 /* V3RecoveryMergeMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60900000000000000000001 /* V3RecoveryMergeMutation.swift */; };
@@ -276,6 +277,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C0410002C0410002C0410002 /* CLIEntryCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIEntryCompletion.swift; sourceTree = "<group>"; };
 		E8260002E8260002E8260002 /* KeyRecoveryTouchPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecoveryTouchPrompt.swift; sourceTree = "<group>"; };
 		D60700000000000000000001 /* V3RecoverySameEpochCatchUpService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoverySameEpochCatchUpService.swift; sourceTree = "<group>"; };
 		D60800000000000000000001 /* V3RecoveryManifestReconciliation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoveryManifestReconciliation.swift; sourceTree = "<group>"; };
@@ -548,6 +550,7 @@
 				DE09A18FF4CC11995E958F80 /* AppError.swift */,
 				A4030002A4030002A4030002 /* Base64URL.swift */,
 				FF28C31FF780A4FCCB3294D7 /* CLIParser.swift */,
+				C0410002C0410002C0410002 /* CLIEntryCompletion.swift */,
 				3A018DC5CEB04729B7533702 /* CLIHelp.swift */,
 				E1EE5012D730E62376078026 /* ClipboardWriting.swift */,
 				BA3251E5B71729E191F7889A /* Command.swift */,
@@ -1069,6 +1072,7 @@
 				3E06CBB9790C0F544B940F1B /* AppError.swift in Sources */,
 				A4030001A4030001A4030001 /* Base64URL.swift in Sources */,
 				B611695A8D40D95DE0EF69BD /* CLIParser.swift in Sources */,
+				C0410001C0410001C0410001 /* CLIEntryCompletion.swift in Sources */,
 				3A018DC5CEB04729B7533701 /* CLIHelp.swift in Sources */,
 				70A1989598F246AF88CA0C88 /* ClipboardWriting.swift in Sources */,
 				AC467D3A21454DE3CB9394E3 /* Command.swift in Sources */,

@@ -3,6 +3,7 @@
     "JSONCanonicalizationTests.CanonicalJSONTests",
     "KeyCoreTests.Base64URLTests",
     "KeyCoreTests.CLIParserTests",
+    "KeyCoreTests.CLIEntryCompletionTests",
     "KeyCoreTests.ConfigCompatibilityTests",
     "KeyCoreTests.CryptoAndStorageTests",
     "KeyCoreTests.KeyAppDiagnosticsCollectorTests",

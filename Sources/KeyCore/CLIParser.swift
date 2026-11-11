@@ -148,7 +148,7 @@ private struct KeyArguments: ParsableCommand {
     }
 
     struct ReadOptions: ParsableArguments {
-        @Argument(help: "The saved entry name.") var name: String
+        @Argument(help: "The saved entry name.", completion: CLIEntryCompletion.entries) var name: String
         @Flag(help: "Return the Base32 setup secret instead of a one-time code.")
         var totpSecret = false
         @Flag(help: "Read the last complete version verified on this Mac, even if out of date.")
@@ -182,7 +182,7 @@ private struct KeyArguments: ParsableCommand {
     }
 
     struct WriteOptions: ParsableArguments {
-        @Argument(help: "The entry name to save.") var name: String
+        @Argument(help: "The entry name to save.", completion: CLIEntryCompletion.paths) var name: String
         @Flag(help: "Store a Base32 authenticator setup secret to generate one-time codes.")
         var totpSecret = false
         @Flag(name: .customLong("totp"), help: .hidden)
@@ -219,8 +219,8 @@ private struct KeyArguments: ParsableCommand {
     }
 
     struct TransferOptions: ParsableArguments {
-        @Argument(help: "The existing entry name.") var source: String
-        @Argument(help: "The new entry name.") var destination: String
+        @Argument(help: "The existing entry name.", completion: CLIEntryCompletion.entries) var source: String
+        @Argument(help: "The new entry name.", completion: CLIEntryCompletion.paths) var destination: String
         @Flag(help: "Replace an existing destination without asking for confirmation.")
         var force = false
     }
@@ -248,7 +248,7 @@ private struct KeyArguments: ParsableCommand {
             commandName: "remove", abstract: "Delete an entry after confirmation.",
             discussion: "Key asks for confirmation in an interactive terminal. --force skips confirmation and is required when running non-interactively."
         )
-        @Argument(help: "The entry name to delete.") var name: String
+        @Argument(help: "The entry name to delete.", completion: CLIEntryCompletion.entries) var name: String
         @Flag(help: "Delete without asking for confirmation.") var force = false
         var command: Command { .remove(name: name, force: force) }
     }
