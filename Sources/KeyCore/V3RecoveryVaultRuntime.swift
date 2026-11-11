@@ -22,6 +22,7 @@ struct V3RecoveryVaultRuntime:
   private let unlockRuntime: V3RecoveryVaultUnlockRuntime
   private let reader: V3RecoveryReadOnlyVaultRuntime
   private let mutations: V3RecoveryVaultMutationService
+  private var continuation: V3DeviceWrappedVaultKeySessionStore.AuthenticationTicket?
   private let limits: V3ManifestRepositoryLimits
 
   init(
@@ -58,6 +59,14 @@ struct V3RecoveryVaultRuntime:
       registrationAnchorStore: registrationOwnershipStore,
       adoptionAnchorStore: adoptionOwnershipStore,
       cache: cache, limits: limits)
+  }
+
+  func continuingSession(
+    _ ticket: V3DeviceWrappedVaultKeySessionStore.AuthenticationTicket
+  ) -> Self {
+    var result = self
+    result.continuation = ticket
+    return result
   }
 
   func unlock() throws {
@@ -244,11 +253,11 @@ struct V3RecoveryVaultRuntime:
     explicitly: Bool = false, allowStale: Bool = false,
     _ operation: (Prepared, VaultTransactionOperationID) throws -> T
   ) throws -> T {
-    let admission = session.beginAuthentication()
+    let admission = continuation ?? session.beginAuthentication()
     return try translatingV3RecoveryRuntimeErrors {
       try mutationOwner.perform(.catchUpVault) { scope in
         let prepared = try prepare(
-          explicitly: explicitly, admission: admission,
+          explicitly: explicitly && continuation == nil, admission: admission,
           operationID: scope.operationID, allowStale: allowStale)
         let result = try operation(prepared, scope.operationID)
         try prepared.context.revalidate()
@@ -265,7 +274,7 @@ struct V3RecoveryVaultRuntime:
   ) throws -> T {
     try translatingV3RecoveryRuntimeErrors {
       let prepared = try prepare(
-        explicitly: false, admission: session.beginAuthentication(),
+        explicitly: false, admission: continuation ?? session.beginAuthentication(),
         operationID: operationID, allowStale: false)
       // The existing mutation reconciler distinguishes automatic merges from
       // unresolved conflicts. Do not reject every multi-head graph here.

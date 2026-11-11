@@ -139,6 +139,7 @@
     "KeyCoreTests.V3RecoveryCatchUpCoordinatorTests",
     "KeyCoreTests.V3RecoveryKeyTransitionCatchUpTests",
     "KeyCoreTests.V3RecoveryLifecycleIntegrationTests",
+    "KeyCoreTests.V3RecoveryProfileCatchUpTests",
     "KeyCoreTests.V3RecoveryVaultRuntimeTests",
     "KeyCoreTests.V3RecoveryVaultUnlockRuntimeTests"
   ],

@@ -255,7 +255,8 @@ struct V3DeviceWrappedVaultRuntime:
         session.sessionStatus(at: date)
     }
 
-    private func translatingUnlockErrors<Result>(
+    // Profile-selection admission shares the permanent runtime's response contract.
+    func translatingUnlockErrors<Result>(
         _ operation: () throws -> Result
     ) throws -> Result {
         do {
@@ -282,6 +283,8 @@ struct V3DeviceWrappedVaultRuntime:
             return nil
         }
         switch try catchUp() {
+        case .recoveryAdoption:
+            throw V3DeviceWrappedCatchUpError.upgradeRequired
         case .current:
             return nil
         case let .contentConflict(trusted, _, _):

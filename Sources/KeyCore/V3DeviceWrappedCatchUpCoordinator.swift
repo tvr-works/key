@@ -10,6 +10,7 @@ struct V3DeviceWrappedCatchUpProgress: Equatable, Sendable {
 }
 
 enum V3DeviceWrappedCatchUpCoordinatorOutcome: Equatable, Sendable {
+    case recoveryAdoption(V3DeviceWrappedTrustedCheckpoint, manifestData: Data)
     case current(
         V3DeviceWrappedTrustedCheckpoint,
         progress: V3DeviceWrappedCatchUpProgress
@@ -56,6 +57,8 @@ struct V3DeviceWrappedCatchUpAccessGate: Sendable {
             throw error
         }
         switch outcome {
+        case .recoveryAdoption:
+            throw V3DeviceWrappedCatchUpError.upgradeRequired
         case .current:
             return
         case .contentConflict:
@@ -222,6 +225,12 @@ struct V3DeviceWrappedCatchUpCoordinator: Sendable {
                 contentManifestCount += 1
             case let .advanceKey(manifestData, manifestDigest):
                 try requireAnotherStep(progress)
+                if (try? V3RecoveryManifestCodec().parseEnvelope(manifestData)) != nil {
+                    if let conflict = try terminalConflict(
+                        after: passedCheckpoints, trusted: trusted, progress: progress
+                    ) { return conflict }
+                    return .recoveryAdoption(trusted, manifestData: manifestData)
+                }
                 let advanced = try keyTransitionSteps.advanceOneEpoch(
                     manifestData: manifestData,
                     manifestDigest: manifestDigest

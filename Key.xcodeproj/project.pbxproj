@@ -48,6 +48,8 @@
 		D63E00000000000000000002 /* V3RecoveryVaultUnlockRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63E00000000000000000001 /* V3RecoveryVaultUnlockRuntime.swift */; };
 		D63F00000000000000000002 /* V3RecoveryReadOnlyVaultRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63F00000000000000000001 /* V3RecoveryReadOnlyVaultRuntime.swift */; };
 		D64000000000000000000002 /* V3RecoveryVaultRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D64000000000000000000001 /* V3RecoveryVaultRuntime.swift */; };
+		D99000000000000000000004 /* V3ProfiledVaultRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99000000000000000000003 /* V3ProfiledVaultRuntime.swift */; };
+		D99000000000000000000002 /* V3RecoveryProfileCatchUpService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99000000000000000000001 /* V3RecoveryProfileCatchUpService.swift */; };
 		D64100000000000000000002 /* KeyRecoveryRegistrationWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D64100000000000000000001 /* KeyRecoveryRegistrationWorkflow.swift */; };
 		C2EAB4DDA76C5C7140686CD3 /* KeyRecoveryRecipientRemovalWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7E8CAD8074C977EC06D9BE /* KeyRecoveryRecipientRemovalWorkflow.swift */; };
 		99DE329E8552181A762C7990 /* KeyRecoveryRecipientRemovalRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93FC8F2969EF7BCB69FAB956 /* KeyRecoveryRecipientRemovalRequest.swift */; };
@@ -316,6 +318,8 @@
 		D63E00000000000000000001 /* V3RecoveryVaultUnlockRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoveryVaultUnlockRuntime.swift; sourceTree = "<group>"; };
 		D63F00000000000000000001 /* V3RecoveryReadOnlyVaultRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoveryReadOnlyVaultRuntime.swift; sourceTree = "<group>"; };
 		D64000000000000000000001 /* V3RecoveryVaultRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoveryVaultRuntime.swift; sourceTree = "<group>"; };
+		D99000000000000000000003 /* V3ProfiledVaultRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ProfiledVaultRuntime.swift; sourceTree = "<group>"; };
+		D99000000000000000000001 /* V3RecoveryProfileCatchUpService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3RecoveryProfileCatchUpService.swift; sourceTree = "<group>"; };
 		D64100000000000000000001 /* KeyRecoveryRegistrationWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecoveryRegistrationWorkflow.swift; sourceTree = "<group>"; };
 		4D7E8CAD8074C977EC06D9BE /* KeyRecoveryRecipientRemovalWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecoveryRecipientRemovalWorkflow.swift; sourceTree = "<group>"; };
 		93FC8F2969EF7BCB69FAB956 /* KeyRecoveryRecipientRemovalRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecoveryRecipientRemovalRequest.swift; sourceTree = "<group>"; };
@@ -717,6 +721,8 @@
 				D63E00000000000000000001 /* V3RecoveryVaultUnlockRuntime.swift */,
 				D63F00000000000000000001 /* V3RecoveryReadOnlyVaultRuntime.swift */,
 				D64000000000000000000001 /* V3RecoveryVaultRuntime.swift */,
+				D99000000000000000000003 /* V3ProfiledVaultRuntime.swift */,
+				D99000000000000000000001 /* V3RecoveryProfileCatchUpService.swift */,
 				D64100000000000000000001 /* KeyRecoveryRegistrationWorkflow.swift */,
 				4D7E8CAD8074C977EC06D9BE /* KeyRecoveryRecipientRemovalWorkflow.swift */,
 				93FC8F2969EF7BCB69FAB956 /* KeyRecoveryRecipientRemovalRequest.swift */,
@@ -1234,6 +1240,8 @@
 				D63E00000000000000000002 /* V3RecoveryVaultUnlockRuntime.swift in Sources */,
 				D63F00000000000000000002 /* V3RecoveryReadOnlyVaultRuntime.swift in Sources */,
 				D64000000000000000000002 /* V3RecoveryVaultRuntime.swift in Sources */,
+				D99000000000000000000004 /* V3ProfiledVaultRuntime.swift in Sources */,
+				D99000000000000000000002 /* V3RecoveryProfileCatchUpService.swift in Sources */,
 				D64100000000000000000002 /* KeyRecoveryRegistrationWorkflow.swift in Sources */,
 				C2EAB4DDA76C5C7140686CD3 /* KeyRecoveryRecipientRemovalWorkflow.swift in Sources */,
 				99DE329E8552181A762C7990 /* KeyRecoveryRecipientRemovalRequest.swift in Sources */,
@@ -1414,7 +1422,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 9Q355KSV85;
@@ -1449,7 +1457,7 @@
 				KEY_QUALIFICATION_NAMESPACE = "";
 				KEY_VAULT_KEY_SERVICE = work.tvr.key.secure-vault;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1572,7 +1580,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 9Q355KSV85;
@@ -1601,7 +1609,7 @@
 				KEY_QUALIFICATION_NAMESPACE = "";
 				KEY_VAULT_KEY_SERVICE = work.tvr.key.secure-vault;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1742,7 +1750,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 9Q355KSV85;
@@ -1777,7 +1785,7 @@
 				KEY_QUALIFICATION_NAMESPACE = "";
 				KEY_VAULT_KEY_SERVICE = work.tvr.key.preview.secure-vault;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1825,7 +1833,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 9Q355KSV85;
@@ -1854,7 +1862,7 @@
 				KEY_QUALIFICATION_NAMESPACE = "";
 				KEY_VAULT_KEY_SERVICE = work.tvr.key.preview.secure-vault;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
