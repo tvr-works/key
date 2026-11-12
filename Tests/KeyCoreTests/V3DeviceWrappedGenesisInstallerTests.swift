@@ -342,7 +342,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
             Your original vault files were kept unchanged. No files were removed.
             Keep the original files while checking the migration. They do not receive later changes from the new vault and cannot restore access to it.
             Other Macs are not migrated automatically. Install a compatible release on them, then use `key help share` to add at least one other Mac before relying on the new vault.
-            If every enrolled Mac is lost, a backup of the vault folder alone cannot restore access.
+            Recovery after losing every enrolled Mac needs a previously registered hardware key and the complete encrypted vault. Migration did not register a recovery key. See `key recovery --help`.
 
             """)
     }

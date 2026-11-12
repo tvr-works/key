@@ -100,6 +100,10 @@ struct UserFacingHelpTests {
         #expect(migrate.contains("readable and writable until Key 1.0"))
         #expect(migrate.contains("explicit migration will remain available"))
         #expect(migrate.contains("upgrading directly from an older release"))
+        #expect(migrate.contains("hardware recovery key registered beforehand"))
+        #expect(migrate.contains("complete encrypted vault"))
+        #expect(migrate.contains("Migration does not register recovery keys"))
+        #expect(migrate.contains("key recovery --help"))
     }
 
     @Test

@@ -221,7 +221,7 @@ enum CLIHelp {
 
     Key retains the original files. Keep them while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. Other Macs are not migrated automatically; add them to the new vault using \(KeyProductIdentity.currentProcess.cliExecutableName) share --help after installing a compatible release.
 
-    Keep at least two active enrolled Macs. If all are lost, the new vault's files alone cannot restore access. No password, cloud, or support fallback is currently available.
+    Keep at least two Macs enrolled. Recovery after losing them all needs a hardware recovery key registered beforehand and the complete encrypted vault. Migration does not register recovery keys; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help. There is no password, cloud or support override.
 
     Legacy vaults remain readable and writable until Key 1.0. In 1.0, migrate before normal use; explicit migration will remain available, including when upgrading directly from an older release. The storage format number (v2) is separate from the Key app version.
     """
