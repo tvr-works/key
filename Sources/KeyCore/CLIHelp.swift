@@ -201,7 +201,9 @@ enum CLIHelp {
 
     The folder must already exist. This changes the path, not the vault's ID, and does not move files or join a different vault. Missing vault files or keys are errors; Key will not create replacements.
 
-    For device-enrolled vaults, put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode does not control their synchronization or device access. Key retains that setting for compatibility and omits it from config list for these vaults.
+    Device-enrolled vaults use vault-dir and a managed vault ID. Put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode applies only to older vaults.
+
+    Saving an older enrolled-vault config removes its obsolete mode field after keeping the original under legacy-configs beside config.toml. Reading settings never rewrites them.
 
     For older vaults, keychain-mode selects an existing local or icloud key. Key cannot create or replace synchronized keys: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys remain readable and migratable. Use \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help to prepare for migration; afterward, share the vault folder using your preferred file-sync provider.
 
@@ -227,7 +229,7 @@ enum CLIHelp {
     static let status = """
     Check whether your vault is ready to use, has missing files, or needs attention. This does not edit entries or resolve conflicts. Use either --json or --verbose, not both.
 
-    If files are unavailable, check your sync provider before retrying. Local APFS and iCloud Drive were directly validated for Stable 0.2.0. Other ordinary folder-backed providers may work, but are not directly validated. These results do not qualify new setup behavior in later builds.
+    If files are unavailable, check your sync provider before retrying. Local APFS and iCloud Drive have been directly tested. Other file-sync providers require compatible filesystem behavior and have not been directly tested.
 
     Troubleshooting: \(troubleshootingURL)
     """
@@ -257,7 +259,7 @@ enum CLIHelp {
     static let write = """
     Type the secret at the hidden prompt, or pipe it through standard input. Do not put the secret in the command's arguments.
 
-    --totp-secret stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL. The older --totp spelling is deprecated.
+    --totp-secret stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL.
 
     Examples:
       \(KeyProductIdentity.currentProcess.cliExecutableName) add github/personal

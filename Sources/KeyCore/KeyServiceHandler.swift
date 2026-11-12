@@ -220,7 +220,7 @@ public final class KeyServiceHandler {
                vaultID: vaultID, checkpoints: checkpointStore, source: objectStore, cache: cache
            ).profile {
             guard #available(macOS 26.0, *) else {
-                throw AppError.operationRefused("Recovery-capable vaults require macOS 26 or later in this experimental build.")
+                throw AppError.operationRefused("Recovery-enabled vaults require macOS 26 or later.")
             }
             if replacementAdmissionState != .inactive {
                 return KeyServiceHandler(
@@ -767,10 +767,8 @@ public final class KeyServiceHandler {
                 try setVaultDirectory(path)
                 return .success()
             case let .setKeychainMode(mode):
-                guard vaultReader == nil else {
-                    throw AppError.operationRefused(
-                        "Version 3 vaults use device enrollment, not a configurable Keychain mode. Use vault-dir to select storage, including iCloud Drive."
-                    )
+                guard configuredVaultID == nil, vaultReader == nil else {
+                    throw KeyConfiguration.legacyModeUnavailable
                 }
                 try setKeychainMode(mode)
                 return .success()

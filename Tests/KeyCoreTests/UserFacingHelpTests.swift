@@ -12,7 +12,8 @@ struct UserFacingHelpTests {
             #expect(words.contains("current one-time code"))
             #expect(words.contains("generate future codes"))
         } else {
-            #expect(words.contains("older --totp spelling is deprecated"))
+            #expect(words.contains("Supply the Base32 secret"))
+            #expect(!words.contains("older --totp spelling"))
         }
         let io = MemoryIO(stdinIsTTY: false)
         let app = KeyCLIApplication(transport: MemoryTransport { _ in

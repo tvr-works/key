@@ -29,11 +29,7 @@ public final class KeyCLIApplication {
     @discardableResult
     public func run(arguments: [String]) -> Int32 {
         do {
-            let parsed = try CLIParser.parseWithWarnings(arguments: arguments)
-            for warning in parsed.warnings {
-                io.writeStderr(warning + "\n")
-            }
-            return try execute(parsed.command)
+            return try execute(CLIParser.parse(arguments: arguments))
         } catch let error as AppError {
             io.writeStderr("\(error.localizedDescription)\n")
             return error.exitCode.rawValue

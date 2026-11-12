@@ -68,24 +68,18 @@ struct KeyCLIApplicationTests {
     }
 
     @Test(arguments: ["add", "edit"])
-    func deprecatedTOTPFlagWarnsOnlyOnStderr(operation: String) {
-        let transport = MemoryTransport { request in
-            let expected: KeyServiceRequest = operation == "add"
-                ? .addManual(name: "account/mfa", secret: "JBSWY3DPEHPK3PXP", type: .totp)
-                : .editManual(name: "account/mfa", secret: "JBSWY3DPEHPK3PXP", type: .totp)
-            #expect(request == expected)
-            return .success()
-        }
+    func removedTOTPFlagExplainsReplacementWithoutContactingHelper(operation: String) {
+        let transport = MemoryTransport { _ in Issue.record("Rejected flags must not contact the helper"); return .success() }
         let io = MemoryIO(stdinIsTTY: false, pipedInput: "jbsw y3dp ehpk 3pxp")
         let app = KeyCLIApplication(transport: transport, io: io, clipboard: MemoryClipboard())
-        #expect(app.run(arguments: [operation, "--totp", "account/mfa"]) == EXIT_SUCCESS)
+        #expect(app.run(arguments: [operation, "--totp", "account/mfa"]) == KeyExitCode.usage.rawValue)
         #expect(io.stdout.isEmpty)
-        #expect(io.stderr == "Warning: --totp is deprecated. Use --totp-secret.\n")
-        #expect(transport.requests.count == 1)
+        #expect(io.stderr.contains("--totp-secret"))
+        #expect(transport.requests.isEmpty)
     }
 
     @Test
-    func literalDeprecatedFlagAsEntryNameDoesNotWarn() {
+    func literalRemovedFlagAsEntryNameStillWorks() {
         let transport = MemoryTransport { request in
             #expect(request == .addManual(name: "--totp", secret: "value", type: .secret))
             return .success()

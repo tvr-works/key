@@ -4,15 +4,11 @@ import Foundation
 /// Translates command-line syntax into requests without performing vault operations.
 public enum CLIParser {
     public static func parse(arguments: [String]) throws -> Command {
-        try parseWithWarnings(arguments: arguments).command
-    }
-
-    static func parseWithWarnings(arguments: [String]) throws -> (command: Command, warnings: [String]) {
         guard !arguments.isEmpty else { throw AppError.usage(usageText) }
         do {
             var parsed = try KeyArguments.parseAsRoot(arguments)
             if let request = parsed as? any CLIRequest {
-                return (request.command, request.warnings)
+                return request.command
             }
             if parsed is KeyArguments || !type(of: parsed).configuration.subcommands.isEmpty {
                 throw AppError.usage(KeyArguments.helpMessage(for: type(of: parsed), columns: helpColumns)
@@ -25,8 +21,8 @@ public enum CLIParser {
             do {
                 try parsed.run()
             } catch {
-                return (.help(text: KeyArguments.fullMessage(for: error, columns: helpColumns)
-                    .trimmingCharacters(in: .newlines)), [])
+                return .help(text: KeyArguments.fullMessage(for: error, columns: helpColumns)
+                    .trimmingCharacters(in: .newlines))
             }
             throw AppError.usage(usageText)
         } catch let error as AppError {
@@ -35,7 +31,7 @@ public enum CLIParser {
             let text = KeyArguments.fullMessage(for: error, columns: helpColumns)
                 .trimmingCharacters(in: .newlines)
             if KeyArguments.exitCode(for: error) == .success {
-                return (.help(text: text), [])
+                return .help(text: text)
             }
             throw AppError.usage(text)
         }
@@ -71,11 +67,6 @@ public enum CLIParser {
 /// These declarations describe syntax only; KeyCLIApplication owns execution.
 private protocol CLIRequest: ParsableCommand {
     var command: Command { get }
-    var warnings: [String] { get }
-}
-
-private extension CLIRequest {
-    var warnings: [String] { [] }
 }
 
 private struct KeyArguments: ParsableCommand {
@@ -185,17 +176,7 @@ private struct KeyArguments: ParsableCommand {
         @Argument(help: "The entry name to save.", completion: CLIEntryCompletion.paths) var name: String
         @Flag(help: "Store a Base32 authenticator setup secret to generate one-time codes.")
         var totpSecret = false
-        @Flag(name: .customLong("totp"), help: .hidden)
-        var legacyTOTP = false
-        mutating func validate() throws {
-            guard !(totpSecret && legacyTOTP) else {
-                throw ValidationError("Use --totp-secret or its deprecated alias --totp, not both.")
-            }
-        }
-        var type: SecretEntryType { totpSecret || legacyTOTP ? .totp : .secret }
-        var warnings: [String] {
-            legacyTOTP ? ["Warning: --totp is deprecated. Use --totp-secret."] : []
-        }
+        var type: SecretEntryType { totpSecret ? .totp : .secret }
     }
 
     struct Add: CLIRequest {
@@ -205,7 +186,6 @@ private struct KeyArguments: ParsableCommand {
         )
         @OptionGroup var entry: WriteOptions
         var command: Command { .add(name: entry.name, type: entry.type) }
-        var warnings: [String] { entry.warnings }
     }
 
     struct Edit: CLIRequest {
@@ -215,7 +195,6 @@ private struct KeyArguments: ParsableCommand {
         )
         @OptionGroup var entry: WriteOptions
         var command: Command { .edit(name: entry.name, type: entry.type) }
-        var warnings: [String] { entry.warnings }
     }
 
     struct TransferOptions: ParsableArguments {
@@ -294,7 +273,7 @@ private struct KeyArguments: ParsableCommand {
         }
         struct Get: CLIRequest {
             static let configuration = CommandConfiguration(commandName: "get", abstract: "Print one setting.")
-            @Argument(help: "The setting name.") var name: Setting
+            @Argument(help: "The setting name. keychain-mode applies only to legacy vaults.") var name: Setting
             var command: Command { .config(.get(key: name.key)) }
         }
         struct Set: CLIRequest {
@@ -302,7 +281,7 @@ private struct KeyArguments: ParsableCommand {
                 commandName: "set", abstract: "Change a setting in existing configuration.",
                 discussion: "Changing vault-dir does not move files or join another vault. The complete vault must already exist at the new path. See \(KeyProductIdentity.currentProcess.cliExecutableName) config --help for details."
             )
-            @Argument(help: "The setting name.") var name: Setting
+            @Argument(help: "The setting name. keychain-mode applies only to legacy vaults.") var name: Setting
             @Argument(help: "The new directory path, or local/icloud for the legacy keychain-mode setting.") var value: String
             var command: Command { .config(.set(key: name.key, value: value)) }
         }

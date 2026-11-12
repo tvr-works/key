@@ -5,6 +5,27 @@ import Testing
 @testable import KeyCore
 
 struct ConfigCompatibilityTests {
+    @Test(arguments: [false, true], ["file", "directory"])
+    func linkedConfigsStayReadableButUpdatesCannotFollowThem(isV3: Bool, link: String) throws {
+        let fixture = try ConfigFixture(storedMode: "icloud", isV3: isV3)
+        defer { fixture.remove() }
+        let original = try Data(contentsOf: fixture.configURL)
+        let expected = try fixture.store.load()
+        let path = link == "file" ? fixture.configURL : fixture.configURL.deletingLastPathComponent()
+        let target = fixture.home.appendingPathComponent("dotfiles-config")
+        try FileManager.default.moveItem(at: path, to: target)
+        try FileManager.default.createSymbolicLink(at: path, withDestinationURL: target)
+        #expect(try fixture.store.load() == expected)
+        do {
+            _ = try fixture.store.setValue(fixture.root.path, for: .vaultDir)
+            Issue.record("A config save must not follow a redirected path")
+        } catch {
+            #expect(error.localizedDescription.contains("Keep the existing config"))
+        }
+        #expect(try Data(contentsOf: fixture.configURL) == original)
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: path.path) == target.path)
+    }
+
     @Test
     func migrationArchivesAnOmittedLegacyModeWithoutInventingOne() throws {
         let fixture = try ConfigFixture(storedMode: "omitted", isV3: false)
@@ -55,6 +76,20 @@ struct ConfigCompatibilityTests {
         #expect(throws: AppError.self) { try fixture.store.setValue("local", for: .keychainMode) }
         #expect(try Data(contentsOf: fixture.configURL) == original)
         #expect(try fixture.snapshots().isEmpty)
+    }
+
+    @Test(arguments: KeychainMode.allCases)
+    func selectedVaultCannotUseLegacyModeEvenWithoutAComposedReader(mode: KeychainMode) throws {
+        let fixture = try ConfigFixture(storedMode: "omitted", isV3: true)
+        defer { fixture.remove() }
+        let original = try Data(contentsOf: fixture.configURL)
+        let keys = MemoryVaultKeyStore()
+        let handler = KeyServiceHandler(keyStore: keys, entryStore: EntryStore(rootURL: fixture.root),
+                                       keychainMode: nil, configStore: fixture.store,
+                                       mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: ConfigFixture.vaultID)
+        #expect(handler.handle(.setKeychainMode(mode)).errorCode == .operationRefused)
+        #expect(keys.loadCount == 0 && keys.storeCount == 0 && keys.invalidateCount == 0)
+        #expect(try Data(contentsOf: fixture.configURL) == original)
     }
 
     @Test(arguments: ["archive", "config", "published"])
@@ -172,6 +207,29 @@ struct ConfigCompatibilityTests {
         #expect(try Data(contentsOf: fixture.configURL) == original)
     }
 
+    @Test(arguments: [false, true])
+    func targetReplacementDuringSaveCannotSelectIt(migrating: Bool) throws {
+        let fixture = try ConfigFixture(storedMode: "icloud", isV3: !migrating)
+        defer { fixture.remove() }
+        let original = try Data(contentsOf: fixture.configURL)
+        let root = fixture.root
+        let expected = try VaultRootDirectoryHandle(opening: root)
+        let store = KeyConfigStore(homeDirectoryURL: fixture.home, writeObserver: ConfigWriteObserver { phase in
+            guard case let .temporaryFileSynchronized(path) = phase, path == "config.toml" else { return }
+            try FileManager.default.moveItem(at: root, to: root.appendingPathExtension("original"))
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        })
+        #expect(throws: AppError.self) {
+            if migrating {
+                _ = try store.selectV3Vault(vaultID: ConfigFixture.vaultID, expectedRootHandle: expected, expectedKeychainMode: .icloud)
+            } else {
+                _ = try store.setValue(root.path, for: .vaultDir)
+            }
+        }
+        #expect(try Data(contentsOf: fixture.configURL) == original)
+        #expect(try Data(contentsOf: fixture.archiveURL(original)) == original)
+    }
+
     @Test
     func oldWriterDefaultCannotEraseOriginalICloudSnapshot() throws {
         let fixture = try ConfigFixture(storedMode: "icloud", isV3: false)
@@ -192,8 +250,7 @@ struct ConfigCompatibilityTests {
     }
 
     @Test(arguments: ["local", "icloud", "omitted"], ["local", "icloud", "omitted"])
-    func changedRetainedFieldStillInvalidatesSession(before: String, after: String) throws {
-        guard before != after else { return }
+    func helperChecksActualRetainedFieldWithoutInventingAMode(before: String, after: String) throws {
         let fixture = try ConfigFixture(storedMode: before, isV3: true)
         defer { fixture.remove() }
         let keys = MemoryVaultKeyStore()
@@ -202,8 +259,14 @@ struct ConfigCompatibilityTests {
                                         mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: ConfigFixture.vaultID)
         let modeLine = after == "omitted" ? "" : "keychain_mode = \"\(after)\"\n"
         try Data("vault_dir = \"\(fixture.root.path)\"\n\(modeLine)vault_id = \"\(ConfigFixture.vaultID)\"".utf8).write(to: fixture.configURL)
-        #expect(handler.handle(.status).errorCode == .operationRefused)
-        #expect(keys.invalidateCount == 1)
+        let response = handler.handle(.status)
+        if before == after {
+            #expect(response.errorCode == nil)
+            #expect(keys.invalidateCount == 0)
+        } else {
+            #expect(response.errorCode == .operationRefused)
+            #expect(keys.invalidateCount == 1)
+        }
     }
 
     @Test(arguments: ["local", "icloud", "omitted"], [false, true])
