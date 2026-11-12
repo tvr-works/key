@@ -1,10 +1,8 @@
 # Version 3 Vault Implementation Tracker
 
-This is the durable execution record for the file-backed, multi-device vault.
-It records only current decisions, work packages, acceptance gates, and PR
-state.
+This is the historical implementation record for the original file-backed, multi-device vault through 0.2.0. Its current-state labels and pending work describe that checkpoint. Device setup, hardware recovery and subsequent fixes have since shipped. Use the [roadmap](roadmap.md) for current work and the [release record](release.md) for publication and qualification results.
 
-## Current State
+## Recorded state through 0.2.0
 
 | Field | Value |
 |---|---|

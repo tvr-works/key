@@ -1,6 +1,8 @@
 # Version 3 Device-Wrapped Key Architecture
 
-Status: selected permanent design during the `0.2.0` alpha series. The
+The base device-enrollment design below remains the reference for its profile. Hardware recovery shipped later in 0.3.0 and is specified by the [recovery contract](piv-recovery-contract.md). Use the [roadmap](roadmap.md) for current work; the implementation history here describes the earlier 0.2.0 releases.
+
+Historical status: selected permanent design during the `0.2.0` alpha series. The
 `KEY-509` manifest, HPKE, one-device genesis, local cache, session unlock, and
 durable content-publication runtime are implemented and connected to the
 shipping helper. `ENR-510` first and later enrollment now use that permanent

@@ -8,9 +8,18 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
-## Next release
+## 0.5.0 configuration and CLI cleanup (unreleased)
 
-The [roadmap](roadmap.md) owns the proposed configuration cleanup and remaining path to 1.0. The implementation is not yet shipped, and no legacy write cutoff is announced. Keep its documentation and small release-tool maintenance changes in the same substantive PR.
+Device-enrolled vault settings now save only the folder and managed vault ID. A save that removes the old Keychain-mode field first keeps an exact private copy under `legacy-configs` beside the config file. Existing configs are not rewritten by reads, app startup or installing an update. The copies retain the original local/iCloud choice and extra fields; they do not contain the vault's entries or recover later changes. See [configuration cleanup](../README.md#configuration-cleanup-unreleased) for the location, privacy and failure guidance.
+
+Two deprecated CLI behaviors change in this candidate:
+
+- `config get keychain-mode` refuses for a device-enrolled vault, with a nonzero exit, empty stdout and an explanation on stderr. Legacy vaults keep their setting.
+- `--totp` is removed. Use `--totp-secret` consistently on add, edit, get and copy. The rejected option points to that spelling without contacting the helper. Ordinary get/copy still return the current one-time code.
+
+Config saves preserve observed filesystem/selection changes and refuse unsafe or changed retained copies. A failure after publication tells the user to inspect the saved settings instead of claiming no change occurred. Interrupted recovery remains resumable with the exact restore config written by 0.4.1; resuming does not rewrite that selected file or accept unrelated configurations.
+
+The shared `tvr-works-notary` profile replaces the project-specific release-tool default. Stable recovery guidance and historical architecture records now distinguish released behavior from earlier plans. No automatic vault migration, legacy write cutoff, hardware-key change or test-data deletion is included. The [roadmap](roadmap.md) owns the remaining path to 1.0. This candidate is local and unshipped; verification limits and remaining release gates must be reviewed before publication.
 
 ## 0.4.1 entry-name completion fix
 

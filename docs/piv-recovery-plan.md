@@ -1,6 +1,6 @@
 # PIV catastrophe recovery implementation plan
 
-Current status: November 10, 2026. Hardware recovery shipped in Stable 0.3.0. Stable 0.3.1 fixes ordinary access on an enrolled Mac after another Mac enables recovery; the published package passed both-Mac upgrade and real-vault verification with both recovery keys still registered. The [release record and 0.4.0 roadmap](release.md#stable-030-and-the-040-roadmap) own current work. The implementation milestones and acceptance records below preserve the earlier plan and its qualification limits.
+Current status: November 12, 2026. Hardware recovery shipped in Stable 0.3.0. Stable 0.3.1 fixed ordinary access on an enrolled Mac after another Mac enabled recovery; the published package passed both-Mac upgrade and real-vault verification with both recovery keys still registered. Stable is now 0.4.1. The [roadmap](roadmap.md) owns current work and the [release record](release.md) owns publication results. The implementation milestones and acceptance records below preserve the earlier plan and its qualification limits.
 
 The owner accepted manual Cancel for a lingering PIN dialog for 0.3.0 Stable and deferred reconsideration to a later version. Standalone old-binary execution, new hardware allocation for recovered-vault re-registration, native faults at every durable phase and physical certificate/reset exercises were omitted from the scoped release gates. Their software/source evidence and untested native boundaries remain recorded in the [readiness record](0.3.0-release-readiness.md).
 

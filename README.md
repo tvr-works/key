@@ -189,7 +189,19 @@ Sending a join request does not finish setup. After approval, `share accept` ver
 
 If initialization is interrupted, leave the destination and the local `v3-init-attempts` records beside `config.toml` intact. Run `key status` to check whether Key finished configuring the vault. If it did, continue using that vault after the helper restarts. If it did not, the attempt requires inspection; init refuses to start another identity in that same directory, even after it is renamed. This release of the implementation has no automatic resume or cleanup command. The records contain an operation ID, path, and filesystem identity, not secret keys, and remain as local receipts after success.
 
-Keep at least two Macs enrolled so one can add a replacement if the other is lost. Init does not add catastrophe recovery or require a YubiKey. Existing older vaults and their migration path remain supported. The retained `keychain_mode` setting does not need to be removed from existing configuration files.
+Keep at least two Macs enrolled so one can add a replacement if the other is lost. Init does not add catastrophe recovery or require a YubiKey. Existing older vaults and their migration path remain supported. Let Key manage the vault ID and compatibility fields; do not remove them manually.
+
+### Configuration cleanup (unreleased)
+
+The next release saves device-enrolled vault settings as `vault_dir` and a managed `vault_id`. It removes the obsolete `keychain_mode` field during a successful config save, after preserving the exact original. Init, enrollment and recovery create the shorter file directly. Installing an update or reading settings does not rewrite an existing config.
+
+Retained copies live at `~/Library/Application Support/Key/legacy-configs/<vault-id>/<digest>.toml`, or under `Key Preview` for Preview. They preserve the original folder, local/iCloud choice and extra settings. Key adds no vault secrets to them, but keep the copies private. They help inspect retained legacy data; they cannot recover later vault contents. Recovery still needs the complete encrypted vault plus an enrolled Mac or a registered recovery key. Key does not delete the copies automatically.
+
+`key config get keychain-mode` will refuse for device-enrolled vaults, with empty stdout and an explanation on stderr. The setting remains available for legacy vaults. The deprecated `--totp` alias will also be removed; use `--totp-secret` on add, edit, get and copy. Legacy vault reads and writes remain supported, with no write cutoff scheduled.
+
+If saving config fails, keep the config and retained copies and run `key config list` before retrying. A failed reply does not prove the save was never published. Missing or damaged config copies never trigger a different vault selection or key creation. See the [roadmap](docs/roadmap.md) for scope and release gates.
+
+Existing config symlinks remain readable. Updates require a regular config file in a real directory, so a save cannot follow a redirected path. If you manage config through dotfile links, back up the target and deliberately keep a regular local config before requesting an update; do not use init to replace an existing selection.
 
 ## How Key protects a vault
 

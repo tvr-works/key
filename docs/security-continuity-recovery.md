@@ -1,35 +1,18 @@
-# Security, Continuity, and Recovery
+# Security, continuity and recovery
 
-This is the user-facing security and recovery promise for Key version 3 in
-`0.2.0`.
+This is the security and recovery contract for device-enrolled vaults. Hardware recovery has been available since Stable 0.3.0. See the [recovery guide](recovery-user-guide.md) for setup and commands, and the [release record](release.md) for qualification results.
 
-## Storage Qualification
+## File delivery and verification
 
-Version 3 is directly qualified with vaults on local APFS and in iCloud Drive.
-Other ordinary folder-backed providers may work when they preserve the
-required filesystem semantics, but they have not been directly validated and
-are not covered by the `0.2.0` compatibility guarantee. Every configured root
-must still pass Key's containment, type, atomicity, hydration, and naming-safety
-checks. Key trusts only authenticated, content-addressed vault history; it
-never trusts provider ordering, timestamps, mutable metadata, or a claimed
-latest file.
+Device-enrolled vaults have been directly tested on local APFS and in iCloud Drive. Other file-sync providers need compatible filesystem behavior and have not been directly tested. Every configured root must still pass Key's containment, type, atomicity, hydration and naming-safety checks. Key trusts authenticated, content-addressed vault history; provider ordering, timestamps and a claimed latest file do not establish authority.
 
-Missing provider objects are treated as incomplete delivery. Normal reads and
-all writes fail closed until the authenticated state is complete. An explicit
-`--allow-stale` read may use only the last complete version already trusted on
-that Mac. Malformed, substituted, rolled-back, or authority-conflicting objects
-are security or recovery failures, not synchronization delays.
+Missing required objects prevent normal reads and writes from proceeding. An explicit `--allow-stale` read may use only the last complete version already trusted on that Mac. Malformed, substituted, rolled-back or authority-conflicting objects are security failures, not evidence that file syncing is merely slow. Key cannot prove that a provider has delivered every newer file or make it deliver deleted or withheld data.
 
-## Keep Two Enrolled Macs
+## Keep another Mac enrolled
 
-Keep at least two active enrolled Macs. Each active Mac holds its own
-non-exportable Secure Enclave identity and has equal authority to enroll a new
-Mac or revoke another one after local authentication and explicit review. A
-file provider cannot enroll, revoke, or impersonate a device.
+Each active Mac holds its own non-exportable Secure Enclave identity and has equal authority to enroll a new Mac or revoke another one after local authentication and explicit review. A file provider cannot enroll, revoke or impersonate a device.
 
-With one surviving active Mac, you can enroll a replacement for a lost or
-revoked Mac. With no surviving enrolled Mac, you cannot unlock or recover the
-vault.
+With one surviving active Mac, you can enroll a replacement for a lost or revoked Mac. Keep another Mac enrolled for ordinary continuity. Recovery after losing every enrolled Mac requires a hardware key registered before that loss and retained encrypted vault files.
 
 Inspect the authenticated roster with:
 
@@ -37,41 +20,24 @@ Inspect the authenticated roster with:
 key share devices
 ```
 
-## Invitations and Device Comparison
+## Invitations and device comparison
 
-An enrollment invitation lasts 10 minutes and is bound to one vault, trusted
-checkpoint, inviting identity, and new device. The joining Mac creates its own
-fresh identity and answers that exact invitation. Before approval, compare the
-displayed device pair and comparison code on the two Macs.
+An enrollment invitation lasts 10 minutes and is bound to one vault, trusted checkpoint, inviting identity and new device. The joining Mac creates its own fresh identity and answers that exact invitation. Before approval, compare the displayed device pair and comparison code on the two Macs.
 
-Provider delay does not extend an invitation or authorize a different
-ceremony. A joining Mac may finish only an exact approval that was durably
-prepared while the invitation was valid. Otherwise, create a new invitation.
+Provider delay does not extend an invitation or authorize a different ceremony. A joining Mac may finish only an exact approval that was durably prepared while the invitation was valid. Otherwise, create a new invitation.
 
-## Revocation and Replacement
+## Revocation and replacement
 
-Revoking a Mac rotates the vault key, re-encrypts the current snapshot, and
-omits the revoked identity from new key wrappers. The revoked Mac keeps any old
-material it already possessed, but it cannot open the new current snapshot or
-future history.
+Revoking a Mac rotates the vault key, re-encrypts the current snapshot and omits the revoked identity from new key wrappers. The revoked Mac keeps material it already possessed, but it cannot open the new current snapshot or future changes in that continuing vault.
 
-If the revoked Mac later returns, start a fresh invitation on a surviving
-active Mac and run the ordinary join command on the revoked Mac. Key displays a
-replacement review and requires the literal `REJOIN` confirmation before it
-removes only that Mac's unusable local enrollment state. It revalidates the
-invitation immediately before cleanup. If helper restart exceeds the bounded
-wait, rerun the same join command; enrollment resumes from the completed state
-without repeating cleanup.
+If the revoked Mac returns, start a fresh invitation on a surviving active Mac and run the ordinary join command on the revoked Mac. Key displays a replacement review and requires the literal `REJOIN` confirmation before removing only that Mac's unusable local enrollment state. It revalidates the invitation immediately before cleanup. If helper restart exceeds the bounded wait, rerun the same join command; enrollment resumes from the saved state without repeating cleanup.
 
-## What the Provider Cannot Recover
+## What backups and recovery keys provide
 
-iCloud Drive or local APFS stores encrypted entries, authenticated manifests,
-device public keys, and enrollment messages. It does not store the current
-vault key, a password-derived recovery key, cloud escrow, or a support
-override. Retained version 2 files can support migration rollback while you
-validate a migration, but they are not a recovery key for the version 3 vault.
+The vault folder contains encrypted entries, authenticated manifests, public metadata, per-device wrapped keys and, when recovery is enabled, encrypted recovery information. It does not contain a plaintext vault key, cloud escrow or a support override. The sync provider cannot grant access by itself.
 
-If every enrolled Mac and Secure Enclave identity is lost, the synchronized
-version 3 files are permanently unrecoverable in `0.2.0`. Key will not generate
-a replacement key, silently trust provider files, or offer a destructive
-repair that pretends otherwise.
+A registered recovery key can recover a retained vault without a surviving enrolled Mac. The hardware key does not hold the vault's entries: missing ciphertext still needs a file backup. Register independent primary and backup keys, keep them separately, and retain a separate backup of the complete encrypted vault. Ordinary access does not require either hardware key to stay connected.
+
+Retained legacy entries can support inspection of an earlier migration source, but they do not recover later changes in the enrolled vault. The same limit applies to retained configuration copies. Neither is a replacement for a vault backup or a current access credential.
+
+If every enrolled Mac is lost and no usable recovery key was registered beforehand, the encrypted vault files alone cannot restore access. Key will not generate a replacement key, silently trust provider files or offer a destructive repair that claims to recover the old contents.

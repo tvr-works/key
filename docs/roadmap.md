@@ -1,10 +1,10 @@
 # Roadmap
 
-Updated November 11, 2026. Stable is [0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1). This file owns the current plan; older design and qualification records describe the work at the time they were written.
+Updated November 12, 2026. Stable is [0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1). This file owns the current plan; older design and qualification records describe the work at the time they were written.
 
 ## Next release: configuration cleanup
 
-Working target: 0.5.0, because this changes deprecated CLI behavior. The scope below is a design, not implemented behavior or an announced legacy write cutoff. Keep the implementation, tests, release notes and small maintenance changes in one PR.
+Working target: 0.5.0, because this changes deprecated CLI behavior. The scope below is implemented locally on `codex/cli-config-cleanup` and remains unreleased. No legacy write cutoff is announced. Keep the implementation, tests, release notes and small maintenance changes in one PR.
 
 For a device-enrolled vault, the saved configuration should contain only its folder and vault ID. A local/iCloud Keychain choice does not control that vault's security or file syncing. The [configuration design](config-simplification-design.md#cfg-802-shorter-v3-file-with-a-bounded-legacy-path) specifies how to remove the leftover field without losing the old configuration needed to inspect retained legacy data.
 
@@ -18,9 +18,13 @@ For a device-enrolled vault, the saved configuration should contain only its fol
 
 Installing this release must not migrate a vault, change a recovery registration, administer a hardware key, or delete retained files. Older vaults remain readable and writable. No new persistent service, sync setting, vault format or recovery ceremony is needed.
 
-Implementation should proceed in local commits: configuration representation and preservation, helper/CLI integration, then compatibility tests and release documentation. Use temporary homes and synthetic entries. Signed checks, if needed, use a separate disposable Preview installation. Do not use the owner's real vault or physical keys to qualify this change.
+Local commits cover configuration preservation, helper/CLI integration, compatibility tests and release documentation. Verification uses temporary homes and synthetic entries. Signed checks, if needed, use a separate disposable Preview installation. Do not use the owner's real vault or physical keys to qualify this change.
 
 The required test matrix is in the configuration design. Release qualification must cover the shorter file, an already-migrated config retaining `icloud`, the old-writer round trip, failures before and after config publication, helper invalidation, and unchanged source entries. Run the usual PR checks and the migration-scale gate because migration selection changes. Choose live checks only for behavior that software tests cannot establish, particularly signed helper restart and reopening the saved selection.
+
+The released-source 0.4.1 probe passed the config round trip: the old writer reintroduced `local`, the new writer removed it, both exact config versions remained archived, and the selected vault ID stayed unchanged. The final 146 focused tests, 300-entry migration case, strict build, unsigned Preview bundle/help/Tab checks, script checks, lint and dependency verification passed.
+
+The broad software run was not clean: 31 tests failed around protected-file writes, and two wording assertions needed updating. The final focused run passed those updated assertions. An unchanged released-source test also reproduced a protected-write failure, but later the same native probe and all 31 tests passed on both versions without changing protection options. The condition is intermittent and its cause remains unresolved. Keep that limit visible; require a clean CI run and the scoped release checks before shipping.
 
 ## After that: retire ordinary legacy writes
 

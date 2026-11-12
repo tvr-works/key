@@ -1,6 +1,6 @@
 # Config simplification compatibility design
 
-Status on November 11, 2026: `CFG-801`, explicit init and directory-based joining have shipped, as has hardware recovery. Stable is 0.4.1. `CFG-802` remains unimplemented; its design below defines the next configuration cleanup. The [roadmap](roadmap.md) owns release scope. Earlier implementation and qualification notes below preserve their original context; they are not outstanding 0.3.0 release gates.
+Status on November 12, 2026: `CFG-801`, explicit init, directory-based joining and hardware recovery have shipped. Stable is 0.4.1. `CFG-802` is implemented locally on `codex/cli-config-cleanup` and remains unreleased, pending verification and release qualification. The [roadmap](roadmap.md) owns release scope. Earlier implementation and qualification notes below preserve their original context; they are not outstanding 0.3.0 release gates.
 
 ## Pre-change behavior and ownership
 
@@ -32,7 +32,7 @@ Introduce one internal active-authority value: v2 carries `KeychainMode`; v3 car
 
 Retain legacy mode for the codec and migration boundary, not v3 cryptography. Keep current emitted file bytes and source-mode values on ordinary writes, including migrated `icloud` selections. Preserve the helper's conservative mode-change check as a separate compatibility-field comparison. An explicit authority model is not permission to weaken existing guards.
 
-Implemented CLI contract:
+Shipped CLI contract through 0.4.1 (superseded by the unreleased CFG-802 behavior below):
 
 - `config list` reads one snapshot. V2 retains `vault-dir` and `keychain-mode`. V3 lists `vault-dir` only; help explains that enrollment supplies authority.
 - Explicit `config get keychain-mode` retains raw `local` or `icloud` stdout during deprecation for script compatibility. For v3, stderr explains that this is retained legacy metadata, not the active key-storage model.
@@ -109,11 +109,11 @@ After an interrupted acceptance, the same folder and exact ceremony can retry th
 
 ## CFG-802: shorter v3 file with a bounded legacy path
 
-Design decision, November 11, 2026. Working release target: 0.5.0. This section is an implementation contract, not a claim that the file or command behavior has changed.
+Design and local implementation, November 11, 2026. Working release target: 0.5.0. This section describes the unreleased code, not behavior installed by the published 0.4.1 package.
 
 ### File and CLI behavior
 
-The canonical v3 file contains `vault_dir` and `vault_id`, without `keychain_mode`. New init and enrollment write this representation. Migration and existing config setters use it when they next save a v3 selection. Loading config, status, completion, app launch and installing an update remain read-only. An existing longer config stays valid until an authorized save; there is no background upgrade and no new cleanup command.
+The canonical v3 file contains `vault_dir` and `vault_id`, without `keychain_mode`. New init, enrollment and recovery write this representation. Migration and existing config setters use it when they next save a v3 selection. Loading config, status, completion, app launch and installing an update remain read-only. An existing longer config stays valid until an authorized save; there is no background upgrade and no new cleanup command.
 
 | Alternative | Decision |
 |---|---|
@@ -122,6 +122,8 @@ The canonical v3 file contains `vault_dir` and `vault_id`, without `keychain_mod
 | Preserve the original config, then shorten it on an existing authorized save | Choose: reuses config ownership and restart behavior, leaves reads unchanged, and retains the exact old choice without making it current-vault authority. |
 
 Keep both old v3 modes readable, including `icloud`, and preserve rejection of malformed or duplicate fields. For v2 only, an omitted mode retains its historical `local` meaning. For v3, omitted mode means no legacy field was supplied; it must not become invented source-mode information.
+
+Preserve existing read compatibility for symlinked config files/directories. Writes require a regular file under a retained real directory and refuse redirected paths with guidance to preserve the existing config. Reading a dotfile link is not permission to rewrite its target or archive outside the product's local metadata directory.
 
 In the target release, `config get keychain-mode` on any v3 selection refuses with an operation-refused exit, empty stdout and a brief explanation: "This vault uses device enrollment. keychain-mode applies only to legacy vaults." V2 get/set/list keep their existing behavior. V3 set remains refused, including at the config-store boundary rather than only in the helper. `vault_id` remains managed by verified workflows.
 
@@ -154,6 +156,8 @@ An interruption before archive completion leaves the original config. An archive
 The current reader already accepts a v3 config without mode, but its old `config get keychain-mode` reports the default `local`, and an old writer puts that value back. That reported value is not source provenance. A later new writer must preserve that distinct file without replacing the earlier snapshot. Test the round trip using the released parser/writer behavior, including an original migrated `icloud` selection.
 
 The field removal does not change vault bytes, device identity, history or recovery registration. It does not make apps that lack support for recovery-enabled vaults compatible. Downgrading or restoring a config is not a supported method of recovering a current vault from older files.
+
+Recovery resume accepts the exact canonical restore config written by 0.4.1, including its `local` mode line, as well as the new shorter canonical config. The destination ID and directory identities must still match the owned preparation, and trust must be freshly verified. Resume keeps the exact existing bytes instead of rewriting them. Different mode values, whitespace changes, paths, IDs or unsafe objects remain refused; arbitrary equivalent TOML is not sufficient.
 
 Remove the v3 mode getter compatibility behavior and the deprecated `--totp` alias together in the proposed minor release, with explicit release notes and actionable errors. Keep Argument Parser's layout and the canonical `--totp-secret` flag. The v2 write cutoff and importer-only runtime transition remain later work with their own advance notice and qualification.
 
@@ -220,3 +224,20 @@ At this checkpoint, setup/config work was merged and 0.3.0 signed qualification 
 ## November 11 design baseline
 
 On branch `codex/config-retirement`, the unchanged production code passed 103 tests across `CryptoAndStorageTests`, `ConfigCompatibilityTests`, `VaultRootChangeCoordinationTests`, `V3LocalMigrationTests` and `CLIParserTests` using `swift test --no-parallel --force-resolved-versions --filter 'CryptoAndStorageTests|ConfigCompatibilityTests|VaultRootChangeCoordinationTests|V3LocalMigrationTests|CLIParserTests'`. These tests establish existing behavior, including both retained modes and mode-change invalidation. They do not verify the proposed `CFG-802` implementation. Fixtures used temporary homes and synthetic key providers; no installed app, real vault or physical key was involved.
+
+## Local implementation verification, November 12
+
+Source: `bc56824`, on the renamed `codex/cli-config-cleanup` branch. All fixtures used disposable homes, synthetic entries and software key providers. No installed application was launched or replaced, no real vault was selected, and no physical key was inspected or changed.
+
+| Check | Result and scope |
+|---|---|
+| Final focused Swift run | 146 tests in 11 suites passed. Covers config preservation/privacy, source/parent/target replacement, interrupted saves, old-writer output, helper invalidation, linked-config read compatibility, getter/flag refusals, init/enrollment selection, CLI wording and exact older restore-config continuation. |
+| Migration scale | The opt-in 300-entry mixed secret/TOTP case passed with unchanged legacy source bytes. This does not qualify native hardware or an installed app. |
+| Strict compilation | `swift build --build-tests --force-resolved-versions -Xswiftc -warnings-as-errors` passed for the final source. |
+| Unsigned Preview | Release build and bundle checks passed. Its bundled CLI passed standard help layout/width/output tests and real zsh Tab checks in temporary homes. The app/helper were not launched, installed or authenticated. |
+| Older source | A config-only probe built from released 0.4.1 source `027c845` accepted the shorter config and rewrote its default `local` field. The current writer removed it while preserving both exact versions and the selected vault ID. This is parser/writer qualification, not execution of the old shipping app. |
+| Repository checks | SwiftFormat, strict SwiftLint, 46 CI-script tests, release/Preview script fixtures, shell syntax, dependency pins and local documentation links passed. |
+
+The broad run exercised 1,919 tests across 155 suites, with the opt-in scale case intentionally skipped there. It reported 33 failing tests with 76 issues: two obsolete wording assertions, updated and passing in the final focused run, plus 31 tests failing around protected legacy-fixture writes. The same single protected-write failure reproduced against unchanged released source, and a standalone Foundation probe failed in three disposable locations. Later, without changing protection flags, the probe passed and the same 31 tests passed on both released and final current source. The cause of that intermittent local condition is unresolved. These reruns do not constitute one clean full-suite result; CI and release qualification remain required.
+
+Private local evidence is under `.build/config-cleanup-compatibility/` and `.build/verification/`; it is not a publication asset. The [roadmap](roadmap.md) retains the release gates. Do not repeat hardware registration or use the real vault to compensate for a software-fixture failure.

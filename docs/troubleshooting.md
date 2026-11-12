@@ -22,7 +22,7 @@ There is no general repair command for these failures. If the error gives no sup
 
 ## Interrupted setup or recovery
 
-Follow the failed command's resume instructions for the original attempt. For Preview recovery, see the [recovery guide](recovery-user-guide.md#if-recovery-is-interrupted). Use the same paths and IDs; do not start a replacement or delete saved records to retry.
+Follow the failed command's resume instructions for the original attempt; see the [recovery guide](recovery-user-guide.md#if-recovery-is-interrupted). Use the same paths and IDs; do not start a replacement or delete saved records to retry.
 
 If a PIN dialog remains after a timeout, cancel it without entering a PIN before continuing. If resume reports missing or changed records, stop and keep them intact. Save the error and app version as described above; repeated retries cannot recreate missing records.
 
@@ -32,4 +32,10 @@ Use an abandon command only when the error explicitly identifies an eligible ear
 
 A Mac that still has access can invite this one again; see `key share --help` or `key-preview share --help`.
 
-If no enrolled Mac is available, hardware recovery in 0.3 requires a key registered before access was lost and the encrypted vault files. See the [recovery guide](recovery-user-guide.md). Stable 0.2.0 predates hardware recovery. The vault folder alone cannot restore access; there is no password or support override.
+If no enrolled Mac is available, recovery requires a hardware key registered before access was lost and the encrypted vault files. See the [recovery guide](recovery-user-guide.md). The vault folder alone cannot restore access; there is no password or support override.
+
+## Configuration save could not be confirmed (unreleased cleanup)
+
+Run `key config list` to check which folder is currently selected. Keep the config file and any copies under `legacy-configs` beside it. Key preserves an older config before removing its obsolete Keychain-mode field; an unsafe, changed or oversized copy blocks that cleanup. Do not delete saved records or reinitialize the vault to bypass the error.
+
+If the error says the original could not be preserved, Key did not replace the active config. Other save errors can occur after publication, so check the saved settings before retrying. The retained copies contain configuration only; they cannot restore current vault contents. See [configuration cleanup](../README.md#configuration-cleanup-unreleased) for their location and limits.
