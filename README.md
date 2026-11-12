@@ -6,9 +6,17 @@ Key is a secret manager for macOS, used from your terminal. It combines familiar
 
 ## Quick start
 
-Stable 0.2.0 supports the everyday commands below. [Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) adds [first-time vault setup](#first-time-vault-setup), device enrollment from a synced folder, and hardware recovery. Use `key-preview` for the beta examples.
+[Stable 0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1) includes explicit setup, device enrollment, hardware recovery, authenticator setup-secret export and Tab completion. See the [roadmap](docs/roadmap.md) for planned work.
 
-After installing Key, add a secret from a secure prompt:
+After [installing and opening Key](#install-stable), create a new vault in an empty or missing directory:
+
+```sh
+key init ~/Key-vault
+```
+
+If you already have a vault, keep its configuration. To access one from another Mac, [join it](#enrolling-another-mac) instead of running init.
+
+Add a secret from a secure prompt:
 
 ```sh
 key add github/personal
@@ -31,16 +39,16 @@ key lock
 
 `key unlock` authenticates in advance. Otherwise, the first operation that needs key material prompts through macOS. Key Agent keeps an unlocked session copy in memory for a short idle window so separate CLI invocations can reuse it.
 
-To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format. Version 0.4.0 uses `--totp-secret`; 0.3.x uses `--totp`.
+To generate one-time codes (TOTP), save the authenticator setup secret in Base32 format:
 
 ```sh
 key add --totp-secret github/mfa
 key copy github/mfa
 ```
 
-With 0.4.0, use `key copy --totp-secret github/mfa` to move an authenticator to another app, or `key get --totp-secret github/mfa` to print its setup secret. Ordinary `get` and `copy` still return the current one-time code. Anyone with the setup secret can generate future codes. Setup-secret reads use the same authenticated vault session as password reads; they do not request fresh approval while that session remains unlocked.
+Use `key copy --totp-secret github/mfa` to move an authenticator to another app, or `key get --totp-secret github/mfa` to print its setup secret. Ordinary `get` and `copy` return the current one-time code. Anyone with the setup secret can generate future codes. Setup-secret reads use the same authenticated vault session as password reads; they do not request fresh approval while that session remains unlocked.
 
-The older `--totp` spelling on `add` and `edit` still works in 0.4.0 and prints a deprecation warning to stderr. It will be removed in a later breaking release before 1.0. Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
+The older `--totp` spelling on `add` and `edit` still works in 0.4.1 and prints a deprecation warning to stderr. Its removal is planned for the next configuration cleanup release; use `--totp-secret` in scripts now. Full `otpauth://` URLs are not accepted yet; provide only their `secret` value. Key intentionally has no built-in password generator, so any generator that writes to stdout can feed `key add` or `key edit`.
 
 Starting with 0.4.1, Tab completes commands, options, and saved entry names. For current-format vaults, suggestions use names last seen on this Mac without asking for authentication. Changes from another Mac appear after Key next opens the vault. Reading or copying an entry still uses the normal authentication and verification checks.
 
@@ -90,13 +98,13 @@ Install Stable for ordinary use. Key Stable and Key Preview are separate install
 
 | Channel | Current release | App and CLI | Homebrew cask | Purpose |
 |---|---|---|---|---|
-| Stable | `0.2.0` | `Key.app`, `key` | `key` | Ordinary use |
+| Stable | `0.4.1` | `Key.app`, `key` | `key` | Ordinary use |
 | Preview | `0.3.0-beta.1` | `Key Preview.app`, `key-preview` | `key@beta` | Isolated prerelease testing |
 
 Preview uses its own configuration, vault selection, and Keychain credentials.
 
 > [!IMPORTANT]
-> Keep at least two Macs enrolled in a device-enrolled vault. If every enrolled Mac and its access credentials are lost, the vault is permanently unrecoverable in `0.2.0`. A backup of the vault folder alone cannot restore access. There is no password, cloud escrow, support override, or hidden recovery path.
+> Keep another Mac enrolled for everyday continuity. To recover after losing every enrolled Mac, register recovery keys in advance and retain a separate backup of the complete encrypted vault. A vault-folder backup alone cannot restore access. See the [hardware recovery guide](docs/recovery-user-guide.md).
 
 ### Install Stable
 
@@ -185,7 +193,7 @@ Keep at least two Macs enrolled so one can add a replacement if the other is los
 
 ## How Key protects a vault
 
-Release channel and vault protection are separate choices. Stable `0.2.0` supports both protection models. New Stable vaults begin Keychain-backed, and upgrades preserve the existing Keychain-backed selection; installing the release never migrates a vault automatically. Moving to the device-enrolled model is a separate, explicit operation.
+Release channel and vault protection are separate choices. New vaults created with `key init` use device enrollment. Existing Keychain-backed vaults remain supported, and installing an update never migrates them automatically. Moving one to device enrollment is a separate, explicit operation.
 
 The on-disk names are format v2 and format v3, respectively. The rest of this README uses the descriptive model names because they express the security property that matters to a user:
 
@@ -199,7 +207,7 @@ The on-disk names are format v2 and format v3, respectively. The rest of this RE
 | Unlocked key | Reused briefly by Key Agent | Exists in plaintext only in Key Agent's short-lived memory session |
 | Provider history | Individually encrypted named files | Authenticated, immutable, content-addressed history |
 | Concurrency | Provider filesystem behavior | Automatic independent merges; explicit genuine-conflict resolution |
-| Device loss | Depends on the configured Keychain mode | Recoverable only while at least one enrolled Mac survives |
+| Device loss | Depends on the configured Keychain mode | Requires a surviving enrolled Mac, or a previously registered recovery key and retained vault files |
 
 A device-enrolled vault stores encrypted entries, authenticated manifests, public device metadata, and per-device vault-key wrappers in the selected folder. The provider can delay or omit files and deny service, but it cannot silently grant access or choose which history Key trusts.
 
@@ -219,7 +227,7 @@ Review the report, then create a migrated copy and use it on this Mac:
 key migrate --apply
 ```
 
-Migration moves from the older Keychain-backed format (v2) to the device-enrolled format (v3). Key keeps the original files unchanged and checks that this Mac can open the new vault before configuring it for future commands. Keep the original files while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. Stable `0.2.0` does not have a command to switch back automatically.
+Migration moves from the older Keychain-backed format (v2) to the device-enrolled format (v3). Key keeps the original files unchanged and checks that this Mac can open the new vault before configuring it for future commands. Keep the original files while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. There is no command to switch back automatically.
 
 Other Macs remain on their existing Keychain-backed state. Their later edits are not imported into the migrated snapshot. Enroll each additional Mac into the device-enrolled vault instead of migrating independent copies of the same vault.
 
@@ -298,7 +306,7 @@ Do not repoint one product at another product's live vault. If the default direc
 
 ## Command reference
 
-In 0.3, `key help` shows an overview. Use `key help init`, `key help share`, or `key <command> --help` for options, safety notes, and examples. Nested commands have their own help, such as `key share join --help` or `key help share join`; `-h` also works. These help topics are not available in Stable `0.2.0`. Storage-format numbers remain available in `key status --verbose` and JSON diagnostics; they describe vault compatibility, not the app version.
+`key help` shows an overview. Use `key help init`, `key help share`, or `key <command> --help` for options, safety notes, and examples. Nested commands have their own help, such as `key share join --help` or `key help share join`; `-h` also works. Storage-format numbers remain available in `key status --verbose` and JSON diagnostics; they describe vault compatibility, not the app version.
 
 Options can appear before or after positional arguments. Use `--` before a name or path that begins with a dash. Help takes precedence over other arguments and never starts a vault operation, even when the rest of the command is incomplete or invalid. Invalid operational commands still fail with the existing usage exit code; their error wording and usage layout now come from Swift Argument Parser. Supply `--name` exactly once and `--vault-dir` at most once where supported. Secrets still belong at the hidden prompt or on standard input, never in command arguments.
 

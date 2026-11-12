@@ -8,13 +8,17 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## Next release
+
+The [roadmap](roadmap.md) owns the proposed configuration cleanup and remaining path to 1.0. The implementation is not yet shipped, and no legacy write cutoff is announced. Keep its documentation and small release-tool maintenance changes in the same substantive PR.
+
 ## 0.4.1 entry-name completion fix
 
-The next release candidate is 0.4.1 build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
+[Stable 0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1) shipped November 11, 2026, as build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
 
 Argument Parser generates command, flag and filesystem completion from the CLI declarations. Release packaging generates the zsh script from the packaged CLI. CI exercises real Tab keystrokes in an isolated shell, including slash prefixes, source and destination names, spaces, punctuation, Unicode and filesystem arguments. The local signed Preview check also verified a real disposable `key list` → `fzf` → `key copy` workflow, cancellation without copying, and updated suggestions after rename and lock without starting the helper. The test finished locked; Stable, its configuration and the real vault matched the pre-test snapshot. No hardware key was used.
 
-This candidate still requires PR review and CI, shipping-package verification and publication before release.
+[PR #98](https://github.com/tvr-works/key/pull/98) merged after green CI and the completion compatibility fix. Release qualification passed Stable Debug/Release and CodeQL with zero findings. The shipping ZIP passed signature, notarization, Gatekeeper and checksum checks. GitHub publication and the [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/5) completed. The Mini was upgraded and passed exact-value comparison across lock/reopen, with unchanged configuration and encrypted files and both recovery registrations intact. Its installed completion passed an actual Tab check without starting the helper. Open a new terminal tab after upgrading to load the updated completion function. The Air was not upgraded in this work; neither physical key was used or changed.
 
 ## 0.4.0 authenticator setup secrets
 

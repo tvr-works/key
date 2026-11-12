@@ -1,6 +1,6 @@
 # Config simplification compatibility design
 
-Status on 2026-10-29: `CFG-801`, explicit init, and directory-based joining are merged in PR #67. Signed release qualification remains open in the [0.3.0 checklist](release.md#030-release-preparation). `CFG-802` remains proposed. This work ships independently of enabling catastrophe recovery; existing installed configurations are not automatically rewritten.
+Status on November 11, 2026: `CFG-801`, explicit init and directory-based joining have shipped, as has hardware recovery. Stable is 0.4.1. `CFG-802` remains unimplemented; its design below defines the next configuration cleanup. The [roadmap](roadmap.md) owns release scope. Earlier implementation and qualification notes below preserve their original context; they are not outstanding 0.3.0 release gates.
 
 ## Pre-change behavior and ownership
 
@@ -43,11 +43,11 @@ The v3 list change is observable and needs release notes and tests. Do not repla
 
 ## V2 retirement direction
 
-Planning direction agreed for the next development track on 2026-09-05: warn first, require explicit migration before further v2 writes later, and target v3-only normal operation by `1.0`. These are release gates, not an implemented cutoff or a promise tied to a date. The warning portion of `V2-801` and `key init [directory]` are implemented locally after `CFG-801`; signed-product and provider qualification remain pending. No v2 write restriction is implemented.
+Planning direction agreed on 2026-09-05: warn first, require explicit migration before further v2 writes later, and target v3-only normal operation by `1.0`. The warning and explicit init stages have shipped. No v2 write restriction is implemented or assigned to a release. The next configuration cleanup does not impose that cutoff.
 
 | Stage | Proposed behavior | Gate before release |
 |---|---|---|
-| Next minor | Announce v2 retirement when v2 is selected and direct users to `key migrate --check`. Add explicit v3 setup for new vaults once qualified. Existing v2 vaults remain usable. | Review warning text, CLI output compatibility, and the new-vault setup path. Do not simply change the current missing-ID fallback into implicit migration. |
+| Shipped warning/setup stage | Announce v2 retirement when v2 is selected and direct users to `key migrate --check`. Require explicit v3 setup for new vaults. Existing v2 vaults remain usable. | Completed for the released scope. Keep this warning until a separately announced cutoff. |
 | Later qualified minor | Refuse ordinary v2 content writes with a migration explanation. Keep reads, necessary unlock/authentication, diagnostics, and explicit migration available. | Qualify local/iCloud migration, interruptions, supported hardware checks, skipped-release upgrades, and multi-Mac enrollment. Publish the cutoff in advance. |
 | `1.0` target | Remove v2 from normal runtime and ordinary config choices; retain a narrowly scoped v2-to-v3 importer and a documented path for old installations. | Prove users can reach the importer without a working v2 normal runtime, identify their source mode, and recover from failed migration without source loss. |
 
@@ -65,7 +65,7 @@ Routine secret reads, copy, mutations, unlock/lock, migration commands, and raw 
 
 Migration remains explicit. Installing an update must not convert a vault, delete its old files or Keychain items, or silently block all access to its secrets. Users can skip the warning release, so later versions must explain the migration route themselves. Unsupported hardware or failed preflight must leave the source accessible through a documented compatible reader or migration path, not an automatic repair.
 
-Coordinate the other Macs before migration: they can otherwise keep writing to the old snapshot, and those edits do not enter v3. Require a clear continuity/recovery decision before enforcing the write cutoff. Hardware purchase is not a migration prerequisite, and catastrophe recovery remains disabled in shipping builds until its own gates pass.
+Coordinate the other Macs before migration: they can otherwise keep writing to the old snapshot, and those edits do not enter v3. Require a clear continuity/recovery decision before enforcing the write cutoff. Hardware purchase is not a migration prerequisite. Hardware recovery has shipped, but registration remains explicit and is not required to migrate.
 
 ### New-vault installer foundation
 
@@ -109,16 +109,68 @@ After an interrupted acceptance, the same folder and exact ceremony can retry th
 
 ## CFG-802: shorter v3 file with a bounded legacy path
 
-The target v3 file contains `vault_dir` and `vault_id`, without an apparent Keychain mode choice. Do not implement omission by defaulting retained state to `local`. Before removing the field, specify and test:
+Design decision, November 11, 2026. Working release target: 0.5.0. This section is an implementation contract, not a claim that the file or command behavior has changed.
 
-1. Prefer retaining source mode within an explicit legacy-source/import record or retained rollback config, rather than introducing permanent metadata infrastructure into the v3 runtime. Bind retained records to the source root and selected vault ID; never infer historical mode from the current folder. Exact storage and retention remain review decisions.
-2. Adoption of already-migrated Stable configs, including `icloud`, without inventing source history for enrollment-only configurations.
-3. Durable ordering: retain usable old state before simplifying config. Interruption leaves an old representation or a recoverable new one. Read-only helper checks do not rewrite files.
-4. Old reader/writer behavior: Stable defaults omitted mode to `local`, ignores unknown fields, and rewrites known fields. Test downgrade followed by an old writer. A renamed field alone does not preserve compatibility.
-5. Deliberate access to retained v2 data with the correct source mode. While v2 runtime remains supported, preserve the controlled rollback boundary and helper restart. After retirement, provide the documented importer/legacy-reader route instead of reinstating v2 as the ordinary runtime. Neither path may silently discard v3 identity or imply an old snapshot is current.
-6. Missing, malformed, stale, or conflicting provenance cannot trigger key creation, automatic v2 fallback, or trust adoption.
+### File and CLI behavior
 
-Retaining the field until the transition is qualified is intentional, not completion of persisted simplification. The retirement direction narrows the long-term compatibility boundary but does not make deleting the field safe today. V2 key decoding and local/iCloud source-key lookup remain necessary inside the importer after ordinary v2 operation is removed. The legacy `config get keychain-mode` compatibility behavior also needs an announced retirement point rather than an indefinite promise.
+The canonical v3 file contains `vault_dir` and `vault_id`, without `keychain_mode`. New init and enrollment write this representation. Migration and existing config setters use it when they next save a v3 selection. Loading config, status, completion, app launch and installing an update remain read-only. An existing longer config stays valid until an authorized save; there is no background upgrade and no new cleanup command.
+
+| Alternative | Decision |
+|---|---|
+| Rewrite existing files during load | Reject: turns diagnostics and ordinary startup into a persistent transition and can race the running helper. |
+| Add a cleanup command and a permanent provenance sidecar | Reject for this scope: adds a user step and ongoing runtime dependency for information needed only at the legacy boundary. |
+| Preserve the original config, then shorten it on an existing authorized save | Choose: reuses config ownership and restart behavior, leaves reads unchanged, and retains the exact old choice without making it current-vault authority. |
+
+Keep both old v3 modes readable, including `icloud`, and preserve rejection of malformed or duplicate fields. For v2 only, an omitted mode retains its historical `local` meaning. For v3, omitted mode means no legacy field was supplied; it must not become invented source-mode information.
+
+In the target release, `config get keychain-mode` on any v3 selection refuses with an operation-refused exit, empty stdout and a brief explanation: "This vault uses device enrollment. keychain-mode applies only to legacy vaults." V2 get/set/list keep their existing behavior. V3 set remains refused, including at the config-store boundary rather than only in the helper. `vault_id` remains managed by verified workflows.
+
+An existing config is shortened on its next successful save through those workflows. A deliberate `config set vault-dir` to the current directory can request a save through the existing helper path. It must preserve the selection and use the usual session invalidation/restart; it is not a way to join, migrate or repair a vault.
+
+### Retain exact configs before removing information
+
+Use exact config snapshots rather than a new permanent metadata service or a field renamed to `legacy_mode`. Before replacing a file that contains `keychain_mode`, retain its original bytes under this product's local App Support directory at `legacy-configs/<selected-vault-id>/<sha256-of-original-bytes>.toml`. Migration must retain its original v2 config before selecting the verified destination ID, even when the source omitted mode. New init and enrollment have no previous config to archive.
+
+The bytes retain the original configured root, explicit or omitted local/iCloud mode, old vault ID if present, comments and unknown fields. The containing directory associates that snapshot with the selected v3 ID. This is configuration preservation, not proof that a v3 config came from migration: previously enrolled-only configs also carried a mode, so do not label them as confirmed v2 sources. A digest names the exact bytes; it does not authenticate the source or authorize a rollback.
+
+Keep the directory private and snapshots owner-readable/writable only. Use the existing retained-directory/no-overwrite writer patterns, reject symlinks and nonregular objects, and verify an existing same-name snapshot against the expected bytes. Repeating the same save reuses the exact snapshot. A different old-writer result gets a different digest and cannot overwrite the earlier `icloud` snapshot. Limit each archived config to 1 MiB; an oversized source may still be read, but shortening it must refuse with inspection guidance and leave the active file unchanged. Never silently truncate it or remove unknown fields before preserving it.
+
+Archives are local and optional for ordinary v3 access. Missing or malformed archives cannot block an otherwise valid v3 vault, select v2, create a key, or adopt provider history. Inspect retained v2 data only through a deliberately selected compatible legacy reader/config; verify its actual source rather than trusting an archive filename. After ordinary v2 support is retired, provide the explicit importer route. Neither route treats old entries as the current vault or recovers changes made after migration.
+
+Do not delete snapshots automatically. Document their location and limits when the implementation ships. They contain no protected vault keys, but can contain personal paths and user-supplied unknown settings, so they must not be uploaded as routine diagnostics.
+
+### Ownership and interruption order
+
+`KeyConfigStore` continues to own parsing, snapshots and persistence. `ConfiguredVaultAuthority.v2` carries the effective legacy key mode; `.v3` carries only the selected vault ID. Represent the optional retained v3 field separately, and compare it in the running helper's selection snapshot. An external field removal or an old writer adding/changing it must still invalidate the session and refuse work until restart. Do not weaken the current mode-change guard merely because the field no longer controls v3 cryptography.
+
+The existing service-host request barrier serializes explicit configuration transitions, initialization, enrollment and migration. Retain expected root/config identity checks and selection validation. Changing the path while the old root is unavailable must still work through the existing correction path; archiving config must not require opening that unavailable old vault.
+
+For a save that removes legacy information: read and validate the expected config, durably install/verify its exact snapshot, recheck the expected selection and filesystem identities, then publish the shorter config through the existing atomic writer. Before migration selection, retain the original root/mode guards and verified destination reopen. The archive is a prerequisite for removing information, not a second commit record or authority for the vault.
+
+An interruption before archive completion leaves the original config. An archive without a new config is harmless and reusable. After config publication, restart opens only the selected v3 vault. A retry rechecks the actual saved state; it must not replay selection from an archive or launch a new migration. Refuse observed concurrent changes without overwriting them. The host barrier and rechecks do not claim to lock out an arbitrary external writer or sync process.
+
+### Older apps and intentional compatibility breaks
+
+The current reader already accepts a v3 config without mode, but its old `config get keychain-mode` reports the default `local`, and an old writer puts that value back. That reported value is not source provenance. A later new writer must preserve that distinct file without replacing the earlier snapshot. Test the round trip using the released parser/writer behavior, including an original migrated `icloud` selection.
+
+The field removal does not change vault bytes, device identity, history or recovery registration. It does not make apps that lack support for recovery-enabled vaults compatible. Downgrading or restoring a config is not a supported method of recovering a current vault from older files.
+
+Remove the v3 mode getter compatibility behavior and the deprecated `--totp` alias together in the proposed minor release, with explicit release notes and actionable errors. Keep Argument Parser's layout and the canonical `--totp-secret` flag. The v2 write cutoff and importer-only runtime transition remain later work with their own advance notice and qualification.
+
+### Required implementation coverage
+
+| Boundary | Required proof |
+|---|---|
+| Canonical writes | Init/enrollment omit mode; v2 still retains its actual choice; migration and root saves shorten v3 only after preservation. |
+| Read compatibility | Local, iCloud and omitted modes; both vault models; no byte rewrite, helper contact or invented v3 source mode. Invalid/duplicate fields retain their errors. |
+| Snapshot safety | Exact bytes including unknown fields; idempotent retry; original v2 omitted mode; previously enrolled-only v3; unsafe/mismatched archive objects; size limit; source/parent replacement and failed writes. |
+| Commit boundaries | Failure before archive, after archive and after config publication; no replacement of observed changed selection; no automatic selection or key creation from retained files. |
+| Session and root changes | External mode addition/removal/change still refuses; normal restart opens the same vault; deliberate correction works when the old root is unavailable. |
+| Older writer | A released writer reads the shorter file, adds `local`, and the new writer preserves it without losing the original `icloud` snapshot or selected ID. |
+| CLI | V3 getter refuses with empty stdout; v2 getter/setter remain compatible; removed `--totp` gives canonical-flag guidance; help/completions and secret stdout stay correct. |
+| Migration | Both source modes, missing existing source key, source/root changes, cancellation, selection interruption, verified reopen, and unchanged original entry bytes. |
+
+Start with the existing config, root-coordination, init, enrollment-selection, parser and migration suites. Use synthetic homes/keys and fault injection through existing storage seams. Run the full PR checks and the migration-scale gate before release. A separate signed disposable check must establish saved-selection reopen and helper restart if those paths change. Reuse qualified hardware-recovery behavior; no new physical-key ceremony is justified by a config-only change.
 
 ## Verification
 
@@ -137,7 +189,9 @@ Start with `CryptoAndStorageTests`, `VaultRootChangeCoordinationTests`, `KeyProd
 
 Preparation check on 2026-09-05: all 42 tests in those four suites passed. The initial sandbox run could not access Swift's compiler cache; the host-level rerun passed. This validates the existing baseline, not the proposed behavior. No full suite or release qualification was rerun for these documentation edits.
 
-## Unreleased change notes
+## Shipped CFG-801 behavior and historical verification
+
+The notes in this section describe the earlier implementation and its checks at the time. Later signed qualification and releases are recorded in [release.md](release.md). Their pending statements do not supersede the current release status.
 
 V3 `config list` now omits `keychain-mode`. Scripts explicitly requesting `config get keychain-mode` still receive the same raw value on stdout, with an explanation on stderr. Existing v2 config values remain compatible; terminal config listing now adds the retirement warning described above. Config mutation no longer creates a config or destination folder, and ordinary commands no longer create v2 keys. The persisted mode field remains for compatibility; users should not manually remove it as part of this update.
 
@@ -155,10 +209,14 @@ New-vault foundation verification on 2026-09-05: all 30 focused tests in three s
 
 Init-command verification on 2026-09-05: the initial focused run passed 57 tests in four suites. After adding config-directory replacement and concurrent-init tests, the complete serial suite passed all 791 tests in 74 suites. The CLI-to-host-to-installer tests exercised both current-directory initialization and creation of a named directory using software test identities and temporary homes, including verified genesis and final config selection without v2 bootstrap. Tests also cover durable refusal after restart/rename, existing and racing config writers, changed receipts, path escaping, request coding/authorization, and helper restart messaging. Unsigned Xcode CLI and full app/helper builds, both release-script suites, completion syntax, and whitespace checks passed. The full app build emitted only App Intents metadata-extraction warnings for targets without that framework. After targeted registration cleanup, a Launch Services inspection found no entries for the temporary app build. No installed product was launched or updated, and no live vault or hardware was used. Signed-helper authentication, real Secure Enclave creation, and iCloud interruption behavior for init remain unverified.
 
-## Next implementation boundary
+## Historical enrollment and explicit-setup checkpoint
 
 Directory-enrollment verification on 2026-09-05: all 812 tests in 76 suites passed with `swift test --no-parallel`. Focused checks cover both folder forms, relative paths with spaces, configured-root precedence, malformed-config refusal, request authorization, read-only discovery, no missing-folder creation, persistent invitation/root binding, and existing revoked-Mac rejoin behavior. The CLI-to-host-to-adoption test uses prebuilt signed joiner state and software identities to exercise both directory forms, helper restart, missing approval, a copied folder, a wrong comparison code, and retry after a consumed approval fails config selection. It verifies that the approved checkpoint/cache and unwrapped key are usable before config selection, without reading or writing a legacy vault key. The unsigned Xcode CLI build, release-script tests, Preview install safety tests, completion syntax, and whitespace checks passed. The earlier protected-file test failures did not reproduce in this run; their cause remains undiagnosed. No installed app, real vault, live config, or hardware was changed. Signed-helper authentication, real Secure Enclave enrollment, and iCloud interruption qualification remain pending.
 
 Explicit-setup verification on 2026-09-05: all 95 focused tests in seven suites passed, including no-config refusal, no key generation for empty local/iCloud v2 vaults, missing/replaced roots, lock/help/version before setup, and correction of a moved v2/v3 root without composing the old runtime. The unsigned CLI build, release-script tests, Preview install safety tests, and whitespace checks passed. The complete serial run executed 800 tests but failed with 65 issues across 30 tests. An untouched archive of the pre-change branch at `e31d345` reproduced those same 30 failing tests and per-test issue counts in its 791-test run. The failures originate in existing protected temporary-file writes and downstream assertions after those writes fail. The cause remains undiagnosed; file protection was not weakened, and this is not a clean full-suite or release qualification result. No installed app, live config, real vault, or hardware was used.
 
-The focused setup/config work is merged. Complete the [0.3.0 release checklist](release.md#030-release-preparation), including signed first-time setup and enrollment, helper restart, and provider interruption checks. Define the bounded legacy-source record needed for `CFG-802` separately. Keep v2 content-write enforcement, normal-runtime removal, automated failed-init recovery, and recovery enablement out of 0.3.0. No automatic format conversion, live-config rewrite, provider change, or YubiKey operation is part of this release preparation.
+At this checkpoint, setup/config work was merged and 0.3.0 signed qualification remained to do. Subsequent releases completed that work and enabled hardware recovery. V2 content-write enforcement, normal-runtime removal and automated failed-init recovery remain separate work; the current `CFG-802` design above replaces the earlier unspecified persistence follow-up.
+
+## November 11 design baseline
+
+On branch `codex/config-retirement`, the unchanged production code passed 103 tests across `CryptoAndStorageTests`, `ConfigCompatibilityTests`, `VaultRootChangeCoordinationTests`, `V3LocalMigrationTests` and `CLIParserTests` using `swift test --no-parallel --force-resolved-versions --filter 'CryptoAndStorageTests|ConfigCompatibilityTests|VaultRootChangeCoordinationTests|V3LocalMigrationTests|CLIParserTests'`. These tests establish existing behavior, including both retained modes and mode-change invalidation. They do not verify the proposed `CFG-802` implementation. Fixtures used temporary homes and synthetic key providers; no installed app, real vault or physical key was involved.
