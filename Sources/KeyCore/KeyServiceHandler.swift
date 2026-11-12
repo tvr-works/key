@@ -32,12 +32,13 @@ public final class KeyServiceHandler {
     )
     private let stateQueue = DispatchQueue(label: "work.tvr.key.service-handler")
     private var currentKeychainMode: KeychainMode
+    private let configuredKeychainModeField: KeychainMode?
     private var vaultRootChangePending = false
 
     public convenience init(
         keyStore: VaultKeyStoring,
         entryStore: EntryStore,
-        keychainMode: KeychainMode = .local,
+        keychainMode: KeychainMode? = .local,
         configStore: KeyConfigStore? = nil,
         cipher: VaultCipher = VaultCipher(),
         now: @escaping () -> Date = Date.init
@@ -62,7 +63,7 @@ public final class KeyServiceHandler {
     init(
         keyStore: VaultKeyStoring,
         entryStore: EntryStore,
-        keychainMode: KeychainMode = .local,
+        keychainMode: KeychainMode? = .local,
         configStore: KeyConfigStore? = nil,
         cipher: VaultCipher = VaultCipher(),
         now: @escaping () -> Date = Date.init,
@@ -104,7 +105,8 @@ public final class KeyServiceHandler {
         self.vaultSession = vaultSession
         self.configuredVaultID = configuredVaultID
         self.replacementAdmissionState = replacementAdmissionState
-        self.currentKeychainMode = keychainMode
+        self.currentKeychainMode = keychainMode ?? .local
+        self.configuredKeychainModeField = keychainMode
     }
 
     public static func live(bundle: Bundle = .main) throws -> KeyServiceHandler {
@@ -208,7 +210,7 @@ public final class KeyServiceHandler {
         if runtimeConfiguration.recoveryEnabled,
            [.cleanupPending, .enrollmentPending].contains(replacementAdmissionState) {
             return KeyServiceHandler(
-                keyStore: keyStore, entryStore: entryStore, configStore: configStore,
+                keyStore: keyStore, entryStore: entryStore, keychainMode: keyConfiguration.keychainMode, configStore: configStore,
                 mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: vaultID,
                 replacementAdmissionState: replacementAdmissionState)
         }
@@ -222,7 +224,7 @@ public final class KeyServiceHandler {
             }
             if replacementAdmissionState != .inactive {
                 return KeyServiceHandler(
-                    keyStore: keyStore, entryStore: entryStore, configStore: configStore,
+                    keyStore: keyStore, entryStore: entryStore, keychainMode: keyConfiguration.keychainMode, configStore: configStore,
                     mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: vaultID,
                     replacementAdmissionState: replacementAdmissionState)
             }
@@ -525,7 +527,7 @@ public final class KeyServiceHandler {
             ),
             loadV2VaultKey: { reason, createIfMissing in
                 try keyStore.loadKey(
-                    mode: keyConfiguration.keychainMode,
+                    mode: keyConfiguration.requireStoredKeychainMode(),
                     reason: reason,
                     createIfMissing: createIfMissing
                 )
@@ -534,7 +536,7 @@ public final class KeyServiceHandler {
                 _ = try configStore.selectV3Vault(
                     vaultID: vaultID,
                     expectedRootHandle: rootHandle,
-                    expectedKeychainMode: keyConfiguration.keychainMode
+                    expectedKeychainMode: keyConfiguration.requireStoredKeychainMode()
                 )
             }
         )
@@ -1229,7 +1231,7 @@ public final class KeyServiceHandler {
                 keychainMode: runningMode,
                 vaultID: configuredVaultID
               ),
-              configured.keychainMode == runningMode
+              configured.keychainMode == (configuredVaultID == nil ? runningMode : configuredKeychainModeField)
         else {
             keyStore.invalidate()
             throw AppError.operationRefused(

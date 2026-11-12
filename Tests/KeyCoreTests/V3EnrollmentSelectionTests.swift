@@ -19,6 +19,7 @@ struct V3EnrollmentSelectionTests {
         let select = try restarted.prepareEnrollmentSelection(rootHandle: root, invitationDigest: digest, vaultID: vaultID, create: false)
         try select(vaultID)
         #expect(try config.load().vaultID == vaultID)
+        #expect(try config.load().keychainMode == nil)
         #expect(try config.load().vaultDirectoryURL.standardizedFileURL == root.rootURL.standardizedFileURL)
         #expect(throws: AppError.self) { try select(vaultID) }
     }

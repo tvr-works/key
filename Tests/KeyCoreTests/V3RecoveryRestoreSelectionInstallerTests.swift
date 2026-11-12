@@ -18,6 +18,31 @@ struct V3RecoveryRestoreSelectionInstallerTests {
     .restoreVerified, .configurationSelected, .selectionConfirmed,
   ]
 
+  @Test(arguments: ["exact", "extra-newline", "icloud"])
+  func releasedRestoreConfigResumesOnlyItsExactHistoricalShape(variant: String) throws {
+    guard #available(macOS 26.0, *) else { return }
+    let h = try Harness()
+    defer { h.f.remove() }
+    let snapshot = try h.f.open()
+    _ = try h.select(snapshot: snapshot)
+    var bytes = try h.f.config.restoredVaultConfigurationData(
+      root: h.f.environment.destination.rootURL, vaultID: Base.vaultID, includingLegacyMode: true)
+    if variant == "extra-newline" { bytes.append(Data("\n".utf8)) }
+    if variant == "icloud" {
+      bytes = Data(String(decoding: bytes, as: UTF8.self).replacingOccurrences(of: "\"local\"", with: "\"icloud\"").utf8)
+    }
+    try bytes.write(to: h.configURL, options: .atomic)
+    let identityCalls = h.identity.calls.value
+    if variant == "exact" {
+      #expect(try h.select(snapshot: snapshot).wasAlreadySelected)
+      #expect(try h.f.config.load().keychainMode == .local)
+    } else {
+      #expect(throws: (any Error).self) { try h.select(snapshot: snapshot) }
+      #expect(h.identity.calls.value == identityCalls)
+    }
+    #expect(try Data(contentsOf: h.configURL) == bytes)
+  }
+
   @Test(arguments: [false, true])
   func selectsLastAndReconcilesExactSelectionWithFreshOrdinaryAccess(empty: Bool) throws {
     guard #available(macOS 26.0, *) else { return }
@@ -32,7 +57,7 @@ struct V3RecoveryRestoreSelectionInstallerTests {
     #expect(h.identity.calls.value == 2 && h.f.calls.value == calls)
     #expect(try Data(contentsOf: h.configURL) == h.configurationBytes())
     let config = try h.f.config.load()
-    #expect(config.vaultID == Base.vaultID && config.keychainMode == .local)
+    #expect(config.vaultID == Base.vaultID && config.keychainMode == nil)
     #expect(config.vaultDirectoryURL == h.f.environment.destination.rootURL)
     let before = try Base.files(h.f.configRootURL)
     let again = try h.select(snapshot: snapshot)
@@ -108,10 +133,7 @@ struct V3RecoveryRestoreSelectionInstallerTests {
       if variant == 5 { try bytes.write(to: external) }
       try FileManager.default.createSymbolicLink(at: h.configURL, withDestinationURL: external)
     default:
-      try Data(
-        String(decoding: bytes, as: UTF8.self)
-          .replacingOccurrences(of: "\"local\"", with: "\"icloud\"").utf8
-      ).write(to: h.configURL)
+      try (bytes + Data("\nkeychain_mode = \"icloud\"".utf8)).write(to: h.configURL)
     }
     #expect(throws: (any Error).self) { try h.select(snapshot: h.f.open()) }
     #expect(h.identity.calls.value == 0 && h.loader.calls.value == 0)

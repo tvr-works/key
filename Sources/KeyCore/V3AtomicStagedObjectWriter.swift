@@ -4,6 +4,7 @@ import System
 
 enum V3AtomicStagedObjectWritePhase: Equatable, Sendable {
     case temporaryFileSynchronized(destinationPath: String)
+    case replacementPublished(destinationPath: String)
 }
 
 protocol V3AtomicStagedObjectWriteObserving: Sendable {
@@ -16,10 +17,11 @@ struct V3NoopAtomicStagedObjectWriteObserver:
     func didReach(_: V3AtomicStagedObjectWritePhase) throws {}
 }
 
-/// Installs complete recovery bytes at one canonical staging path.
+/// Publishes complete bytes relative to a retained directory.
 ///
-/// The destination transitions atomically from absent to complete. An
-/// interruption can leave only a hidden, non-authoritative `.partial` file.
+/// Install is no-overwrite. Replacement requires the caller's explicit
+/// selection validation. An interruption before publication can leave only a
+/// hidden, non-authoritative `.partial` file.
 struct V3AtomicStagedObjectWriter: Sendable {
     private let rootHandle: VaultRootDirectoryHandle
     private let observer: any V3AtomicStagedObjectWriteObserving
@@ -36,6 +38,23 @@ struct V3AtomicStagedObjectWriter: Sendable {
     func install(
         _ data: Data, at path: String,
         beforePublication: () throws -> Void = {}
+    ) throws {
+        try publish(data, at: path, replacingExisting: false, beforePublication: beforePublication)
+    }
+
+    /// Replace only after the caller revalidates the existing selection. The
+    /// rename stays relative to the retained directory; it never follows a
+    /// substituted destination symlink.
+    func replace(
+        _ data: Data, at path: String,
+        beforePublication: () throws -> Void
+    ) throws {
+        try publish(data, at: path, replacingExisting: true, beforePublication: beforePublication)
+    }
+
+    private func publish(
+        _ data: Data, at path: String, replacingExisting: Bool,
+        beforePublication: () throws -> Void
     ) throws {
         try beforePublication()
         try rootHandle.withCreatedParentDescriptor(at: path) {
@@ -76,19 +95,21 @@ struct V3AtomicStagedObjectWriter: Sendable {
             while true {
                 try beforePublication()
                 // SAFETY: both names are validated terminal components in the
-                // same retained directory. `RENAME_EXCL` makes the complete,
-                // synchronized bytes visible without overwriting an existing
-                // recovery object.
+                // same retained directory. Install uses `RENAME_EXCL`;
+                // replacement revalidates its old selection above.
                 let result = unsafe renameatx_np(
                     parentDescriptor,
                     temporaryName,
                     parentDescriptor,
                     name,
-                    UInt32(RENAME_EXCL)
+                    replacingExisting ? 0 : UInt32(RENAME_EXCL)
                 )
                 if result == 0 {
                     temporaryFileExists = false
                     try synchronizeDirectory(parentDescriptor, path: path)
+                    if replacingExisting {
+                        try observer.didReach(.replacementPublished(destinationPath: path))
+                    }
                     return
                 }
 

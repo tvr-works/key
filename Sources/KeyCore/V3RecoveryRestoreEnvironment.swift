@@ -159,11 +159,23 @@ struct V3RecoveryRestoreEnvironment: Sendable {
     let root = try configStore.restoreCompletionRoot()
     let bytes = try configStore.restoredVaultConfigurationData(
       root: destination.rootURL, vaultID: vaultID)
-    let selected = try configurationPresent(root)
+    var selected: SelectedConfiguration?
+    if try configurationPresent(root) {
+      // A restore completed by an older app wrote the canonical local-mode
+      // line. Accept only that exact historical shape for this owned attempt;
+      // parsing arbitrary equivalent TOML would weaken exact-resume checks.
+      let legacy = try configStore.restoredVaultConfigurationData(
+        root: destination.rootURL, vaultID: vaultID, includingLegacyMode: true)
+      guard case let .available(observed) = try V3FilesystemTransactionArtifactStore(rootHandle: root)
+        .readRecoveryObject(at: "config.toml", maximumBytes: max(bytes.count, legacy.count)),
+        observed == bytes || observed == legacy
+      else { throw V3RecoveryRestoreError.configurationPresent }
+      selected = .init(vaultID: vaultID, bytes: observed)
+    }
     let environment = try Self(
       source: source, destination: destination, parent: parent, configuration: root,
       newDirectory: nil,
-      selectedConfiguration: selected ? .init(vaultID: vaultID, bytes: bytes) : nil)
+      selectedConfiguration: selected)
     try environment.requireCurrent(expected)
     return environment
   }
@@ -261,14 +273,18 @@ struct V3RecoveryRestoreEnvironment: Sendable {
   ) throws -> Self {
     let root = try configStore.restoreCompletionRoot()
     try locations.configuration.requireMatch(root)
-    let bytes = try configStore.restoredVaultConfigurationData(
+    var bytes = try configStore.restoredVaultConfigurationData(
       root: destination.rootURL, vaultID: vaultID)
     try requireCurrent(locations)
     try beforePublication()
     if let selectedConfiguration {
-      guard selectedConfiguration.vaultID == vaultID, selectedConfiguration.bytes == bytes else {
+      let legacy = try configStore.restoredVaultConfigurationData(
+        root: destination.rootURL, vaultID: vaultID, includingLegacyMode: true)
+      guard selectedConfiguration.vaultID == vaultID,
+        selectedConfiguration.bytes == bytes || selectedConfiguration.bytes == legacy else {
         throw V3RecoveryRestoreError.configurationPresent
       }
+      bytes = selectedConfiguration.bytes
     } else {
       try V3AtomicStagedObjectWriter(rootHandle: configuration, observer: writeObserver)
         .install(bytes, at: "config.toml") {

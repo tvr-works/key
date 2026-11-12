@@ -1196,12 +1196,7 @@ public final class KeyCLIApplication {
         switch command {
         case let .get(key):
             let configuration = try configStore.load()
-            io.writeStdout(configuration.value(for: key) + "\n")
-            if key == .keychainMode, case .v3 = configuration.authority {
-                io.writeStderr(
-                    "keychain-mode does not control access or file synchronization for this vault. Key retains it for compatibility. vault-dir specifies the folder used to store and synchronize vault files.\n"
-                )
-            }
+            io.writeStdout(try configuration.value(for: key) + "\n")
         case let .set(key, value):
             switch key {
             case .vaultDir:
