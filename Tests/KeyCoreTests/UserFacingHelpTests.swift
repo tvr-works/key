@@ -86,6 +86,10 @@ struct UserFacingHelpTests {
 
     @Test
     func helpStatesConsequencesInsteadOfPromisingRecovery() throws {
+        let overview = CLIParser.usageText.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(!overview.contains("Preview"))
+        #expect(overview.contains("hardware key registered beforehand"))
+        #expect(overview.contains("complete encrypted vault"))
         let share = try #require(CLIParser.helpText(for: "share")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(share.contains("any secrets and older vault data it already obtained"))
         #expect(share.contains("Stop if they differ"))

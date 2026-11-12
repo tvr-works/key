@@ -139,9 +139,9 @@ enum CLIHelp {
     static let overview = """
     Use \(KeyProductIdentity.currentProcess.cliExecutableName) init for a new vault, or \(KeyProductIdentity.currentProcess.cliExecutableName) share to join one from another Mac. Run \(KeyProductIdentity.currentProcess.cliExecutableName) <command> --help for options and examples.
 
-    Help, version, and lock work before setup. Most other commands need a configured vault. Joining and Preview recovery have their own setup steps; see \(KeyProductIdentity.currentProcess.cliExecutableName) share --help and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
+    Help, version, and lock work before setup. Most other commands need a configured vault. Joining and recovery have their own setup steps; see \(KeyProductIdentity.currentProcess.cliExecutableName) share --help and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
 
-    Keep at least two active enrolled Macs. If every enrolled Mac is lost, you cannot recover access from the vault folder alone. There is no password, cloud, or support override. Preview offers separately registered hardware recovery keys; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
+    Keep at least two Macs enrolled. Recovery after losing them all needs a hardware key registered beforehand and the complete encrypted vault; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help. There is no password, cloud or support override.
     """
 
     static let initialize = """
