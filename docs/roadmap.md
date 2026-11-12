@@ -45,6 +45,7 @@ The same branch also covers a wider source/tooling/documentation audit. This rem
 | Experimental recovery aliases and bundle override | Removed. Shipping and qualification builds use `KeyRecoveryEnabled`; qualification derives it from the explicit isolated-build choice and rejects stale flags or inconsistent components before installation. |
 | Homebrew token wrapper and root-only config accessor | Removed after confirming no callers. Release targeting still has one canonical resolver; the helper uses the complete runtime selection. |
 | Historical plans mixed into current docs | Moved under `docs/history/` with updated links and a historical notice. The documentation index identifies current guides, contracts and release ownership. |
+| Secret-scanner false positives after file/type renames | Kept exact-expression exceptions for the renamed synthetic fixture and the historical prose path. The scanner probe verifies both old/new document paths and continues to detect and redact removed synthetic credentials in every affected file. |
 
 All scripts were checked against repository callers; active build, install, release and qualification tools remain. The remaining one-reference app type is the SwiftUI entry point. The window-close delegate callback remains because AppKit invokes it. Two public library conveniences, `EntryStore.defaultRootURL` and `KeyConfigStore.listValues`, remain valid API; absence of repository callers alone does not prove external clients do not use them. No private helper without a lexical caller was found in the final source scan.
 

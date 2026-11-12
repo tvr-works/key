@@ -25,10 +25,17 @@ def main():
         marker = hashlib.sha256(b"key scanner synthetic canary").hexdigest()
         sample = work / "Sample.swift"
         sample.write_text(f'let apiKey = "{marker}"\n')
-        document = work / "docs/piv-recovery-plan.md"
-        document.parent.mkdir()
+        documents = [work / name for name in (
+            "docs/piv-recovery-plan.md", "docs/history/piv-recovery-plan.md")]
         prose = "incorrect current keys,\nmissing/corrupt local records and entry bytes\n"
-        document.write_text(prose + f'api_key = "{marker}"\n')
+        for document in documents:
+            document.parent.mkdir(parents=True, exist_ok=True)
+            document.write_text(prose + f'api_key = "{marker}"\n')
+        fixture = work / "Tests/KeyCoreTests/V3LegacyMutationCompatibilityTests.swift"
+        fixture.parent.mkdir(parents=True)
+        fixture_expression = ": ".join([
+            "vaultKey", ".".join(["V3LegacyMutationCompatibilityTests", "vaultKey"])]) + "\n"
+        fixture.write_text(fixture_expression + f'api_key = "{marker}"\n')
         diagnostics = [work / "Diagnostics" / name for name in (
             "signature-vector-comparison.swift", "signature-platform-comparison.swift")]
         diagnostics[0].parent.mkdir()
@@ -41,7 +48,9 @@ def main():
         git("add", ".")
         git("-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Add synthetic canary")
         sample.unlink()
-        document.write_text(prose)
+        for document in documents:
+            document.write_text(prose)
+        fixture.write_text(fixture_expression)
         for diagnostic in diagnostics:
             diagnostic.write_text(comparison)
         scanner_source.write_text(comparison)
@@ -56,8 +65,9 @@ def main():
         if result.returncode != 1 or not report.exists():
             raise RuntimeError("Scanner did not reject the synthetic commit history")
         findings = json.loads(report.read_text())
-        if len(findings) != 5 or {finding["File"] for finding in findings} != {
-            "Sample.swift", "docs/piv-recovery-plan.md",
+        if len(findings) != 7 or {finding["File"] for finding in findings} != {
+            "Sample.swift", "docs/piv-recovery-plan.md", "docs/history/piv-recovery-plan.md",
+            "Tests/KeyCoreTests/V3LegacyMutationCompatibilityTests.swift",
             "Diagnostics/signature-vector-comparison.swift",
             "Diagnostics/signature-platform-comparison.swift",
             "Tests/CIScripts/secret_scanner_probe.py",
