@@ -21,6 +21,8 @@ Config saves preserve observed filesystem/selection changes and refuse unsafe or
 
 The shared `tvr-works-notary` profile replaces the project-specific release-tool default. Stable recovery guidance and historical architecture records now distinguish released behavior from earlier plans. No automatic vault migration, legacy write cutoff, hardware-key change or test-data deletion is included. The [roadmap](roadmap.md) owns the remaining path to 1.0. This candidate is local and unshipped; verification limits and remaining release gates must be reviewed before publication.
 
+0.5 announces that normal legacy vault operations will end at 1.0. Legacy reads and writes remain supported until then; there is no intermediate read-only release. 1.0 will retain an explicit migration path, including for users upgrading directly from older versions. The standalone importer still needs implementation and qualification before normal legacy operations can be removed.
+
 The wider cleanup removes the unreachable alpha migration engine, unused runtime/catch-up wrappers, an unwired naming policy and a redundant Homebrew helper script. Historical data generators now live only in test support; their compatibility and shared filesystem fault coverage remains. Existing legacy vault readers, key lookup and explicit migration remain supported. The old `experimentalRecoveryEnabled` Swift aliases and `KeyExperimentalRecoveryEnabled` bundle override are retired; maintainers use `recoveryEnabled` and `KeyRecoveryEnabled`. Qualification builds still require an explicit isolated choice and verify both components before any installation. See the [audit record](roadmap.md#repository-cleanup-audit-november-12) and [documentation index](README.md).
 
 ## 0.4.1 entry-name completion fix

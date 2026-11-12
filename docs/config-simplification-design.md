@@ -43,21 +43,21 @@ The v3 list change is observable and needs release notes and tests. Do not repla
 
 ## V2 retirement direction
 
-Planning direction agreed on 2026-09-05: warn first, require explicit migration before further v2 writes later, and target v3-only normal operation by `1.0`. The warning and explicit init stages have shipped. No v2 write restriction is implemented or assigned to a release. The next configuration cleanup does not impose that cutoff.
+Plan updated November 12, 2026: announce retirement in 0.5, remove normal v2 operations at 1.0, and retain explicit migration. The warning and explicit init stages have shipped. Legacy reads and writes remain supported until 1.0; no intermediate read-only release is planned. The [roadmap](roadmap.md#legacy-retirement-05-notice-10-cutoff) owns this schedule.
 
 | Stage | Proposed behavior | Gate before release |
 |---|---|---|
-| Shipped warning/setup stage | Announce v2 retirement when v2 is selected and direct users to `key migrate --check`. Require explicit v3 setup for new vaults. Existing v2 vaults remain usable. | Completed for the released scope. Keep this warning until a separately announced cutoff. |
-| Later qualified minor | Refuse ordinary v2 content writes with a migration explanation. Keep reads, necessary unlock/authentication, diagnostics, and explicit migration available. | Qualify local/iCloud migration, interruptions, supported hardware checks, skipped-release upgrades, and multi-Mac enrollment. Publish the cutoff in advance. |
-| `1.0` target | Remove v2 from normal runtime and ordinary config choices; retain a narrowly scoped v2-to-v3 importer and a documented path for old installations. | Prove users can reach the importer without a working v2 normal runtime, identify their source mode, and recover from failed migration without source loss. |
+| Shipped warning/setup stage | Announce v2 deprecation when v2 is selected and direct users to `key migrate --check`. Require explicit v3 setup for new vaults. Existing v2 vaults remain usable. | Completed for the released scope. |
+| `0.5` retirement notice | Name 1.0 as the cutoff in the existing terminal warning and release guidance. Keep legacy reads, writes and explicit migration working. | Update warning copy and tests; document migration and the route for users who skip releases. |
+| `1.0` explicit migration only | Remove v2 from normal runtime and ordinary config choices; retain a narrowly scoped v2-to-v3 importer and a documented path for old installations. | Prove users can reach the importer without a working v2 normal runtime, identify their source mode, and recover from failed migration without source loss. Qualify local/iCloud migration, interruptions, unavailable hardware, skipped-release upgrades and multi-Mac enrollment. |
 
-Warnings must not contaminate secret stdout or machine-readable output, introduce surprise prompts in scripts, or change success exit codes during the warning stage. The diagnostic channel and frequency are defined below. Enforce any later write restriction in the helper, not just in CLI presentation. Classify administrative operations individually so the restriction does not block access or migration preparation.
+Warnings must not contaminate secret stdout or machine-readable output, introduce surprise prompts in scripts, or change success exit codes during the warning stage. The diagnostic channel and frequency are defined below. Enforce removal of normal legacy operations in the helper, not just in CLI presentation. Keep source inspection and authentication available through explicit migration.
 
 ### Implemented warning boundary
 
 The warning appears once on stderr for each v2 `key status` (including `--verbose`) or `key config list` invocation whose stdout is a terminal. `status --json` never emits it, even in a terminal. Redirected/piped stdout suppresses the retirement warning. No stored dismissal flag, timer, authentication, or migration operation is added.
 
-The message identifies v2 as deprecated, states that reads and writes remain supported, and points to the read-only `key migrate --check`. It says migration is explicit and asks users to review device enrollment and recovery. It gives no cutoff date or release number and does not claim that a particular unhealthy vault can be read or changed successfully.
+The implemented message identifies v2 as deprecated, states that reads and writes remain supported, and points to the read-only `key migrate --check`. It says migration is explicit and asks users to review device enrollment and recovery. It currently gives no cutoff date or release number; the planned 0.5 update will name 1.0. It must not claim that a particular unhealthy vault can be read or changed successfully.
 
 Status uses the helper's reported format without loading local config. Config listing uses one loaded configuration for both values and the warning decision. Missing or malformed payloads/configs keep their existing errors and do not produce an additional retirement warning. Human status health and exit codes remain unchanged.
 
@@ -159,7 +159,7 @@ The field removal does not change vault bytes, device identity, history or recov
 
 Recovery resume accepts the exact canonical restore config written by 0.4.1, including its `local` mode line, as well as the new shorter canonical config. The destination ID and directory identities must still match the owned preparation, and trust must be freshly verified. Resume keeps the exact existing bytes instead of rewriting them. Different mode values, whitespace changes, paths, IDs or unsafe objects remain refused; arbitrary equivalent TOML is not sufficient.
 
-Remove the v3 mode getter compatibility behavior and the deprecated `--totp` alias together in the proposed minor release, with explicit release notes and actionable errors. Keep Argument Parser's layout and the canonical `--totp-secret` flag. The v2 write cutoff and importer-only runtime transition remain later work with their own advance notice and qualification.
+Remove the v3 mode getter compatibility behavior and the deprecated `--totp` alias together in 0.5, with explicit release notes and actionable errors. Keep Argument Parser's layout and the canonical `--totp-secret` flag. Announce the 1.0 removal of normal legacy operations in 0.5; the importer-only runtime transition remains separate implementation and qualification work for 1.0.
 
 ### Required implementation coverage
 

@@ -197,7 +197,7 @@ The next release saves device-enrolled vault settings as `vault_dir` and a manag
 
 Retained copies live at `~/Library/Application Support/Key/legacy-configs/<vault-id>/<digest>.toml`, or under `Key Preview` for Preview. They preserve the original folder, local/iCloud choice and extra settings. Key adds no vault secrets to them, but keep the copies private. They help inspect retained legacy data; they cannot recover later vault contents. Recovery still needs the complete encrypted vault plus an enrolled Mac or a registered recovery key. Key does not delete the copies automatically.
 
-`key config get keychain-mode` will refuse for device-enrolled vaults, with empty stdout and an explanation on stderr. The setting remains available for legacy vaults. The deprecated `--totp` alias will also be removed; use `--totp-secret` on add, edit, get and copy. Legacy vault reads and writes remain supported, with no write cutoff scheduled.
+`key config get keychain-mode` will refuse for device-enrolled vaults, with empty stdout and an explanation on stderr. The setting remains available for legacy vaults. The deprecated `--totp` alias will also be removed; use `--totp-secret` on add, edit, get and copy. Legacy vault reads and writes remain supported in 0.5. Normal legacy operations will end at 1.0, with explicit migration retained for users upgrading from older releases.
 
 If saving config fails, keep the config and retained copies and run `key config list` before retrying. A failed reply does not prove the save was never published. Missing or damaged config copies never trigger a different vault selection or key creation. See the [roadmap](docs/roadmap.md) for scope and release gates.
 

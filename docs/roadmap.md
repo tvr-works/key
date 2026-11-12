@@ -4,7 +4,7 @@ Updated November 12, 2026. Stable is [0.4.1](https://github.com/tvr-works/key/re
 
 ## Next release: configuration cleanup
 
-Working target: 0.5.0, because this changes deprecated CLI behavior. The scope below is implemented locally on `codex/maintenance-cleanup` and remains unreleased. No legacy write cutoff is announced. Keep the implementation, tests, release notes and repository cleanup in one PR.
+Working target: 0.5.0, because this changes deprecated CLI behavior. The configuration and cleanup work below is implemented locally on `codex/maintenance-cleanup` and remains unreleased. This release will announce retirement of normal legacy vault operations at 1.0; legacy reads and writes remain supported throughout 0.5. Keep the implementation, tests, release notes and repository cleanup in one PR.
 
 For a device-enrolled vault, the saved configuration should contain only its folder and vault ID. A local/iCloud Keychain choice does not control that vault's security or file syncing. The [configuration design](config-simplification-design.md#cfg-802-shorter-v3-file-with-a-bounded-legacy-path) specifies how to remove the leftover field without losing the old configuration needed to inspect retained legacy data.
 
@@ -12,9 +12,10 @@ For a device-enrolled vault, the saved configuration should contain only its fol
 |---|---|
 | Stop writing `keychain_mode` for device-enrolled vaults | New setup, enrollment, migration and subsequent configuration saves produce the shorter file. Reading a config or installing an update never rewrites it. |
 | Preserve an existing config before shortening it | Keep an exact, private local copy, including the original local/iCloud value. An unsuccessful preservation step leaves the active config unchanged. This copy cannot recover later vault contents. |
-| Retire `config get keychain-mode` for device-enrolled vaults | Refuse with a short explanation and no stdout. Legacy vaults retain the setting until their migration path is retired. |
+| Retire `config get keychain-mode` for device-enrolled vaults | Refuse with a short explanation and no stdout. Legacy vaults retain the ordinary setting until 1.0; explicit migration must still interpret their source mode afterward. |
 | Remove the deprecated `--totp` alias | `--totp-secret` remains the single spelling on add, edit, get and copy. Explain the change in release notes and the rejected-flag error. |
 | Fold in maintenance | Use the verified shared `tvr-works-notary` profile, correct stale release/setup guidance, and record the published 0.4.1 result. |
+| Announce legacy retirement | Name 1.0 as the end of normal legacy vault operations and explain the retained explicit migration path. Update the existing terminal retirement warning and its tests before shipping 0.5; this notice update remains to be implemented. |
 
 Installing this release must not migrate a vault, change a recovery registration, administer a hardware key, or delete retained files. Older vaults remain readable and writable. No new persistent service, sync setting, vault format or recovery ceremony is needed.
 
@@ -26,11 +27,11 @@ The released-source 0.4.1 probe passed the config round trip: the old writer rei
 
 The broad software run was not clean: 31 tests failed around protected-file writes, and two wording assertions needed updating. The final focused run passed those updated assertions. An unchanged released-source test also reproduced a protected-write failure, but later the same native probe and all 31 tests passed on both versions without changing protection options. The condition is intermittent and its cause remains unresolved. Keep that limit visible; require a clean CI run and the scoped release checks before shipping.
 
-## After that: retire ordinary legacy writes
+## Legacy retirement: 0.5 notice, 1.0 cutoff
 
-The warning stage has shipped. Before disabling legacy content writes, announce the actual cutoff release and document the migration route for users who skip releases. Enforce the restriction in the helper; retain reads, authentication, diagnostics, root correction and explicit migration. Review administrative operations individually so the restriction cannot block migration preparation.
+0.5 announces the 1.0 cutoff while preserving existing legacy operations. At 1.0, remove legacy vaults from normal operation and ordinary configuration choices, and retain explicit migration. There is no separate read-only release between these stages.
 
-Qualify both legacy key-storage modes, interrupted migration, unavailable hardware, and moving the other Macs to the enrolled vault. Hardware-key purchase must not become a migration requirement. Do not combine this cutoff with the initial config cleanup merely to reach 1.0 sooner.
+Users who skip 0.5 must still receive actionable migration guidance in 1.0 and be able to migrate directly from an older installation. The importer requirements below are implementation and qualification gates for removing normal legacy operations.
 
 ## Repository cleanup audit, November 12
 
@@ -53,9 +54,11 @@ Supported legacy reads/writes, key lookup, migration preflight, device enrollmen
 
 Audit verification passed 127 compatibility, migration, catch-up and unlock tests plus 75 current publication, mutation and ownership tests. The strict Swift test build, unsigned Preview Release build and bundle, CLI help and real Tab-completion checks, formatting, static analysis, 47 CI-script tests, release/install-script checks and dependency verification passed. All 1,913 discovered test declarations belong to a configured CI group; all 321 checked relative Markdown file links resolve. These targeted results do not replace the clean CI run required above. No installed app, real vault or physical key was used.
 
-## Before 1.0
+## 1.0: explicit migration only
 
 Remove legacy vaults from normal operation and normal configuration choices. Keep a narrow, explicit importer that can inspect and migrate an existing legacy config without starting the ordinary legacy runtime. Prove that the importer can load an existing local/iCloud source key without creating or replacing it, preserve source bytes on failure, verify the destination before selecting it, and serve users upgrading directly from older releases. Existing migration code and tests are the starting point; the importer-only entry point still needs implementation and qualification.
+
+Enforce the removal in the helper as well as the CLI. Qualify both legacy key-storage modes, interrupted migration, unavailable hardware and moving the other Macs to the enrolled vault. Keep the source files and keys intact; document a compatible-reader route when migration cannot proceed. Hardware-key purchase must not become a migration requirement.
 
 The config archive is migration/inspection information, not a second authority for the enrolled vault. Losing or changing it must never cause automatic legacy fallback, key creation or trust adoption. Recovery of the current vault continues to require an enrolled Mac or a previously registered recovery key plus retained vault files.
 
