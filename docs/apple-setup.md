@@ -100,10 +100,10 @@ For local development, Debug builds can remain automatic and use `Apple Developm
 
 Releases use `notarytool`, not the old `altool` workflow.
 
-Create a local keychain credential profile once:
+Key uses the shared local credential profile `tvr-works-notary`. Reuse it across projects signed by the same Apple Developer team. If it is already configured on this Mac, no setup change is needed. On a new Mac, create it once:
 
 ```bash
-xcrun notarytool store-credentials "key-notary" \
+xcrun notarytool store-credentials "tvr-works-notary" \
   --apple-id "you@example.com" \
   --team-id "9Q355KSV85" \
   --password "APP_SPECIFIC_PASSWORD"
@@ -114,11 +114,9 @@ The `APP_SPECIFIC_PASSWORD` is an Apple app-specific password from your Apple ac
 - go to [account.apple.com](https://account.apple.com)
 - open `Sign-In and Security`
 - open `App-Specific Passwords`
-- generate one for notarization, for example `key-notary`
+- generate one for notarization, for example `tvr-works-notary`
 
-The release script uses that profile here:
-
-- [build-release.sh](../scripts/build-release.sh)
+Both [build-release.sh](../scripts/build-release.sh) and [notarize-release.sh](../scripts/notarize-release.sh) use this profile. This name selects the credentials used to contact Apple; it does not change app signing identities, entitlements or vault configuration.
 
 ## Release flow
 

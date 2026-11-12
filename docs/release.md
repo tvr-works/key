@@ -421,5 +421,5 @@ Use `just verify-release ...` after notarization and stapling if you want the fu
 
 ## Notarize and staple
 
-`just build-release <tag>` uses the `key-notary` `notarytool` keychain profile directly.
+`just build-release <tag>` uses the `tvr-works-notary` `notarytool` keychain profile directly.
 See [apple-setup.md](apple-setup.md) for the one-time `notarytool store-credentials` command and where to create the Apple app-specific password.

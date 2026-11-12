@@ -6,7 +6,7 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
-notary_profile="key-notary"
+notary_profile="tvr-works-notary"
 archive_path="$1"
 zip_path="${archive_path%.*}.zip"
 

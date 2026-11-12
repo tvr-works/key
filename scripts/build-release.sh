@@ -29,7 +29,7 @@ esac
 
 repo_root="$(cd "${script_dir}/.." && pwd)"
 "${script_dir}/verify-release-source.sh" "${version}"
-notary_profile="key-notary"
+notary_profile="tvr-works-notary"
 release_root="${HOME}/Library/Developer/Xcode/Releases/key/${version}"
 archive_path="${release_root}/${archive_name}"
 staging_app="${release_root}/${app_name}"

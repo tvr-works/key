@@ -117,7 +117,7 @@ verify-signing app_path:
 verify-release app_path:
   scripts/verify-release.sh "{{app_path}}"
 
-# Notarize and staple an existing Xcode archive using the key-notary profile.
+# Notarize and staple an existing Xcode archive using the tvr-works-notary profile.
 notarize archive_path:
   scripts/notarize-release.sh "{{archive_path}}"
 
