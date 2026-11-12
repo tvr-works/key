@@ -4,7 +4,7 @@ Updated November 12, 2026. Stable is [0.4.1](https://github.com/tvr-works/key/re
 
 ## Next release: configuration cleanup
 
-Working target: 0.5.0, because this changes deprecated CLI behavior. The scope below is implemented locally on `codex/cli-config-cleanup` and remains unreleased. No legacy write cutoff is announced. Keep the implementation, tests, release notes and small maintenance changes in one PR.
+Working target: 0.5.0, because this changes deprecated CLI behavior. The scope below is implemented locally on `codex/maintenance-cleanup` and remains unreleased. No legacy write cutoff is announced. Keep the implementation, tests, release notes and repository cleanup in one PR.
 
 For a device-enrolled vault, the saved configuration should contain only its folder and vault ID. A local/iCloud Keychain choice does not control that vault's security or file syncing. The [configuration design](config-simplification-design.md#cfg-802-shorter-v3-file-with-a-bounded-legacy-path) specifies how to remove the leftover field without losing the old configuration needed to inspect retained legacy data.
 
@@ -31,6 +31,26 @@ The broad software run was not clean: 31 tests failed around protected-file writ
 The warning stage has shipped. Before disabling legacy content writes, announce the actual cutoff release and document the migration route for users who skip releases. Enforce the restriction in the helper; retain reads, authentication, diagnostics, root correction and explicit migration. Review administrative operations individually so the restriction cannot block migration preparation.
 
 Qualify both legacy key-storage modes, interrupted migration, unavailable hardware, and moving the other Macs to the enrolled vault. Hardware-key purchase must not become a migration requirement. Do not combine this cutoff with the initial config cleanup merely to reach 1.0 sooner.
+
+## Repository cleanup audit, November 12
+
+The same branch also covers a wider source/tooling/documentation audit. This removes unreachable shipping code and makes historical test support explicit; it does not retire supported legacy vault operations.
+
+| Finding | Disposition |
+|---|---|
+| Old alpha migration engine and destination/report branch | Removed. The live factory already uses the device-wrapped installer. Its interruption, source-change and empty-key tests remain; the blocked-preflight publication test was ported onto that installer. Config-selection and helper-serialization tests remain. |
+| Unused runtime facade and two single-step catch-up wrappers | Removed. Tests now call the step services used by the live coordinator, which still owns mutation serialization. Cancellation, checkpoint, cache and session-lock coverage is retained. |
+| Historical manifest/mutation/publication/recovery generators | Moved out of the shipping library into explicitly named `Legacy…Fixture` test support. Shared contracts, errors, object keys, readers and filesystem code remain in production. Historical compatibility and filesystem crash/corruption tests remain. |
+| Provider-name policy with no production callers | Removed with its standalone tests. It was not an enforced product safeguard; actual name validation, legacy filesystem containment and current object-addressing rules remain. |
+| Experimental recovery aliases and bundle override | Removed. Shipping and qualification builds use `KeyRecoveryEnabled`; qualification derives it from the explicit isolated-build choice and rejects stale flags or inconsistent components before installation. |
+| Homebrew token wrapper and root-only config accessor | Removed after confirming no callers. Release targeting still has one canonical resolver; the helper uses the complete runtime selection. |
+| Historical plans mixed into current docs | Moved under `docs/history/` with updated links and a historical notice. The documentation index identifies current guides, contracts and release ownership. |
+
+All scripts were checked against repository callers; active build, install, release and qualification tools remain. The remaining one-reference app type is the SwiftUI entry point. The window-close delegate callback remains because AppKit invokes it. Two public library conveniences, `EntryStore.defaultRootURL` and `KeyConfigStore.listValues`, remain valid API; absence of repository callers alone does not prove external clients do not use them. No private helper without a lexical caller was found in the final source scan.
+
+Supported legacy reads/writes, key lookup, migration preflight, device enrollment, authenticated codecs and refusal boundaries remain. This audit does not delete retained local vaults, credentials, build outputs or qualification evidence. CI and the release checks above still apply after the cleanup.
+
+Audit verification passed 127 compatibility, migration, catch-up and unlock tests plus 75 current publication, mutation and ownership tests. The strict Swift test build, unsigned Preview Release build and bundle, CLI help and real Tab-completion checks, formatting, static analysis, 47 CI-script tests, release/install-script checks and dependency verification passed. All 1,913 discovered test declarations belong to a configured CI group; all 321 checked relative Markdown file links resolve. These targeted results do not replace the clean CI run required above. No installed app, real vault or physical key was used.
 
 ## Before 1.0
 

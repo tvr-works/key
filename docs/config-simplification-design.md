@@ -1,6 +1,6 @@
 # Config simplification compatibility design
 
-Status on November 12, 2026: `CFG-801`, explicit init, directory-based joining and hardware recovery have shipped. Stable is 0.4.1. `CFG-802` is implemented locally on `codex/cli-config-cleanup` and remains unreleased, pending verification and release qualification. The [roadmap](roadmap.md) owns release scope. Earlier implementation and qualification notes below preserve their original context; they are not outstanding 0.3.0 release gates.
+Status on November 12, 2026: `CFG-801`, explicit init, directory-based joining and hardware recovery have shipped. Stable is 0.4.1. `CFG-802` is implemented locally on `codex/maintenance-cleanup` and remains unreleased, pending CI and release qualification. The [roadmap](roadmap.md) owns release scope and records the wider cleanup audit. Earlier implementation and qualification notes below preserve their original context; they are not outstanding 0.3.0 release gates.
 
 ## Pre-change behavior and ownership
 

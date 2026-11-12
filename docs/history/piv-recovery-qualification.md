@@ -1,5 +1,7 @@
 # Preparing the remaining recovery tests
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 Current disposition, November 4: the [release readiness record](0.3.0-release-readiness.md) owns the beta gates. The earlier fixture plans below are historical. Q1–Q3 and the specified Mac-only interruption cases passed; the reduced remaining live work is one provider-delivery case and exact public-artifact qualification.
 
 This runbook covers the next qualification sessions on `codex/prepare-0.3.0`. The [plan](piv-recovery-plan.md) owns release gates and the [signed ledger](piv-recovery-signed-test.md) owns physical results. Preparing an app or a test case does not mark that case passed. Keep Stable, the existing experimental Preview installation, and retained hardware registrations unchanged during preparation.

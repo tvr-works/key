@@ -391,8 +391,8 @@ For the complete promises and limitations, read:
 
 - [Security, continuity, and recovery](docs/security-continuity-recovery.md)
 - [Version 3 device-wrapped key architecture](docs/v3-device-wrapped-key-architecture.md)
-- [Version 3 implementation and qualification tracker](docs/v3-vault-implementation.md)
-- [PIV recovery implementation plan](docs/piv-recovery-plan.md): integrated recovery work and completion gates, not a released capability.
+- [Hardware recovery guide](docs/recovery-user-guide.md)
+- [PIV recovery contract](docs/piv-recovery-contract.md)
 - [Release process](docs/release.md)
 
 ## Development
@@ -520,7 +520,7 @@ unsigned CI builds do not establish those properties.
 
 Run `just test-cli-help` to build the CLI and check help alignment, narrow and wide terminal widths, output streams, and usage exits without accessing a vault. The product build workflow runs these checks against both bundled CLIs.
 
-The Xcode project builds the signed host apps and helpers. Signing, notarization, Preview isolation, and release publication are documented in the [release process](docs/release.md) and [Apple setup guide](docs/apple-setup.md).
+The Xcode project builds the signed host apps and helpers. Signing, notarization, Preview isolation, and release publication are documented in the [release process](docs/release.md) and [Apple setup guide](docs/apple-setup.md). The [documentation index](docs/README.md) separates current guides and contracts from historical plans and qualification records.
 
 The CLI uses Apple's [Swift Argument Parser](https://github.com/apple/swift-argument-parser) for syntax, validation, and help. SwiftPM and Xcode both pin version `1.8.2`, with checked-in resolution files; initial builds need access to fetch the package. Command declarations only translate arguments into existing application requests. Authentication, secret input, service execution, and exit handling remain in Key's application layer. Workflow explanations live in `CLIHelp.swift` as unwrapped paragraphs. A few usage lines are explicitly supplied where duplicate-option limits or mutually exclusive choices need a more accurate synopsis than the generated one. Argument Parser is licensed under [Apache 2.0 with the Swift Runtime Library Exception](https://github.com/apple/swift-argument-parser/blob/1.8.2/LICENSE.txt).
 

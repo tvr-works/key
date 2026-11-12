@@ -351,12 +351,7 @@ and operational behavior has been physically qualified. The CLI and migration
 cleanup UX must state the boundary plainly, especially when only one device
 remains.
 
-[Offline Recovery Models](offline-recovery-models.md) preserves the later
-catastrophe-recovery candidates. Primary and backup PIV P-256 hardware keys are
-the leading feasibility direction, with threshold shares retained as the
-hardware-free alternative. Any later recovery profile requires its own
-normative schema, compatibility decision, physical qualification, and security
-review; it is not part of the stable `0.2.0` format promise.
+[Offline Recovery Models](history/offline-recovery-models.md) preserves the earlier candidate comparison. PIV hardware recovery shipped in 0.3.0 as a separate profile, specified by the [recovery contract](piv-recovery-contract.md). It does not change the base profile's device-loss boundary. See the [recovery guide](recovery-user-guide.md) for current setup and the [release record](release.md) for qualification limits.
 
 ## Required Failure Behavior
 

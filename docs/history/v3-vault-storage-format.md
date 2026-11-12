@@ -1,5 +1,7 @@
 # Key Vault Version 3 Storage Format
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 Status: historical specification for the role-bearing version 3 profile
 shipped through guarded two-device writes and explicit conflict resolution in
 `v0.2.0-alpha.6`.
@@ -7,7 +9,7 @@ shipped through guarded two-device writes and explicit conflict resolution in
 This is not the current permanent prerelease profile. It is retained to define
 the released alpha.6 objects and explain why newer builds reject them instead
 of silently translating security state. The
-[`ARCH-508` device-wrapped profile](v3-device-wrapped-key-architecture.md)
+[`ARCH-508` device-wrapped profile](../v3-device-wrapped-key-architecture.md)
 shipped for qualification in alpha.7 and intentionally replaces persistent raw
 vault-key storage, separate local/shared modes, the custom wrapper
 construction, the first-peer authorization exception, and the owner/member
@@ -31,10 +33,10 @@ and **MAY** are normative.
 The machine-readable schemas beside this document describe this historical
 role-bearing alpha profile:
 
-- [`v3-common.schema.json`](schemas/v3-common.schema.json)
-- [`v3-manifest-body.schema.json`](schemas/v3-manifest-body.schema.json)
-- [`v3-manifest-envelope.schema.json`](schemas/v3-manifest-envelope.schema.json)
-- [`v3-entry.schema.json`](schemas/v3-entry.schema.json)
+- [`v3-common.schema.json`](../schemas/v3-common.schema.json)
+- [`v3-manifest-body.schema.json`](../schemas/v3-manifest-body.schema.json)
+- [`v3-manifest-envelope.schema.json`](../schemas/v3-manifest-envelope.schema.json)
+- [`v3-entry.schema.json`](../schemas/v3-entry.schema.json)
 
 The schemas enforce structure. The semantic checks in this document are also
 required; JSON Schema alone cannot express all cross-record invariants.
@@ -1527,7 +1529,7 @@ the authenticated enrollment ceremony. Future work that changes these
 boundaries or the authenticated format must update this specification first.
 
 Implementation boundaries and future extraction work are tracked in the
-[canonical JSON module plan](json-canonicalization.md).
+[canonical JSON module plan](../json-canonicalization.md).
 
 ## Normative References
 

@@ -21,6 +21,8 @@ Config saves preserve observed filesystem/selection changes and refuse unsafe or
 
 The shared `tvr-works-notary` profile replaces the project-specific release-tool default. Stable recovery guidance and historical architecture records now distinguish released behavior from earlier plans. No automatic vault migration, legacy write cutoff, hardware-key change or test-data deletion is included. The [roadmap](roadmap.md) owns the remaining path to 1.0. This candidate is local and unshipped; verification limits and remaining release gates must be reviewed before publication.
 
+The wider cleanup removes the unreachable alpha migration engine, unused runtime/catch-up wrappers, an unwired naming policy and a redundant Homebrew helper script. Historical data generators now live only in test support; their compatibility and shared filesystem fault coverage remains. Existing legacy vault readers, key lookup and explicit migration remain supported. The old `experimentalRecoveryEnabled` Swift aliases and `KeyExperimentalRecoveryEnabled` bundle override are retired; maintainers use `recoveryEnabled` and `KeyRecoveryEnabled`. Qualification builds still require an explicit isolated choice and verify both components before any installation. See the [audit record](roadmap.md#repository-cleanup-audit-november-12) and [documentation index](README.md).
+
 ## 0.4.1 entry-name completion fix
 
 [Stable 0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1) shipped November 11, 2026, as build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
@@ -59,7 +61,7 @@ The [0.4.0 candidate](#040-authenticator-setup-secrets) adds authenticator setup
 
 ## 0.3.0 release preparation
 
-The [beta readiness record](0.3.0-release-readiness.md) preserves the qualification scope, known limits and signed public package results.
+The [beta readiness record](history/0.3.0-release-readiness.md) preserves the qualification scope, known limits and signed public package results.
 
 ### What users will get
 
@@ -73,7 +75,7 @@ Existing configured vaults do not need init or automatic migration. Legacy reads
 
 ### Beta qualification completed November 10
 
-The [readiness record](0.3.0-release-readiness.md) records the two final live checks and the shipped build. The [release qualification](https://github.com/tvr-works/key/actions/runs/42724653368) and [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/1) passed.
+The [readiness record](history/0.3.0-release-readiness.md) records the two final live checks and the shipped build. The [release qualification](https://github.com/tvr-works/key/actions/runs/42724653368) and [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/1) passed.
 
 ### Single-Mac checkpoint, 2026-10-29
 
@@ -211,7 +213,7 @@ the operator does not choose the product separately.
 The release tag includes the leading `v`; the app and CLI marketing version do not.
 The historical version 3 prerelease checkpoints and their security boundaries
 are tracked in
-[v3-vault-implementation.md](v3-vault-implementation.md#alpha-release-checkpoints).
+[v3-vault-implementation.md](history/v3-vault-implementation.md#alpha-release-checkpoints).
 
 Following [Homebrew's alternative release channel convention](https://docs.brew.sh/Cask-Cookbook#casks-for-alternative-release-channels),
 prereleases use separate, opt-in casks. Stable tags update `key`, while numbered

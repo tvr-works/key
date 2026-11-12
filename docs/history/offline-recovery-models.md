@@ -1,5 +1,7 @@
 # Offline Recovery Models
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 Status: design record for recovery after every enrolled device is lost. The
 `0.2.0` release does not implement catastrophe recovery; it relies on explicit
 multi-device continuity and states that loss of every enrolled device means

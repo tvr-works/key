@@ -1,8 +1,10 @@
 # PIV recovery AI review and disposition
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 2026-10-04. A fresh AI reviewer, separate from the implementation work, reviewed
 the then-current protocol brief and
-[contract](piv-recovery-contract.md), design tests, and relevant existing code.
+[contract](../piv-recovery-contract.md), design tests, and relevant existing code.
 The owner authorized AI review followed by experimental implementation for this
 solo-maintained open-source project. Qualified human review is recommended,
 not a prerequisite chosen by the owner.
@@ -29,7 +31,7 @@ limit and require graph scenarios in `REC-806` and `REC-810`.
 A removed Mac retaining its earlier device key and epoch signing capability can
 authorize a new alternative lineage from a parent where it was active, including
 fresh keys, contents, and wrappers to the token's public key. The
-[draft verifier](../Tests/KeyCoreTests/PIVRecoveryAuthorityDesignTests.swift)
+[draft verifier](../../Tests/KeyCoreTests/PIVRecoveryAuthorityDesignTests.swift)
 checks active status in the supplied exact parent. Its revoked-signer test checks
 a parent that already contains revocation, not an earlier-parent alternative.
 
@@ -43,7 +45,7 @@ it does not reveal the continuing lineage's fresh keys to the removed Mac.
 ### Public commitments do not fully authenticate closed epochs
 
 Reviewer severity: medium. Confirmed by the design tests and
-[full rotation validator](../Sources/KeyCore/V3DeviceWrappedKeyRotationValidation.swift).
+[full rotation validator](../../Sources/KeyCore/V3DeviceWrappedKeyRotationValidation.swift).
 Clarify now, preserve ordinary full checks, and require final-capsule validation
 in `REC-806` after the one opening.
 
@@ -72,8 +74,8 @@ A closure cannot prevent deliberate key retention or guarantee memory zeroizatio
 
 Prepare one capsule with fresh keys per epoch; preserve exact bytes for edits and
 retries. Abandon the whole candidate and choose fresh epoch keys if preparation
-restarts. The [new component](../Sources/KeyCore/V3EpochSigningKey.swift) and
-[tests](../Tests/KeyCoreTests/V3EpochSigningKeyTests.swift) address local requirements,
+restarts. The [new component](../../Sources/KeyCore/V3EpochSigningKey.swift) and
+[tests](../../Tests/KeyCoreTests/V3EpochSigningKeyTests.swift) address local requirements,
 not durable nonce accounting or profile activation.
 
 ### Graph and inherited proofs require a complete algorithm

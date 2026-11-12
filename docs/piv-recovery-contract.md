@@ -1,12 +1,6 @@
 # PIV recovery contract
 
-Experimental contract, updated 2026-10-26. The [plan](piv-recovery-plan.md) owns
-implementation/acceptance status; the [qualification record](piv-recovery-signed-test.md)
-owns observed results. This document defines the selected design and required
-boundaries, not a frozen shipping format, hardware instruction or approval for
-real-vault use. The [design AI review](piv-recovery-ai-review.md) retains its
-historical findings and dispositions. Human expert review remains recommended;
-the owner selected AI-reviewed experimental implementation.
+This contract defines the hardware-recovery design and required boundaries shipped in 0.3.0. Use the [recovery guide](recovery-user-guide.md) for setup and commands, the [release record](release.md) for shipped results and qualification limits, and the [roadmap](roadmap.md) for current work. Exact codecs and tests define the wire format. The [implementation plan](history/piv-recovery-plan.md), [signed qualification record](history/piv-recovery-signed-test.md) and [design AI review](history/piv-recovery-ai-review.md) preserve historical evidence; their earlier pending checks are not current release gates. Key has not received an independent third-party security audit.
 
 ## Experience and scope
 
@@ -695,7 +689,7 @@ Native lifecycle logging uses the bundle subsystem/`PIVAuthentication`, fixed
 evaluation/invalidation/callback labels, success/error/domain booleans and numeric
 code only. No native error text/userInfo, credential/token/key identifier, peer
 point, secret or vault path. Logs/callbacks are not UI-closure evidence.
-[Qualification](piv-recovery-signed-test.md#known-limits) separates observed refusal,
+[Qualification](history/piv-recovery-signed-test.md#known-limits) separates observed refusal,
 manual dismissal and unexercised native late-positive races.
 
 ## Product admission, sessions and compatibility
@@ -788,7 +782,4 @@ alone never grants publication, native activation or checkpoint authority.
 | Restore durability | [Service](../Sources/KeyCore/V3RecoveryRestoreService.swift), [journal](../Sources/KeyCore/V3RecoveryRestoreJournal.swift), [finalizer](../Sources/KeyCore/V3RecoveryRestoreFinalizer.swift) | [Completion tests](../Tests/KeyCoreTests/V3RecoveryRestoreCompletionServiceTests.swift), publisher/trust/selection/workflow suites. |
 | Native/XPC/presentation | [Reader](../Sources/KeyCore/PIVRecoveryTokenReader.swift), [agreement](../Sources/KeyCore/PIVRecoveryAgreement.swift), [host](../Sources/KeyCore/KeyServiceHost.swift) | [Agreement](../Tests/KeyCoreTests/PIVRecoveryAgreementTests.swift), [routing](../Tests/KeyCoreTests/KeyRecoveryRoutingTests.swift), [progress/XPC](../Tests/KeyCoreTests/RecoveryProgressXPCTests.swift), signed qualification. |
 
-See the [remaining acceptance matrix](piv-recovery-plan.md#remaining-acceptance-matrix)
-for release gates. Software fixtures, AI review, normal signatures or notarization
-alone do not qualify physical policy enforcement, all lifecycle/platform paths,
-independent backup hardware, complete protocol security or real-vault rollout.
+See the [release record](release.md) for completed qualification and its limits, and the [roadmap](roadmap.md) for remaining work. Software fixtures, AI review, normal signatures or notarization alone do not establish physical policy enforcement, coverage of every lifecycle/platform path, independent backup hardware or complete protocol security.
