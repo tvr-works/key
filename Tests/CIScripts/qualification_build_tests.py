@@ -39,6 +39,14 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
         info['KeyRecoveryEnabled'] = True
     if os.environ.get('QUALIFICATION_TEST_LEGACY_FLAG_COMPONENT') == kind:
         info['KeyExperimentalRecoveryEnabled'] = True
+    if os.environ.get('QUALIFICATION_TEST_FLAG_TYPE_COMPONENT') == kind:
+        flag_type = os.environ['QUALIFICATION_TEST_FLAG_TYPE']
+        if flag_type == 'string':
+            info['KeyRecoveryEnabled'] = str(info['KeyRecoveryEnabled']).lower()
+        elif flag_type == 'integer':
+            info['KeyRecoveryEnabled'] = int(info['KeyRecoveryEnabled'])
+        else:
+            del info['KeyRecoveryEnabled']
     path = dest / 'Contents/Info.plist'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(plistlib.dumps(info))
@@ -122,6 +130,22 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertIn("obsolete recovery setting", result.stderr)
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
+
+    def test_recovery_flag_must_be_boolean_in_each_component(self):
+        self.environment["KEY_MIGRATION_QUALIFICATION_PRODUCT"] = "preview"
+        for recovery in ("0", "1"):
+            for component in ("APP", "HELPER"):
+                for flag_type in ("string", "integer", "missing"):
+                    with self.subTest(recovery=recovery, component=component, flag_type=flag_type):
+                        self.events.unlink(missing_ok=True)
+                        self.environment.update(KEY_MIGRATION_QUALIFICATION_RECOVERY=recovery,
+                            QUALIFICATION_TEST_FLAG_TYPE_COMPONENT=component,
+                            QUALIFICATION_TEST_FLAG_TYPE=flag_type)
+                        result = self.run_builder()
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn("wrong recovery setting", result.stderr)
+                        self.assertFalse(self.events.exists())
+                        self.assertFalse((self.work / "Applications").exists())
 
     def test_existing_recovery_installation_is_preserved_before_build(self):
         self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",

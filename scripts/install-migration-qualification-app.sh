@@ -110,7 +110,7 @@ for info in "${app_info}" "${helper_info}"; do
     echo 'built qualification component has the wrong product variant' >&2
     exit 1
   fi
-  enabled="$(/usr/libexec/PlistBuddy -c 'Print :KeyRecoveryEnabled' "${info}" 2>/dev/null || true)"
+  enabled="$(/usr/bin/plutil -extract KeyRecoveryEnabled raw -expect bool -o - "${info}" 2>/dev/null || true)"
   if [[ ( "${recovery}" == 1 && "${enabled}" != true ) || ( "${recovery}" == 0 && "${enabled}" != false ) ]]; then
     echo 'built qualification component has the wrong recovery setting' >&2
     exit 1
