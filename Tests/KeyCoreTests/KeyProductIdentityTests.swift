@@ -12,7 +12,7 @@ struct KeyProductIdentityTests {
     }
 
     @Test
-    func publicRecoveryRequiresBooleanOptInAndPrivateOverrideIsPreviewOnly() throws {
+    func recoveryUsesOnlyTheCanonicalBooleanAndIgnoresTheRetiredOverride() throws {
         for variant in KeyProductVariant.allCases {
             for flag in ["KeyRecoveryEnabled", "KeyExperimentalRecoveryEnabled"] {
                 for value: Any in [true, false, "true", "false", 1, 0] {
@@ -28,7 +28,7 @@ struct KeyProductIdentityTests {
                     try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
                         .write(to: contents.appendingPathComponent("Info.plist"))
                     let bundle = try #require(Bundle(url: contents.deletingLastPathComponent()))
-                    let allowed = flag == "KeyRecoveryEnabled" || variant == .preview
+                    let allowed = flag == "KeyRecoveryEnabled"
                     let expected = allowed && type(of: value) == Bool.self && (value as? Bool == true)
                     #expect(RuntimeConfiguration.live(bundle: bundle).recoveryEnabled == expected)
                 }
