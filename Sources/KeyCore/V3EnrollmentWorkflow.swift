@@ -8,13 +8,13 @@ private final class V3EnrollmentVaultSelectionCommitter:
 {
     private let configStore: KeyConfigStore
     private let rootHandle: VaultRootDirectoryHandle
-    private let keychainMode: KeychainMode
+    private let keychainMode: KeychainMode?
     private let unconfiguredSelection: ((String) throws -> Void)?
 
     init(
         configStore: KeyConfigStore,
         rootHandle: VaultRootDirectoryHandle,
-        keychainMode: KeychainMode,
+        keychainMode: KeychainMode?,
         unconfiguredSelection: ((String) throws -> Void)? = nil
     ) {
         self.configStore = configStore
@@ -28,6 +28,7 @@ private final class V3EnrollmentVaultSelectionCommitter:
             try unconfiguredSelection(vaultID)
             return
         }
+        guard let keychainMode else { throw KeyConfiguration.legacyModeUnavailable }
         _ = try configStore.selectV3Vault(
             vaultID: vaultID,
             expectedRootHandle: rootHandle,
@@ -191,7 +192,7 @@ func makeLiveV3EnrollmentWorkflowService(
                 checkpointStore: checkpointStore,
                 vaultKeyProvider: { reason in
                     try keyStore.loadKey(
-                        mode: keyConfiguration.keychainMode,
+                        mode: keyConfiguration.requireStoredKeychainMode(),
                         reason: reason,
                         createIfMissing: false
                     )
@@ -364,7 +365,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
     private let exchange: V3EnrollmentExchangeCoordinator
     private let identityManager: V3EnrollmentDeviceIdentityManager
     private let vaultKeyStore: any VaultKeyStoring
-    private let keychainMode: KeychainMode
+    private let keychainMode: KeychainMode?
     private let selectVault: V3EnrollmentAdoptionService.VaultSelector
     private let verifyRuntime: V3EnrollmentAdoptionService.RuntimeVerifier
     private let deviceWrappedAdoption:
@@ -382,7 +383,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
         exchange: V3EnrollmentExchangeCoordinator,
         identityManager: V3EnrollmentDeviceIdentityManager,
         vaultKeyStore: any VaultKeyStoring,
-        keychainMode: KeychainMode,
+        keychainMode: KeychainMode?,
         selectVault: @escaping V3EnrollmentAdoptionService.VaultSelector,
         verifyRuntime: @escaping V3EnrollmentAdoptionService.RuntimeVerifier,
         deviceWrappedAdoption:
@@ -865,6 +866,7 @@ struct V3EnrollmentWorkflowService: V3EnrollmentWorkflowServicing {
         case .available, .invalid, .tooLarge:
             throw VaultUXServiceError.recoveryRequired
         }
+        guard let keychainMode else { throw KeyConfiguration.legacyModeUnavailable }
         let vaultKey = try vaultKeyStore.loadKey(
             mode: keychainMode,
             reason: reason,

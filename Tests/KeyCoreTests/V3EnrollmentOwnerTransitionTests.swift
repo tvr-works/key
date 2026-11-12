@@ -234,7 +234,7 @@ struct V3EnrollmentOwnerTransitionTests {
             inviterIdentity: fixture.inviter,
             authorizationReason: "Approve the compared device."
         )
-        let child = try V3ManifestCandidateBuilder().build(
+        let child = try LegacyManifestCandidateBuilder().build(
             content: V3ManifestContent(
                 parents: [Base64URL.encode(
                     shared.verifiedManifest.envelopeDigest
@@ -662,7 +662,7 @@ struct V3EnrollmentOwnerTransitionTests {
             inviterIdentity: fixture.inviter,
             authorizationReason: "Approve the second device."
         )
-        let authenticatedHead = try V3ManifestCandidateBuilder().build(
+        let authenticatedHead = try LegacyManifestCandidateBuilder().build(
             content: V3ManifestContent(
                 parents: [Base64URL.encode(
                     shared.verifiedManifest.envelopeDigest
@@ -745,7 +745,7 @@ private struct Fixture {
             vaultKey: V3EnrollmentOwnerTransitionTests.vaultKey,
             vaultID: V3EnrollmentOwnerTransitionTests.vaultID
         )
-        parent = try V3LocalGenesisBuilder().build(
+        parent = try LegacyManifestFixtureBuilder().build(
             vaultID: V3EnrollmentOwnerTransitionTests.vaultID,
             entryIDs: [],
             sourceEntries: [],

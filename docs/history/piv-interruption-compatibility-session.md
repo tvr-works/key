@@ -1,5 +1,7 @@
 # Interruption and compatibility checks
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 November 4 disposition: this is a historical session plan. The [release readiness record](0.3.0-release-readiness.md) replaces the remaining live obligations below. Native Mac-only cancellation/resume and competing-client checks passed. Old-binary execution and native registration-finish interruption are no longer separate beta gates; their source/software coverage and native limitations are explicit. Run only the single scoped provider-delivery case when authorized, followed by final public-artifact qualification.
 
 Prepared on November 3, 2026, on `codex/prepare-0.3.0`. This session continues Q5 and Q7 from the [qualification runbook](piv-recovery-qualification.md). Preparation and software tests do not constitute a native pass. Stable, both physical recovery keys, the continuing shared vault and all earlier qualification fixtures remain protected.

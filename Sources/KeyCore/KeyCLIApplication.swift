@@ -29,11 +29,7 @@ public final class KeyCLIApplication {
     @discardableResult
     public func run(arguments: [String]) -> Int32 {
         do {
-            let parsed = try CLIParser.parseWithWarnings(arguments: arguments)
-            for warning in parsed.warnings {
-                io.writeStderr(warning + "\n")
-            }
-            return try execute(parsed.command)
+            return try execute(CLIParser.parse(arguments: arguments))
         } catch let error as AppError {
             io.writeStderr("\(error.localizedDescription)\n")
             return error.exitCode.rawValue
@@ -1048,7 +1044,7 @@ public final class KeyCLIApplication {
     private func writeV2DeprecationWarning() {
         guard io.stdoutIsTTY else { return }
         io.writeStderr(
-            "Warning: older vault format, deprecated but still supported.\nCheck migration readiness: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check\nMigration steps and limits: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help\n"
+            "Warning: legacy vaults will require migration in Key 1.0.\nCheck migration readiness: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check\nMigration steps and limits: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help\n"
         )
     }
 
@@ -1196,12 +1192,7 @@ public final class KeyCLIApplication {
         switch command {
         case let .get(key):
             let configuration = try configStore.load()
-            io.writeStdout(configuration.value(for: key) + "\n")
-            if key == .keychainMode, case .v3 = configuration.authority {
-                io.writeStderr(
-                    "keychain-mode does not control access or file synchronization for this vault. Key retains it for compatibility. vault-dir specifies the folder used to store and synchronize vault files.\n"
-                )
-            }
+            io.writeStdout(try configuration.value(for: key) + "\n")
         case let .set(key, value):
             switch key {
             case .vaultDir:

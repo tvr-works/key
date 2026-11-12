@@ -12,7 +12,8 @@ struct UserFacingHelpTests {
             #expect(words.contains("current one-time code"))
             #expect(words.contains("generate future codes"))
         } else {
-            #expect(words.contains("older --totp spelling is deprecated"))
+            #expect(words.contains("Supply the Base32 secret"))
+            #expect(!words.contains("older --totp spelling"))
         }
         let io = MemoryIO(stdinIsTTY: false)
         let app = KeyCLIApplication(transport: MemoryTransport { _ in
@@ -85,6 +86,10 @@ struct UserFacingHelpTests {
 
     @Test
     func helpStatesConsequencesInsteadOfPromisingRecovery() throws {
+        let overview = CLIParser.usageText.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(!overview.contains("Preview"))
+        #expect(overview.contains("hardware key registered beforehand"))
+        #expect(overview.contains("complete encrypted vault"))
         let share = try #require(CLIParser.helpText(for: "share")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(share.contains("any secrets and older vault data it already obtained"))
         #expect(share.contains("Stop if they differ"))
@@ -95,6 +100,14 @@ struct UserFacingHelpTests {
         let read = try #require(CLIParser.helpText(for: "get")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(read.contains("may be out of date"))
         #expect(read.contains("does not bypass failed security checks"))
+        let migrate = try #require(CLIParser.helpText(for: "migrate")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(migrate.contains("readable and writable until Key 1.0"))
+        #expect(migrate.contains("explicit migration will remain available"))
+        #expect(migrate.contains("upgrading directly from an older release"))
+        #expect(migrate.contains("hardware recovery key registered beforehand"))
+        #expect(migrate.contains("complete encrypted vault"))
+        #expect(migrate.contains("Migration does not register recovery keys"))
+        #expect(migrate.contains("key recovery --help"))
     }
 
     @Test

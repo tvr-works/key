@@ -15,13 +15,14 @@ regexes = [
   '''^V3EpochSigningKeyCapsule$''',
   '''^V3HPKEWrappedVaultKey$''',
   '''^V3EnrollmentOwnerTransitionTests\.vaultKey$''',
+  '''^V3LegacyMutationCompatibilityTests\.vaultKey$''',
   '''^v3MaximumSafeInteger$'''
 ]
 
 [[allowlists]]
 description = "Reviewed historical prose about missing or corrupt local records"
 condition = "AND"
-paths = ['''^docs/piv-recovery-plan\.md$''']
+paths = ['''^docs/(history/)?piv-recovery-plan\.md$''']
 regexTarget = "secret"
 regexes = ['''^missing/corrupt$''']
 

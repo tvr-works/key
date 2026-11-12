@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 
-/// Internal profile-3 workflow behind the ordinary mutation interface. Like
-/// V3VaultMutationService, the helper must own serialization and supply a fresh
+/// Internal profile-3 workflow behind the ordinary mutation interface.
+/// The helper must own serialization and supply a fresh
 /// operation ID. Direct owners reuse that boundary without nesting its queue.
 /// The existing in-memory Mac-bound session supplies only the exact current key;
 /// there is no signer, unwrap, token, administration or shipping dispatch here.

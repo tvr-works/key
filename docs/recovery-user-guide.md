@@ -1,6 +1,6 @@
 # Recovering a vault with a hardware key
 
-Hardware recovery is available in [Preview 0.3.0 beta 1](https://github.com/tvr-works/key/releases/tag/v0.3.0-beta.1) and the Stable 0.3.0 candidate. The examples use `key-preview`. Use `key` with Stable 0.3.0. Each product has its own configuration and Mac credentials. Use disposable data during the beta.
+Hardware recovery has been available in Stable since 0.3.0. The examples use `key`. For Preview, use `key-preview` with its separate configuration, Mac credentials and disposable vault. Try the recovery process with disposable data before relying on it.
 
 A registered recovery key gives you another way to open your secrets if your enrolled Macs are lost. **You need both the recovery key and the encrypted vault files.** The hardware key does not contain a copy of your vault. Keep a separate backup of the complete vault folder.
 
@@ -8,7 +8,7 @@ Registering two independent keys lets either one recover the vault. Store them s
 
 ## Understand the approval prompts
 
-Ordinary vault access uses macOS authentication, such as Touch ID or your Mac password, according to your Mac's settings. An unlocked session lets ordinary commands reuse that approval briefly; `key-preview lock` ends it on this Mac.
+Ordinary vault access uses macOS authentication, such as Touch ID or your Mac password, according to your Mac's settings. An unlocked session lets ordinary commands reuse that approval briefly; `key lock` ends it on this Mac.
 
 Hardware registration and recovery add two distinct actions: enter the selected YubiKey's PIV PIN in the macOS dialog, then touch its metal contact when it flashes. That PIN is separate from your Mac password. Never put it in a command, configuration file or chat. Keep watching for the normal Mac approval prompts that follow until the command finishes.
 
@@ -34,8 +34,8 @@ Key's public inspection below checks reported settings; it cannot prove that adm
 Connect the intended key and inspect it:
 
 ```sh
-key-preview recovery tokens
-key-preview recovery credential --token <token-id>
+key recovery tokens
+key recovery credential --token <token-id>
 ```
 
 Replace `<token-id>` with the complete ID printed for that key. The credential check also prints a **recovery key ID**, used with `--recipient` (and called `recipientID` in JSON), which identifies its recovery public key. Use the full value, not a shortened prefix or certificate fingerprint. These public IDs are not passwords and do not authorize recovery. Public inspection does not test the key's private operation or prove that recovery will work.
@@ -43,7 +43,7 @@ Replace `<token-id>` with the complete ID printed for that key. The credential c
 On a Mac that already has access to the vault, update the vault format once:
 
 ```sh
-key-preview recovery adopt
+key recovery adopt
 ```
 
 Keep a complete backup and upgrade every participating Mac first. Older apps cannot open the updated format; returning to an older app requires your earlier backup. Updating the format does not register a key or activate recovery by itself.
@@ -51,7 +51,7 @@ Keep a complete backup and upgrade every participating Mac first. Older apps can
 Prepare registration for the connected key:
 
 ```sh
-key-preview recovery register prepare --token <token-id> --recipient <recipient-id> --export-anchor <new-file>
+key recovery register prepare --token <token-id> --recipient <recipient-id> --export-anchor <new-file>
 ```
 
 This saves a registration attempt on the Mac and exports a public recovery setup file, called an **anchor**. The output file must not already exist. Recovery is not active yet.
@@ -63,15 +63,15 @@ Import only the file from this saved registration attempt, after `prepare` confi
 Then finish registration with the same IDs:
 
 ```sh
-key-preview recovery register finish --token <token-id> --recipient <recipient-id>
-key-preview recovery register status
+key recovery register finish --token <token-id> --recipient <recipient-id>
+key recovery register status
 ```
 
 Finish checks the installed file and requests hardware approval. Enter this key's PIN in macOS, touch when it flashes, and approve the following Mac prompts. A successful registration makes this key available for recovery. Status lists the registered recovery key IDs, but does not exercise the physical keys or prove that all files have synchronized.
 
 Repeat registration for the independent backup key, using its own IDs and a new setup filename. Do not overwrite the first key's setup. Before relying on a backup, check recovery from each key using disposable data.
 
-If export fails, keep the saved attempt and use `key-preview recovery register resume-export` with the same IDs and a new output filename. If another step is interrupted, follow its resume instructions. Do not delete records or prepare a replacement to force another attempt. `key-preview recovery pending` lists saved operation IDs; their presence alone does not establish whether the operations finished or can resume.
+If export fails, keep the saved attempt and use `key recovery register resume-export` with the same IDs and a new output filename. If another step is interrupted, follow its resume instructions. Do not delete records or prepare a replacement to force another attempt. `key recovery pending` lists saved operation IDs; their presence alone does not establish whether the operations finished or can resume.
 
 ## Recover after losing the Macs
 
@@ -80,8 +80,8 @@ Start with an unconfigured Preview installation, the encrypted source files and 
 Connect the intended key and inspect it against the source folder:
 
 ```sh
-key-preview recovery tokens
-key-preview recovery review --source <source-folder> --token <token-id>
+key recovery tokens
+key recovery review --source <source-folder> --token <token-id>
 ```
 
 Review does not ask for PIN or touch and does not open secret contents. It checks the available public history against the key and prints the recovery key ID. A successful review is not proof that the contents can be recovered or that the provider has delivered every newer file.
@@ -89,7 +89,7 @@ Review does not ask for PIN or touch and does not open secret contents. It check
 Choose a destination that does not exist, with a parent folder that already exists. An existing empty destination is also refused. The source and destination cannot overlap.
 
 ```sh
-key-preview recovery restore --source <source-folder> --destination <new-folder> --token <token-id> --recipient <recipient-id> --name "Recovery Mac"
+key recovery restore --source <source-folder> --destination <new-folder> --token <token-id> --recipient <recipient-id> --name "Recovery Mac"
 ```
 
 Enter the recovery key's PIN in macOS, touch it when it flashes, then approve the Mac prompts until completion. Key verifies the recovered contents before selecting the new vault. It leaves the source unchanged. The background service restarts before ordinary use.
@@ -105,38 +105,38 @@ If macOS leaves a PIN dialog open after the operation stops, click **Cancel** be
 Use the original paths and IDs to continue a saved attempt:
 
 ```sh
-key-preview recovery resume --source <source-folder> --destination <original-destination> --token <token-id> --recipient <recipient-id>
+key recovery resume --source <source-folder> --destination <original-destination> --token <token-id> --recipient <recipient-id>
 ```
 
-Resume does not take a new Mac name or recreate missing records. If preparation stopped too early to resume, its error supplies the original vault and operation IDs. Follow `key-preview recovery abandon --help` to release that early attempt. Abandonment preserves its files and credentials; a later new restore needs a different destination. If records are missing or invalid, stop and follow [troubleshooting](troubleshooting.md#interrupted-setup-or-recovery); do not delete them to retry.
+Resume does not take a new Mac name or recreate missing records. If preparation stopped too early to resume, its error supplies the original vault and operation IDs. Follow `key recovery abandon --help` to release that early attempt. Abandonment preserves its files and credentials; a later new restore needs a different destination. If records are missing or invalid, stop and follow [troubleshooting](troubleshooting.md#interrupted-setup-or-recovery); do not delete them to retry.
 
 ## Add, remove or replace a Mac
 
 Use the existing sharing workflow with the synchronized vault folder. On a Mac that already has access, use its recorded name to create an invitation:
 
 ```sh
-key-preview share devices
-key-preview share invite --name "Existing Mac"
+key share devices
+key share invite --name "Existing Mac"
 ```
 
 On the joining Mac:
 
 ```sh
-key-preview share join <invitation-id> --name "Joining Mac" --vault-dir <existing-vault-folder>
+key share join <invitation-id> --name "Joining Mac" --vault-dir <existing-vault-folder>
 ```
 
 Follow the displayed `requests`, `compare`, `approve` and `accept` steps. Compare the exact code and both Mac names on the two screens before approving. Copying the folder or signing into the same cloud account does not grant access. The joining Mac checks the approved contents before selecting the folder. Hardware keys can remain disconnected.
 
-Use `key-preview share devices` to identify an enrolled Mac, then `key-preview share revoke <device-id>` to review removing its access. Removal changes the encryption key for the remaining Macs and recovery keys. It cannot erase secrets or older copies the removed Mac already obtained.
+Use `key share devices` to identify an enrolled Mac, then `key share revoke <device-id>` to review removing its access. Removal changes the encryption key for the remaining Macs and recovery keys. It cannot erase secrets or older copies the removed Mac already obtained.
 
 A removed Mac can rejoin through a fresh invitation. Review and confirm replacement of its old local credentials, then complete the normal comparison and approval steps. If interrupted, continue the displayed workflow; do not delete saved records or initialize another vault.
 
 ## Remove a recovery key
 
-Find its complete recovery key ID with `key-preview recovery register status`, then run:
+Find its complete recovery key ID with `key recovery register status`, then run:
 
 ```sh
-key-preview recovery remove-recipient <recipient-id>
+key recovery remove-recipient <recipient-id>
 ```
 
 The hardware key can stay disconnected. Review the ID and the number of recovery keys that will remain. Type `REMOVE` to confirm. Removing the last key requires `REMOVE LAST RECOVERY KEY` after the warning. Register another while an enrolled Mac is available; otherwise, losing all enrolled Macs leaves no recovery path.
@@ -151,4 +151,4 @@ Key verifies access, encrypted contents and saved history itself. Your sync prov
 
 Recovery checks a limited amount of history and data. Key refuses operations that exceed those limits; it does not silently discard older recovery records or reset a key's starting point. These safeguards are not a promise of a particular number of entries or years of use.
 
-Physical testing covers two Apple silicon Macs on macOS 27.0.1 and two independently prepared YubiKey 5C NFC keys on firmware 5.8.0. The broader macOS 26+ and compatible firmware 5.3+ requirements are compatibility targets, not a tested device matrix. See the [release readiness record](0.3.0-release-readiness.md) for the remaining release checks.
+Physical testing covers two Apple silicon Macs on macOS 27.0.1 and two independently prepared YubiKey 5C NFC keys on firmware 5.8.0. The broader macOS 26+ and compatible firmware 5.3+ requirements are compatibility targets, not a tested device matrix. See the [release readiness record](history/0.3.0-release-readiness.md) for qualification scope and limits, and the [release record](release.md) for shipped results.

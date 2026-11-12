@@ -168,7 +168,7 @@ struct V3DeviceWrappedVaultUnlockRuntimeTests {
             signingScalar: 1,
             wrappingScalar: 2
         )
-        let alpha = try V3LocalGenesisBuilder().build(
+        let alpha = try LegacyManifestFixtureBuilder().build(
             vaultID: Self.vaultID,
             entryIDs: [],
             sourceEntries: [],

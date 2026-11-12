@@ -34,9 +34,19 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
         KeyQualificationNamespace=settings['KEY_QUALIFICATION_NAMESPACE'],
         HelperMachServiceName=settings['KEY_HELPER_MACH_SERVICE_NAME'], KeyProductVariant=variant)
     if os.environ.get('QUALIFICATION_TEST_BAD_COMPONENT') == kind:
-        info['KeyExperimentalRecoveryEnabled'] = False
+        info['KeyRecoveryEnabled'] = False
     if os.environ.get('QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT') == kind:
         info['KeyRecoveryEnabled'] = True
+    if os.environ.get('QUALIFICATION_TEST_LEGACY_FLAG_COMPONENT') == kind:
+        info['KeyExperimentalRecoveryEnabled'] = True
+    if os.environ.get('QUALIFICATION_TEST_FLAG_TYPE_COMPONENT') == kind:
+        flag_type = os.environ['QUALIFICATION_TEST_FLAG_TYPE']
+        if flag_type == 'string':
+            info['KeyRecoveryEnabled'] = str(info['KeyRecoveryEnabled']).lower()
+        elif flag_type == 'integer':
+            info['KeyRecoveryEnabled'] = int(info['KeyRecoveryEnabled'])
+        else:
+            del info['KeyRecoveryEnabled']
     path = dest / 'Contents/Info.plist'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(plistlib.dumps(info))
@@ -73,9 +83,9 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertIn("Built without installing or launching", result.stdout)
                 for info_path in (self.work / "build").rglob("Info.plist"):
                     info = plistlib.loads(info_path.read_bytes())
-                    self.assertIs(info["KeyRecoveryEnabled"], False)
                     if info["KeyProductVariant"] == product:
-                        self.assertEqual(info.get("KeyExperimentalRecoveryEnabled", False), recovery == "1")
+                        self.assertIs(info["KeyRecoveryEnabled"], recovery == "1")
+                    self.assertNotIn("KeyExperimentalRecoveryEnabled", info)
 
     def test_stable_recovery_and_implicit_namespace_refuse_before_build(self):
         self.environment["KEY_MIGRATION_QUALIFICATION_RECOVERY"] = "1"
@@ -98,7 +108,7 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
 
-    def test_public_flag_cannot_bypass_private_qualification_choice(self):
+    def test_build_output_cannot_override_requested_qualification_choice(self):
         self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",
             KEY_MIGRATION_QUALIFICATION_RECOVERY="0", KEY_MIGRATION_QUALIFICATION_INSTALL="1")
         for component in ("APP", "HELPER"):
@@ -106,9 +116,36 @@ for kind, dest in [('APP', root), ('HELPER', root / 'Contents/Helpers' / (helper
                 self.environment["QUALIFICATION_TEST_PUBLIC_FLAG_COMPONENT"] = component
                 result = self.run_builder()
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("must not inherit public recovery", result.stderr)
+                self.assertIn("wrong recovery setting", result.stderr)
                 self.assertFalse(self.events.exists())
                 self.assertFalse((self.work / "Applications").exists())
+
+    def test_obsolete_flag_cannot_survive_qualification_build(self):
+        self.environment["KEY_MIGRATION_QUALIFICATION_INSTALL"] = "1"
+        for component in ("APP", "HELPER"):
+            with self.subTest(component=component):
+                self.environment["QUALIFICATION_TEST_LEGACY_FLAG_COMPONENT"] = component
+                result = self.run_builder()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("obsolete recovery setting", result.stderr)
+                self.assertFalse(self.events.exists())
+                self.assertFalse((self.work / "Applications").exists())
+
+    def test_recovery_flag_must_be_boolean_in_each_component(self):
+        self.environment["KEY_MIGRATION_QUALIFICATION_PRODUCT"] = "preview"
+        for recovery in ("0", "1"):
+            for component in ("APP", "HELPER"):
+                for flag_type in ("string", "integer", "missing"):
+                    with self.subTest(recovery=recovery, component=component, flag_type=flag_type):
+                        self.events.unlink(missing_ok=True)
+                        self.environment.update(KEY_MIGRATION_QUALIFICATION_RECOVERY=recovery,
+                            QUALIFICATION_TEST_FLAG_TYPE_COMPONENT=component,
+                            QUALIFICATION_TEST_FLAG_TYPE=flag_type)
+                        result = self.run_builder()
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn("wrong recovery setting", result.stderr)
+                        self.assertFalse(self.events.exists())
+                        self.assertFalse((self.work / "Applications").exists())
 
     def test_existing_recovery_installation_is_preserved_before_build(self):
         self.environment.update(KEY_MIGRATION_QUALIFICATION_PRODUCT="preview",

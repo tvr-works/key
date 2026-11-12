@@ -1,8 +1,10 @@
 # Signed Preview recovery qualification
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 Installed-product checkpoint: 2026-10-26; backup-key preparation added 2026-11-03. This is a scoped evidence ledger and remaining
 native-test boundary, not a claim that the entire feature is qualified.
-[Plan](piv-recovery-plan.md) owns completion gates; [contract](piv-recovery-contract.md)
+[Plan](piv-recovery-plan.md) owns completion gates; [contract](../piv-recovery-contract.md)
 owns security guarantees. Use disposable data only. No test result authorizes
 another authentication, hardware write, reset, installation or real-vault use.
 
@@ -381,7 +383,7 @@ measurements. Evidence IDs resolve in the local index below.
   direct-operation production workaround is selected.
 - **Callback scope.** Late-PIN/disconnect native results cover the observed paths.
   They did not exercise a native late-positive callback race or measure all
-  framework attempts. [Software regressions](../Tests/KeyCoreTests/PIVRecoveryAgreementTests.swift)
+  framework attempts. [Software regressions](../../Tests/KeyCoreTests/PIVRecoveryAgreementTests.swift)
   cover late/duplicate approval and retained exclusion until actual callback/
   provider return. Callback receipt and helper exit do not prove UI closure.
 - **Mac approval cost.** Exact resume observed five Mac approvals after PIN/touch.

@@ -32,12 +32,13 @@ public final class KeyServiceHandler {
     )
     private let stateQueue = DispatchQueue(label: "work.tvr.key.service-handler")
     private var currentKeychainMode: KeychainMode
+    private let configuredKeychainModeField: KeychainMode?
     private var vaultRootChangePending = false
 
     public convenience init(
         keyStore: VaultKeyStoring,
         entryStore: EntryStore,
-        keychainMode: KeychainMode = .local,
+        keychainMode: KeychainMode? = .local,
         configStore: KeyConfigStore? = nil,
         cipher: VaultCipher = VaultCipher(),
         now: @escaping () -> Date = Date.init
@@ -62,7 +63,7 @@ public final class KeyServiceHandler {
     init(
         keyStore: VaultKeyStoring,
         entryStore: EntryStore,
-        keychainMode: KeychainMode = .local,
+        keychainMode: KeychainMode? = .local,
         configStore: KeyConfigStore? = nil,
         cipher: VaultCipher = VaultCipher(),
         now: @escaping () -> Date = Date.init,
@@ -104,7 +105,8 @@ public final class KeyServiceHandler {
         self.vaultSession = vaultSession
         self.configuredVaultID = configuredVaultID
         self.replacementAdmissionState = replacementAdmissionState
-        self.currentKeychainMode = keychainMode
+        self.currentKeychainMode = keychainMode ?? .local
+        self.configuredKeychainModeField = keychainMode
     }
 
     public static func live(bundle: Bundle = .main) throws -> KeyServiceHandler {
@@ -208,7 +210,7 @@ public final class KeyServiceHandler {
         if runtimeConfiguration.recoveryEnabled,
            [.cleanupPending, .enrollmentPending].contains(replacementAdmissionState) {
             return KeyServiceHandler(
-                keyStore: keyStore, entryStore: entryStore, configStore: configStore,
+                keyStore: keyStore, entryStore: entryStore, keychainMode: keyConfiguration.keychainMode, configStore: configStore,
                 mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: vaultID,
                 replacementAdmissionState: replacementAdmissionState)
         }
@@ -218,11 +220,11 @@ public final class KeyServiceHandler {
                vaultID: vaultID, checkpoints: checkpointStore, source: objectStore, cache: cache
            ).profile {
             guard #available(macOS 26.0, *) else {
-                throw AppError.operationRefused("Recovery-capable vaults require macOS 26 or later in this experimental build.")
+                throw AppError.operationRefused("Recovery-enabled vaults require macOS 26 or later.")
             }
             if replacementAdmissionState != .inactive {
                 return KeyServiceHandler(
-                    keyStore: keyStore, entryStore: entryStore, configStore: configStore,
+                    keyStore: keyStore, entryStore: entryStore, keychainMode: keyConfiguration.keychainMode, configStore: configStore,
                     mutationOwner: VaultTransactionMutationOwner(), configuredVaultID: vaultID,
                     replacementAdmissionState: replacementAdmissionState)
             }
@@ -523,18 +525,18 @@ public final class KeyServiceHandler {
                 ),
                 keyOperations: V3SecureEnclaveEnrollmentDeviceKeyOperations()
             ),
-            loadV2VaultKey: { reason, createIfMissing in
+            loadExistingV2VaultKey: { reason in
                 try keyStore.loadKey(
-                    mode: keyConfiguration.keychainMode,
+                    mode: keyConfiguration.requireStoredKeychainMode(),
                     reason: reason,
-                    createIfMissing: createIfMissing
+                    createIfMissing: false
                 )
             },
             selectVault: { vaultID in
                 _ = try configStore.selectV3Vault(
                     vaultID: vaultID,
                     expectedRootHandle: rootHandle,
-                    expectedKeychainMode: keyConfiguration.keychainMode
+                    expectedKeychainMode: keyConfiguration.requireStoredKeychainMode()
                 )
             }
         )
@@ -765,10 +767,8 @@ public final class KeyServiceHandler {
                 try setVaultDirectory(path)
                 return .success()
             case let .setKeychainMode(mode):
-                guard vaultReader == nil else {
-                    throw AppError.operationRefused(
-                        "Version 3 vaults use device enrollment, not a configurable Keychain mode. Use vault-dir to select storage, including iCloud Drive."
-                    )
+                guard configuredVaultID == nil, vaultReader == nil else {
+                    throw KeyConfiguration.legacyModeUnavailable
                 }
                 try setKeychainMode(mode)
                 return .success()
@@ -1229,7 +1229,7 @@ public final class KeyServiceHandler {
                 keychainMode: runningMode,
                 vaultID: configuredVaultID
               ),
-              configured.keychainMode == runningMode
+              configured.keychainMode == (configuredVaultID == nil ? runningMode : configuredKeychainModeField)
         else {
             keyStore.invalidate()
             throw AppError.operationRefused(

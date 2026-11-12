@@ -132,17 +132,15 @@ extension V3EnrollmentDeviceIdentityManager:
 /// permanent runtime have all succeeded. The newly generated vault key is
 /// passed only through this call and the in-memory session store.
 struct V3DeviceWrappedGenesisInstaller {
-    typealias V2VaultKeyProvider = @Sendable (
-        _ reason: String,
-        _ createIfMissing: Bool
-    ) throws -> Data
+    /// Migration can only request an existing source key; creation is never an option.
+    typealias ExistingV2VaultKeyLoader = @Sendable (_ reason: String) throws -> Data
     typealias VaultSelector = (_ vaultID: String) throws -> Void
     typealias UUIDGenerator = @Sendable () -> String
     typealias VaultKeyGenerator = @Sendable () -> Data
 
     private struct MigrationSource {
         let preflight: V2MigrationPreflight
-        let loadKey: V2VaultKeyProvider
+        let loadExistingKey: ExistingV2VaultKeyLoader
     }
 
     private let destinationRootURL: URL
@@ -171,7 +169,7 @@ struct V3DeviceWrappedGenesisInstaller {
         cache: any V3CheckpointManifestCaching,
         session: V3DeviceWrappedVaultKeySessionStore,
         identityManager: any V3DeviceWrappedGenesisIdentityManaging,
-        loadV2VaultKey: @escaping V2VaultKeyProvider,
+        loadExistingV2VaultKey: @escaping ExistingV2VaultKeyLoader,
         selectVault: @escaping VaultSelector,
         makeUUID: @escaping UUIDGenerator = {
             UUID().uuidString.lowercased()
@@ -199,7 +197,7 @@ struct V3DeviceWrappedGenesisInstaller {
         )
         migrationSource = MigrationSource(
             preflight: V2MigrationPreflight(entryStore: entryStore, cipher: cipher),
-            loadKey: loadV2VaultKey
+            loadExistingKey: loadExistingV2VaultKey
         )
     }
 
@@ -242,9 +240,8 @@ struct V3DeviceWrappedGenesisInstaller {
             throw AppError.operationRefused("This new-vault installer has no migration source.")
         }
         let inspection = try migrationSource.preflight.inspectForMigration {
-            try migrationSource.loadKey(
-                "Unlock the version 2 vault to create its permanent version 3 replacement.",
-                false
+            try migrationSource.loadExistingKey(
+                "Unlock the version 2 vault to create its permanent version 3 replacement."
             )
         }
         guard inspection.report.isReady else {
@@ -259,9 +256,8 @@ struct V3DeviceWrappedGenesisInstaller {
         }
         if sourceEntries.isEmpty {
             do {
-                _ = try migrationSource.loadKey(
-                    "Confirm the existing key for this empty version 2 vault before creating its permanent replacement.",
-                    false
+                _ = try migrationSource.loadExistingKey(
+                    "Confirm the existing key for this empty version 2 vault before creating its permanent replacement."
                 )
             } catch AppError.entryNotFound {
                 throw AppError.operationRefused(
@@ -822,8 +818,7 @@ struct V3DeviceWrappedMigrationService: V3LocalMigrationServicing {
             vaultID: report.vaultID,
             entryCount: report.entryCount,
             secretCount: report.secretCount,
-            totpCount: report.totpCount,
-            destination: .deviceWrapped
+            totpCount: report.totpCount
         )
     }
 }

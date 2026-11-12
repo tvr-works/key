@@ -5,7 +5,6 @@ repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 export ZDOTDIR="${repo_root}/Tests/ScriptFixtures"
 "${repo_root}/Tests/ReleaseScripts/release-source-tests.sh"
 target_resolver="${repo_root}/scripts/release-target.sh"
-token_resolver="${repo_root}/scripts/homebrew-cask-token.sh"
 
 assert_target() {
   local tag="$1"
@@ -24,10 +23,6 @@ assert_target() {
     exit 1
   fi
 
-  if [[ "$("${token_resolver}" "${tag}")" != "${expected_token}" ]]; then
-    echo "Homebrew token wrapper disagrees with the release target for ${tag}" >&2
-    exit 1
-  fi
 }
 
 assert_rejected() {

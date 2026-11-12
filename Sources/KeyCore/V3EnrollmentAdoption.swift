@@ -101,7 +101,7 @@ struct V3EnrollmentAdoptionService: V3EnrollmentAdoptionServicing {
     private let exchange: V3EnrollmentExchangeCoordinator
     private let identityManager: V3EnrollmentDeviceIdentityManager
     private let vaultKeyStore: any VaultKeyStoring
-    private let keychainMode: KeychainMode
+    private let keychainMode: KeychainMode?
     private let selectVault: VaultSelector
     private let verifyRuntime: RuntimeVerifier
     private let limits: V3ManifestRepositoryLimits
@@ -113,7 +113,7 @@ struct V3EnrollmentAdoptionService: V3EnrollmentAdoptionServicing {
         exchange: V3EnrollmentExchangeCoordinator,
         identityManager: V3EnrollmentDeviceIdentityManager,
         vaultKeyStore: any VaultKeyStoring,
-        keychainMode: KeychainMode,
+        keychainMode: KeychainMode?,
         selectVault: @escaping VaultSelector,
         verifyRuntime: @escaping RuntimeVerifier,
         limits: V3ManifestRepositoryLimits = .standard,
@@ -225,6 +225,7 @@ struct V3EnrollmentAdoptionService: V3EnrollmentAdoptionServicing {
     }
 
     private func installExactVaultKey(_ vaultKey: Data) throws {
+        guard let keychainMode else { throw KeyConfiguration.legacyModeUnavailable }
         if try vaultKeyStore.keyExists(mode: keychainMode) {
             let existing = try vaultKeyStore.loadKey(
                 mode: keychainMode,

@@ -1,3 +1,4 @@
+import CryptoKit
 import Darwin
 import Foundation
 
@@ -20,11 +21,11 @@ enum ConfiguredVaultAuthority: Equatable, Sendable {
     case v2(keychainMode: KeychainMode)
     case v3(vaultID: String)
 
-    init(keychainMode: KeychainMode, vaultID: String?) {
+    init(keychainMode: KeychainMode?, vaultID: String?) {
         if let vaultID {
             self = .v3(vaultID: vaultID)
         } else {
-            self = .v2(keychainMode: keychainMode)
+            self = .v2(keychainMode: keychainMode ?? .local)
         }
     }
 
@@ -38,8 +39,8 @@ public struct KeyConfiguration: Equatable, Sendable {
     public let configFileURL: URL
     public let vaultDirectoryURL: URL
     public let vaultPathSource: VaultPathSource
-    /// Active for v2; retained compatibility metadata for v3.
-    public let keychainMode: KeychainMode
+    /// Active for v2; optional retained metadata in older v3 configurations.
+    public let keychainMode: KeychainMode?
     /// The exact device-local v3 vault selection. A missing value means v2.
     public var vaultID: String? { authority.vaultID }
     let authority: ConfiguredVaultAuthority
@@ -48,37 +49,51 @@ public struct KeyConfiguration: Equatable, Sendable {
         configFileURL: URL,
         vaultDirectoryURL: URL,
         vaultPathSource: VaultPathSource,
-        keychainMode: KeychainMode,
+        keychainMode: KeychainMode?,
         vaultID: String? = nil
     ) {
         self.configFileURL = configFileURL
         self.vaultDirectoryURL = vaultDirectoryURL
         self.vaultPathSource = vaultPathSource
-        self.keychainMode = keychainMode
+        self.keychainMode = vaultID == nil ? (keychainMode ?? .local) : keychainMode
         self.authority = ConfiguredVaultAuthority(
             keychainMode: keychainMode,
             vaultID: vaultID
         )
     }
 
-    func value(for key: ConfigKey) -> String {
+    func value(for key: ConfigKey) throws -> String {
         switch key {
         case .vaultDir:
-            vaultDirectoryURL.path(percentEncoded: false)
+            return vaultDirectoryURL.path(percentEncoded: false)
         case .keychainMode:
-            keychainMode.rawValue
+            guard case let .v2(mode) = authority else {
+                throw Self.legacyModeUnavailable
+            }
+            return mode.rawValue
         }
     }
 
     var listedValues: [KeyConfigValue] {
-        var values = [KeyConfigValue(key: .vaultDir, value: value(for: .vaultDir))]
-        if case .v2 = authority {
+        var values = [KeyConfigValue(key: .vaultDir, value: vaultDirectoryURL.path(percentEncoded: false))]
+        if case let .v2(mode) = authority {
             values.append(KeyConfigValue(
                 key: .keychainMode,
-                value: value(for: .keychainMode)
+                value: mode.rawValue
             ))
         }
         return values
+    }
+
+    static var legacyModeUnavailable: AppError {
+        .operationRefused("This vault uses device enrollment. keychain-mode applies only to legacy vaults. Use vault-dir to change its folder.")
+    }
+
+    /// Historical enrollment adapters may use a stored mode, but must never
+    /// invent one when the selected configuration contains no legacy key choice.
+    func requireStoredKeychainMode() throws -> KeychainMode {
+        guard let keychainMode else { throw Self.legacyModeUnavailable }
+        return keychainMode
     }
 }
 
@@ -107,13 +122,13 @@ public struct VaultLocation: Equatable, Sendable {
 struct ConfiguredVaultRuntimeSelection: Equatable, Sendable {
     let rootURL: URL
     // Compare retained metadata too, preserving the helper's fail-closed guard.
-    let keychainMode: KeychainMode
+    let keychainMode: KeychainMode?
     let authority: ConfiguredVaultAuthority
     var vaultID: String? { authority.vaultID }
 
-    init(rootURL: URL, keychainMode: KeychainMode, vaultID: String?) {
+    init(rootURL: URL, keychainMode: KeychainMode?, vaultID: String?) {
         self.rootURL = rootURL
-        self.keychainMode = keychainMode
+        self.keychainMode = vaultID == nil ? (keychainMode ?? .local) : keychainMode
         self.authority = ConfiguredVaultAuthority(
             keychainMode: keychainMode,
             vaultID: vaultID
@@ -125,15 +140,27 @@ public struct KeyConfigStore {
     private let fileManager: FileManager
     private let homeDirectoryURL: URL
     private let productIdentity: KeyProductIdentity
+    private let writeObserver: any V3AtomicStagedObjectWriteObserving
 
     public init(
         productIdentity: KeyProductIdentity = .stable,
         fileManager: FileManager = .default,
         homeDirectoryURL: URL? = nil
     ) {
+        self.init(productIdentity: productIdentity, fileManager: fileManager,
+                  homeDirectoryURL: homeDirectoryURL, writeObserver: V3NoopAtomicStagedObjectWriteObserver())
+    }
+
+    init(
+        productIdentity: KeyProductIdentity = .stable,
+        fileManager: FileManager = .default,
+        homeDirectoryURL: URL? = nil,
+        writeObserver: any V3AtomicStagedObjectWriteObserving
+    ) {
         self.productIdentity = productIdentity
         self.fileManager = fileManager
         self.homeDirectoryURL = homeDirectoryURL ?? fileManager.homeDirectoryForCurrentUser
+        self.writeObserver = writeObserver
     }
 
     public func load() throws -> KeyConfiguration {
@@ -174,9 +201,10 @@ public struct KeyConfigStore {
         }
     }
 
-    private func requireExistingVaultDirectory(_ url: URL) throws {
+    @discardableResult
+    private func requireExistingVaultDirectory(_ url: URL) throws -> VaultRootDirectoryHandle {
         do {
-            _ = try VaultRootDirectoryHandle(opening: url)
+            return try VaultRootDirectoryHandle(opening: url)
         } catch {
             throw AppError.invalidConfiguration("The configured vault directory is unavailable: \(error.localizedDescription) Restore the existing vault or correct its configured path; Key will not create a replacement.")
         }
@@ -301,13 +329,13 @@ public struct KeyConfigStore {
         return child
     }
 
-    func restoredVaultConfigurationData(root: URL, vaultID: String) throws -> Data {
+    func restoredVaultConfigurationData(root: URL, vaultID: String, includingLegacyMode: Bool = false) throws -> Data {
         guard isValidV3UUID(vaultID) else {
             throw AppError.invalidConfiguration("Key cannot configure a vault with an invalid ID.")
         }
         return configurationData(KeyConfigurationFile(
-            vaultDirectoryURL: root.standardizedFileURL, keychainMode: .local, vaultID: vaultID
-        ))
+            vaultDirectoryURL: root.standardizedFileURL, keychainMode: nil, vaultID: vaultID
+        ), includingLegacyMode: includingLegacyMode)
     }
 
     /// Reserves this destination before any device identity is created. Records
@@ -353,7 +381,7 @@ public struct KeyConfigStore {
             }
             let configuration = KeyConfigurationFile(
                 vaultDirectoryURL: rootHandle.rootURL,
-                keychainMode: .local,
+                keychainMode: nil,
                 vaultID: vaultID
             )
             // Atomic, durable publication without replacing another writer's
@@ -410,7 +438,7 @@ public struct KeyConfigStore {
             try requireEnrollmentRoot(record, at: recordPath, in: configRoot)
             let configuration = KeyConfigurationFile(
                 vaultDirectoryURL: rootHandle.rootURL,
-                keychainMode: .local,
+                keychainMode: nil,
                 vaultID: vaultID
             )
             try writer.install(configurationData(configuration), at: paths.configFileURL.lastPathComponent)
@@ -436,20 +464,23 @@ public struct KeyConfigStore {
     public func setValue(_ value: String, for key: ConfigKey) throws -> KeyConfiguration {
         guard try hasConfiguration() else { throw Self.notInitializedError }
         let paths = configurationPaths()
-        let current = try loadConfigurationFile(from: paths.configFileURL)
+        let snapshot = try loadConfigurationSnapshot(from: paths.configFileURL)
+        let current = snapshot.configuration
         let updatedFile: KeyConfigurationFile
+        let selectedRoot: VaultRootDirectoryHandle
 
         switch key {
         case .vaultDir:
             let resolvedURL = try resolveConfiguredPath(value, configFileURL: paths.configFileURL)
-            try requireExistingVaultDirectory(resolvedURL)
+            selectedRoot = try requireExistingVaultDirectory(resolvedURL)
             updatedFile = KeyConfigurationFile(
                 vaultDirectoryURL: resolvedURL,
-                keychainMode: current.keychainMode,
+                keychainMode: current.vaultID == nil ? current.keychainMode : nil,
                 vaultID: current.vaultID
             )
         case .keychainMode:
-            try requireExistingVaultDirectory(current.vaultDirectoryURL)
+            guard current.vaultID == nil else { throw KeyConfiguration.legacyModeUnavailable }
+            selectedRoot = try requireExistingVaultDirectory(current.vaultDirectoryURL)
             guard let mode = KeychainMode(rawValue: value) else {
                 throw AppError.invalidConfiguration("Unsupported keychain mode '\(value)'. Expected 'local' or 'icloud'.")
             }
@@ -460,18 +491,14 @@ public struct KeyConfigStore {
             )
         }
 
-        try writeConfigurationFile(updatedFile, to: paths.configFileURL)
+        try writeConfigurationFile(updatedFile, replacing: snapshot) {
+            try selectedRoot.requireConfiguredRootIdentity()
+        }
         return try load()
     }
 
     public func listValues() throws -> [KeyConfigValue] {
         try load().listedValues
-    }
-
-    /// Reads the existing configured root without creating config or vault
-    /// state. The running helper uses this as a fail-closed consistency check.
-    func configuredVaultDirectoryURL() throws -> URL {
-        try configuredVaultRuntimeSelection().rootURL
     }
 
     /// Reads the running helper's complete storage selection without creating
@@ -516,15 +543,17 @@ public struct KeyConfigStore {
                 "Key cannot configure a vault with an invalid ID."
             )
         }
-        let current = try configuredVaultRuntimeSelection()
-        guard case let .v2(sourceMode) = current.authority else {
+        let paths = configurationPaths()
+        let snapshot = try loadConfigurationSnapshot(from: paths.configFileURL)
+        let current = snapshot.configuration
+        guard current.vaultID == nil else {
             throw AppError.operationRefused(
                 "This Mac is already configured to use a device-enrolled vault."
             )
         }
-        guard current.rootURL.standardizedFileURL
+        guard current.vaultDirectoryURL.standardizedFileURL
                 == expectedRootHandle.rootURL.standardizedFileURL,
-              sourceMode == expectedKeychainMode
+              current.keychainMode == expectedKeychainMode
         else {
             throw AppError.operationRefused(
                 "The vault configuration changed during migration. Key did not replace it. Check the current configuration before trying again."
@@ -532,25 +561,25 @@ public struct KeyConfigStore {
         }
         try expectedRootHandle.requireConfiguredRootIdentity()
 
-        let paths = configurationPaths()
         try writeConfigurationFile(
             KeyConfigurationFile(
-                vaultDirectoryURL: current.rootURL,
-                keychainMode: current.keychainMode,
+                vaultDirectoryURL: current.vaultDirectoryURL,
+                keychainMode: nil,
                 vaultID: vaultID
             ),
-            to: paths.configFileURL
+            replacing: snapshot,
+            validateSelection: { try expectedRootHandle.requireConfiguredRootIdentity() }
         )
         let pathSource: VaultPathSource =
-            current.rootURL.standardizedFileURL
+            current.vaultDirectoryURL.standardizedFileURL
                 == paths.defaultVaultURL.standardizedFileURL
             ? .appSupportConfigDefault
             : .appSupportConfigCustom
         return KeyConfiguration(
             configFileURL: paths.configFileURL,
-            vaultDirectoryURL: current.rootURL,
+            vaultDirectoryURL: current.vaultDirectoryURL,
             vaultPathSource: pathSource,
-            keychainMode: current.keychainMode,
+            keychainMode: nil,
             vaultID: vaultID
         )
     }
@@ -590,13 +619,142 @@ public struct KeyConfigStore {
     }
 
     private func loadConfigurationFile(from configFileURL: URL) throws -> KeyConfigurationFile {
+        // Preserve read compatibility with existing dotfile links. Updates use
+        // a retained, nonsymlink snapshot instead of following a redirected path.
         let data: Data
         do {
             data = try Data(contentsOf: configFileURL)
         } catch {
             throw AppError.io("Failed to read vault configuration at '\(configFileURL.path)': \(error.localizedDescription)")
         }
+        return try parseConfigurationFile(data, from: configFileURL)
+    }
 
+    private func loadConfigurationSnapshot(from url: URL) throws -> KeyConfigurationSnapshot {
+        let root: VaultRootDirectoryHandle
+        let data: Data
+        let identity: KeyConfigurationFileIdentity
+        do {
+            root = try VaultRootDirectoryHandle(opening: url.deletingLastPathComponent())
+            (data, identity) = try readConfigurationBytes(in: root, maximumBytes: Int.max)
+            try root.requireConfiguredRootIdentity()
+        } catch {
+            throw AppError.operationRefused("Key cannot safely update this configuration. Updates require a regular config.toml in a real directory. Keep the existing config and inspect its path before retrying. \(error.localizedDescription)")
+        }
+        return try KeyConfigurationSnapshot(
+            configuration: parseConfigurationFile(data, from: url), data: data,
+            root: root, identity: identity
+        )
+    }
+
+    private func readConfigurationBytes(
+        in root: VaultRootDirectoryHandle, maximumBytes: Int
+    ) throws -> (Data, KeyConfigurationFileIdentity) {
+        try root.withResolvedDescriptor(at: "config.toml", expecting: .regularFile) { descriptor in
+            var metadata = stat()
+            guard fstat(descriptor.rawValue, &metadata) == 0,
+                  case let .available(data) = readObjectData(
+                    descriptor: descriptor.rawValue, maximumBytes: maximumBytes
+                  )
+            else { throw AppError.io("Could not read the saved Key configuration.") }
+            return (data, KeyConfigurationFileIdentity(
+                device: UInt64(truncatingIfNeeded: metadata.st_dev), file: UInt64(metadata.st_ino)
+            ))
+        }
+    }
+
+    private func requireUnchanged(_ snapshot: KeyConfigurationSnapshot) throws {
+        try snapshot.root.requireConfiguredRootIdentity()
+        let (data, identity) = try readConfigurationBytes(in: snapshot.root, maximumBytes: snapshot.data.count)
+        guard identity == snapshot.identity, data == snapshot.data else {
+            throw AppError.operationRefused("The configuration changed before it could be saved. Check the current settings before trying again.")
+        }
+    }
+
+    private func preserveConfiguration(_ snapshot: KeyConfigurationSnapshot, vaultID: String) throws -> () throws -> Void {
+        let parent = snapshot.root
+        let archiveURL = parent.rootURL.appendingPathComponent("legacy-configs").appendingPathComponent(vaultID)
+        do {
+            guard snapshot.data.count <= 1_048_576 else {
+                throw AppError.operationRefused("The existing config exceeds the 1 MiB preservation limit. Inspect and back it up before reducing its size.")
+            }
+            try requireUnchanged(snapshot)
+            let archives = try restoreMetadataDirectory(in: parent, name: "legacy-configs", create: true) {
+                try requireUnchanged(snapshot)
+            }
+            try requirePrivateArchiveDirectory(archives)
+            let destination = try restoreMetadataDirectory(in: archives, name: vaultID, create: true) {
+                try requireUnchanged(snapshot)
+                try archives.requireConfiguredRootIdentity()
+            }
+            try requirePrivateArchiveDirectory(destination)
+            let name = SHA256.hash(data: snapshot.data).map { String(format: "%02x", $0) }.joined() + ".toml"
+            try V3AtomicStagedObjectWriter(rootHandle: destination, observer: writeObserver).install(snapshot.data, at: name) {
+                try requireUnchanged(snapshot)
+                try archives.requireConfiguredRootIdentity()
+                try destination.requireConfiguredRootIdentity()
+            }
+            let validateArchive = {
+                try requirePrivateArchiveDirectory(archives)
+                try requirePrivateArchiveDirectory(destination)
+                try destination.withResolvedDescriptor(at: name, expecting: .regularFile) { descriptor in
+                    var metadata = stat()
+                    guard fstat(descriptor.rawValue, &metadata) == 0,
+                          metadata.st_uid == geteuid(), metadata.st_mode & 0o077 == 0,
+                          metadata.st_nlink == 1,
+                          case let .available(data) = readObjectData(
+                            descriptor: descriptor.rawValue, maximumBytes: snapshot.data.count
+                          ), data == snapshot.data
+                    else { throw AppError.io("The retained config is not an exact, private copy.") }
+                    // An exact preexisting object may be left by an interrupted
+                    // install. Synchronize it too before discarding old fields.
+                    try synchronizeFile(descriptor.rawValue, path: name)
+                }
+                try destination.withFileDescriptor { try synchronizeDirectory($0, path: vaultID) }
+                try archives.withFileDescriptor { try synchronizeDirectory($0, path: "legacy-configs") }
+                try parent.withFileDescriptor { try synchronizeDirectory($0, path: parent.rootURL.path) }
+            }
+            try validateArchive()
+            return validateArchive
+        } catch {
+            throw AppError.io("Could not preserve the original configuration under '\(archiveURL.path)'. Key did not replace the active config. Keep these files and check `\(productIdentity.cliExecutableName) config list` before retrying. \(error.localizedDescription)")
+        }
+    }
+
+    private func requirePrivateArchiveDirectory(_ root: VaultRootDirectoryHandle) throws {
+        try root.withFileDescriptor { descriptor in
+            var metadata = stat()
+            guard fstat(descriptor, &metadata) == 0,
+                  metadata.st_uid == geteuid(), metadata.st_mode & 0o077 == 0
+            else { throw AppError.io("Retained configuration directories must be private to this user.") }
+        }
+    }
+
+    private func writeConfigurationFile(
+        _ configuration: KeyConfigurationFile, replacing snapshot: KeyConfigurationSnapshot,
+        validateSelection: () throws -> Void = {}
+    ) throws {
+        var validateArchive: (() throws -> Void)?
+        if let vaultID = configuration.vaultID,
+           snapshot.configuration.vaultID == nil || snapshot.configuration.keychainMode != nil {
+            validateArchive = try preserveConfiguration(snapshot, vaultID: vaultID)
+        }
+        do {
+            try V3AtomicStagedObjectWriter(rootHandle: snapshot.root, observer: writeObserver).replace(
+                configurationData(configuration), at: "config.toml"
+            ) {
+                try requireUnchanged(snapshot)
+                try validateArchive?()
+                try validateSelection()
+            }
+        } catch {
+            // A directory-sync error can occur after the rename. Do not claim
+            // that the old config is still selected when publication is unclear.
+            throw AppError.io("Could not confirm the configuration save. Keep the config and any retained copies; run `\(productIdentity.cliExecutableName) config list` before retrying. \(error.localizedDescription)")
+        }
+    }
+
+    private func parseConfigurationFile(_ data: Data, from configFileURL: URL) throws -> KeyConfigurationFile {
         guard let text = String(data: data, encoding: .utf8) else {
             throw AppError.invalidConfiguration("Vault configuration at '\(configFileURL.path)' is not valid UTF-8.")
         }
@@ -669,20 +827,12 @@ public struct KeyConfigStore {
 
         return KeyConfigurationFile(
             vaultDirectoryURL: vaultDirectory,
-            keychainMode: keychainMode ?? .local,
+            keychainMode: vaultID == nil ? (keychainMode ?? .local) : keychainMode,
             vaultID: vaultID
         )
     }
 
-    private func writeConfigurationFile(_ configuration: KeyConfigurationFile, to configFileURL: URL) throws {
-        do {
-            try configurationData(configuration).write(to: configFileURL, options: .atomic)
-        } catch {
-            throw AppError.io("Failed to write vault configuration at '\(configFileURL.path)': \(error.localizedDescription)")
-        }
-    }
-
-    private func configurationData(_ configuration: KeyConfigurationFile) -> Data {
+    private func configurationData(_ configuration: KeyConfigurationFile, includingLegacyMode: Bool = false) -> Data {
         let escapedPath = configuration.vaultDirectoryURL.path(percentEncoded: false)
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -692,8 +842,10 @@ public struct KeyConfigStore {
         var contents = """
         # key configuration
         vault_dir = "\(escapedPath)"
-        keychain_mode = "\(configuration.keychainMode.rawValue)"
         """
+        if configuration.vaultID == nil || includingLegacyMode {
+            contents += "\nkeychain_mode = \"\((configuration.keychainMode ?? .local).rawValue)\""
+        }
         if let vaultID = configuration.vaultID {
             contents += "\nvault_id = \"\(vaultID)\""
         }
@@ -863,8 +1015,20 @@ public struct VaultLocationResolver {
 
 private struct KeyConfigurationFile {
     let vaultDirectoryURL: URL
-    let keychainMode: KeychainMode
+    let keychainMode: KeychainMode?
     let vaultID: String?
+}
+
+private struct KeyConfigurationFileIdentity: Equatable {
+    let device: UInt64
+    let file: UInt64
+}
+
+private struct KeyConfigurationSnapshot {
+    let configuration: KeyConfigurationFile
+    let data: Data
+    let root: VaultRootDirectoryHandle
+    let identity: KeyConfigurationFileIdentity
 }
 
 private struct BootstrapPaths {

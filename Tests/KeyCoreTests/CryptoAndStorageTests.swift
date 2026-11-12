@@ -225,7 +225,7 @@ struct CryptoAndStorageTests {
             try store.configuredVaultRuntimeSelection().vaultID == vaultID
         )
 
-        _ = try store.setValue("icloud", for: .keychainMode)
+        _ = try store.setValue(vaultDirectory.path, for: .vaultDir)
         #expect(try store.load().vaultID == vaultID)
         #expect(
             try String(contentsOf: configURL, encoding: .utf8)

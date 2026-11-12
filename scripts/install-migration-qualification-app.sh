@@ -60,12 +60,13 @@ for kind in app helper; do
   source_plist="${repo_root}/Config/Key-Info.plist"
   [[ "${kind}" == app ]] || source_plist="${repo_root}/Config/KeyLaunchAgentHelper-Info.plist"
   cp "${source_plist}" "${temporary_directory}/${kind}.plist"
-  # Qualification remains explicitly controlled by its private opt-in, even
-  # after the ordinary Preview beta enables recovery in shipping metadata.
-  /usr/libexec/PlistBuddy -c 'Set :KeyRecoveryEnabled false' "${temporary_directory}/${kind}.plist"
-  if [[ "${recovery}" == 1 ]]; then
-    /usr/libexec/PlistBuddy -c 'Add :KeyExperimentalRecoveryEnabled bool true' "${temporary_directory}/${kind}.plist"
-  fi
+  # Use the shipping flag, but derive it only from this isolated build's
+  # explicit choice. Never inherit enabled recovery from a source plist.
+  /usr/libexec/PlistBuddy -c 'Delete :KeyExperimentalRecoveryEnabled' "${temporary_directory}/${kind}.plist" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy -c 'Delete :KeyRecoveryEnabled' "${temporary_directory}/${kind}.plist" >/dev/null 2>&1 || true
+  enabled=false
+  [[ "${recovery}" == 0 ]] || enabled=true
+  /usr/libexec/PlistBuddy -c "Add :KeyRecoveryEnabled bool ${enabled}" "${temporary_directory}/${kind}.plist"
 done
 plist_settings=("KEY_APP_INFO_PLIST_FILE=${temporary_directory}/app.plist" "KEY_HELPER_INFO_PLIST_FILE=${temporary_directory}/helper.plist")
 
@@ -109,13 +110,13 @@ for info in "${app_info}" "${helper_info}"; do
     echo 'built qualification component has the wrong product variant' >&2
     exit 1
   fi
-  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyRecoveryEnabled' "${info}")" != false ]]; then
-    echo 'built qualification component must not inherit public recovery' >&2
+  enabled="$(/usr/bin/plutil -extract KeyRecoveryEnabled raw -expect bool -o - "${info}" 2>/dev/null || true)"
+  if [[ ( "${recovery}" == 1 && "${enabled}" != true ) || ( "${recovery}" == 0 && "${enabled}" != false ) ]]; then
+    echo 'built qualification component has the wrong recovery setting' >&2
     exit 1
   fi
-  enabled="$(/usr/libexec/PlistBuddy -c 'Print :KeyExperimentalRecoveryEnabled' "${info}" 2>/dev/null || true)"
-  if [[ ( "${recovery}" == 1 && "${enabled}" != true ) || ( "${recovery}" == 0 && -n "${enabled}" && "${enabled}" != false ) ]]; then
-    echo 'built qualification component has the wrong recovery setting' >&2
+  if /usr/libexec/PlistBuddy -c 'Print :KeyExperimentalRecoveryEnabled' "${info}" >/dev/null 2>&1; then
+    echo 'built qualification component retains an obsolete recovery setting' >&2
     exit 1
   fi
   if [[ "$(/usr/libexec/PlistBuddy -c 'Print :KeyQualificationNamespace' "${info}")" != "${namespace}" ]]; then

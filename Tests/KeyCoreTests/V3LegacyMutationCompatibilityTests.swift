@@ -3,7 +3,7 @@ import Testing
 @testable import KeyCore
 
 @Suite
-struct V3VaultMutationServiceTests {
+struct V3LegacyMutationCompatibilityTests {
     fileprivate static let vaultID =
         "018f4d38-7d5a-7b20-b0f1-97d6e96c5000"
     fileprivate static let initialEntryID =
@@ -17,47 +17,47 @@ struct V3VaultMutationServiceTests {
         )
         defer { harness.removeRoot() }
 
-        try harness.runtime.add(
+        try harness.mutations.add(
             name: "added",
             secret: "two",
             type: .secret,
             operationID: VaultTransactionOperationID()
         )
-        try harness.runtime.edit(
+        try harness.mutations.edit(
             name: "added",
             secret: "three",
             type: .secret,
             operationID: VaultTransactionOperationID()
         )
-        try harness.runtime.copy(
+        try harness.mutations.copy(
             source: "added",
             destination: "copied",
             overwrite: false,
             operationID: VaultTransactionOperationID()
         )
-        try harness.runtime.move(
+        try harness.mutations.move(
             source: "copied",
             destination: "moved",
             overwrite: false,
             operationID: VaultTransactionOperationID()
         )
-        try harness.runtime.remove(
+        try harness.mutations.remove(
             name: "original",
             operationID: VaultTransactionOperationID()
         )
 
-        #expect(try harness.runtime.list(allowStale: false) == [
+        #expect(try harness.reader.list(allowStale: false) == [
             "added", "moved"
         ])
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "added",
             allowStale: false
         ).plaintext == "three")
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "moved",
             allowStale: false
         ).plaintext == "three")
-        #expect(try harness.runtime.status().health == .ready)
+        #expect(try harness.reader.status().health == .ready)
     }
 
     @Test
@@ -69,25 +69,25 @@ struct V3VaultMutationServiceTests {
         defer { harness.removeRoot() }
 
         #expect(throws: AppError.self) {
-            try harness.runtime.copy(
+            try harness.mutations.copy(
                 source: "source",
                 destination: "destination",
                 overwrite: false,
                 operationID: VaultTransactionOperationID()
             )
         }
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "destination",
             allowStale: false
         ).plaintext == "old-value")
 
-        try harness.runtime.copy(
+        try harness.mutations.copy(
             source: "source",
             destination: "destination",
             overwrite: true,
             operationID: VaultTransactionOperationID()
         )
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "destination",
             allowStale: false
         ).plaintext == "source-value")
@@ -101,14 +101,14 @@ struct V3VaultMutationServiceTests {
         defer { harness.removeRoot() }
 
         #expect(throws: AppError.self) {
-            try harness.runtime.copy(
+            try harness.mutations.copy(
                 source: "source",
                 destination: "source",
                 overwrite: true,
                 operationID: VaultTransactionOperationID()
             )
         }
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "source",
             allowStale: false
         ).plaintext == "source-value")
@@ -151,21 +151,21 @@ struct V3VaultMutationServiceTests {
         try harness.select(left)
         harness.failNextRecoveryAnchorRemoval()
 
-        try harness.runtime.add(
+        try harness.mutations.add(
             name: "local",
             secret: "after-merge",
             type: .secret,
             operationID: VaultTransactionOperationID()
         )
 
-        #expect(try harness.runtime.list(allowStale: false) == [
+        #expect(try harness.reader.list(allowStale: false) == [
             "local", "remote", "shared"
         ])
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "shared",
             allowStale: false
         ).plaintext == "left")
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.read(
             name: "remote",
             allowStale: false
         ).plaintext == "right")
@@ -207,12 +207,12 @@ struct V3VaultMutationServiceTests {
         )
         try harness.select(left)
 
-        let conflict = try #require(harness.runtime.conflicts().first)
-        let detail = try harness.runtime.conflict(id: conflict.id)
+        let conflict = try #require(harness.reader.conflicts().first)
+        let detail = try harness.reader.conflict(id: conflict.id)
         let selected = try #require(detail.versions.first(where: {
             !$0.previouslyTrustedOnThisMac
         }))
-        try harness.runtime.resolve(
+        try harness.mutations.resolve(
             [VaultConflictResolution(
                 conflictID: conflict.id,
                 versionID: selected.id
@@ -220,8 +220,8 @@ struct V3VaultMutationServiceTests {
             operationID: VaultTransactionOperationID()
         )
 
-        #expect(try harness.runtime.status().health == .ready)
-        #expect(try harness.runtime.read(
+        #expect(try harness.reader.status().health == .ready)
+        #expect(try harness.reader.read(
             name: "shared",
             allowStale: false
         ).plaintext == "right")
@@ -230,7 +230,8 @@ struct V3VaultMutationServiceTests {
 
 private final class MutationHarness {
     let root: URL
-    let runtime: V3VaultRuntime
+    let mutations: LegacyVaultMutationFixture
+    let reader: V3ReadOnlyVaultRuntime
     let genesis: V3VerifiedManifest
     private let objectStore: V3FilesystemTransactionArtifactStore
     private let checkpointStore: MutationCheckpointStore
@@ -260,18 +261,18 @@ private final class MutationHarness {
         }
         let entryIDs = entries.indices.map { index in
             if index == 0 {
-                return V3VaultMutationServiceTests.initialEntryID
+                return V3LegacyMutationCompatibilityTests.initialEntryID
             }
             return String(
                 format: "018f4d38-7d5a-7b20-b0f1-97d6e96c%04x",
                 0x5001 + index
             )
         }
-        let genesisCandidate = try V3LocalGenesisBuilder().build(
-            vaultID: V3VaultMutationServiceTests.vaultID,
+        let genesisCandidate = try LegacyManifestFixtureBuilder().build(
+            vaultID: V3LegacyMutationCompatibilityTests.vaultID,
             entryIDs: entryIDs,
             sourceEntries: sourceEntries,
-            vaultKey: V3VaultMutationServiceTests.vaultKey
+            vaultKey: V3LegacyMutationCompatibilityTests.vaultKey
         )
         for entry in genesisCandidate.entries {
             try objectStore.stageEntry(
@@ -304,17 +305,18 @@ private final class MutationHarness {
         try checkpointStore.replaceCheckpoint(
             checkpoint.canonicalBytes,
             expectedCheckpoint: nil,
-            vaultID: V3VaultMutationServiceTests.vaultID
+            vaultID: V3LegacyMutationCompatibilityTests.vaultID
         )
         genesis = genesisCandidate.verifiedManifest
-        runtime = V3VaultRuntime(
-            objectStore: objectStore,
-            vaultID: V3VaultMutationServiceTests.vaultID,
-            checkpointStore: checkpointStore,
-            recoveryAnchorStore: recoveryAnchorStore,
-            vaultKeyProvider: { _ in
-                V3VaultMutationServiceTests.vaultKey
-            }
+        let keyProvider: @Sendable (String) throws -> Data = { _ in V3LegacyMutationCompatibilityTests.vaultKey }
+        mutations = LegacyVaultMutationFixture(
+            context: V3ReadRuntimeContext(source: objectStore, vaultID: V3LegacyMutationCompatibilityTests.vaultID,
+                                         checkpointStore: checkpointStore, vaultKeyProvider: keyProvider),
+            objectStore: objectStore, checkpointStore: checkpointStore, recoveryAnchorStore: recoveryAnchorStore
+        )
+        reader = V3ReadOnlyVaultRuntime(
+            source: objectStore, vaultID: V3LegacyMutationCompatibilityTests.vaultID,
+            checkpointStore: checkpointStore, vaultKeyProvider: keyProvider
         )
     }
 
@@ -336,14 +338,14 @@ private final class MutationHarness {
         try V3EntryCipher().seal(
             plaintext,
             context: V3EntryAuthenticationContext(
-                vaultID: V3VaultMutationServiceTests.vaultID,
+                vaultID: V3LegacyMutationCompatibilityTests.vaultID,
                 entryID: entryID,
                 name: name,
                 type: type,
                 keyID: genesis.envelope.content.manifest.keyID,
                 revision: revision
             ),
-            vaultKey: V3VaultMutationServiceTests.vaultKey
+            vaultKey: V3LegacyMutationCompatibilityTests.vaultKey
         )
     }
 
@@ -374,12 +376,12 @@ private final class MutationHarness {
             wrappedKeys: parentBody.wrappedKeys,
             entries: entries.sorted(by: v3ManifestEntryPrecedes)
         )
-        let candidate = try V3ManifestCandidateBuilder().build(
+        let candidate = try LegacyManifestCandidateBuilder().build(
             content: V3ManifestContent(
                 parents: [Base64URL.encode(parent.envelopeDigest)],
                 manifest: body
             ),
-            vaultKey: V3VaultMutationServiceTests.vaultKey,
+            vaultKey: V3LegacyMutationCompatibilityTests.vaultKey,
             trustAnchor: .verifiedParents([parent])
         )
         let operationID = VaultTransactionOperationID()
@@ -415,14 +417,14 @@ private final class MutationHarness {
 
     func select(_ manifest: V3VerifiedManifest) throws {
         let current = try #require(try checkpointStore.loadCheckpoint(
-            vaultID: V3VaultMutationServiceTests.vaultID
+            vaultID: V3LegacyMutationCompatibilityTests.vaultID
         ))
         try checkpointStore.replaceCheckpoint(
             V3ManifestCheckpoint(
                 verifiedManifest: manifest
             ).canonicalBytes,
             expectedCheckpoint: current,
-            vaultID: V3VaultMutationServiceTests.vaultID
+            vaultID: V3LegacyMutationCompatibilityTests.vaultID
         )
     }
 }

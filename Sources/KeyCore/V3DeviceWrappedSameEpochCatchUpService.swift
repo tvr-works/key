@@ -27,12 +27,6 @@ enum V3DeviceWrappedCatchUpError: Error, Equatable, LocalizedError {
     }
 }
 
-enum V3DeviceWrappedSameEpochCatchUpStepOutcome: Equatable, Sendable {
-    case upToDate(V3DeviceWrappedTrustedCheckpoint)
-    case advancedOneStep(V3DeviceWrappedTrustedCheckpoint)
-    case multipleHeads([Data])
-}
-
 protocol V3DeviceWrappedSameEpochCatchUpStepServicing: Sendable {
     func inspect(
         trusted: V3DeviceWrappedTrustedCheckpoint,
@@ -45,77 +39,6 @@ protocol V3DeviceWrappedSameEpochCatchUpStepServicing: Sendable {
         expectedCheckpoint: V3ManifestCheckpoint,
         manifestDigest: Data
     ) throws -> V3DeviceWrappedTrustedCheckpoint
-}
-
-/// Advances one device by one unambiguous content manifest within its current
-/// vault-key epoch.
-///
-/// The helper mutation owner serializes this local trust change with ordinary
-/// publication and enrollment. The live observer authenticates the complete
-/// forward graph before this service reopens the next direct child, validates
-/// its complete encrypted snapshot, and compare-and-swaps the exact checkpoint.
-/// A later coordinator repeats this step while checking for key transitions at
-/// every newly trusted checkpoint.
-struct V3DeviceWrappedSameEpochCatchUpService: Sendable {
-    private let mutationOwner: any VaultTransactionMutationOwning
-    private let stateLoader: any V3DeviceWrappedMutationStateLoading
-    private let stepService: V3DeviceWrappedSameEpochCatchUpStepService
-
-    init(
-        vaultID: String,
-        mutationOwner: any VaultTransactionMutationOwning,
-        stateLoader: any V3DeviceWrappedMutationStateLoading,
-        repositoryObserver: any V3DeviceWrappedRepositoryObserving,
-        source: any V3ImmutableObjectReading,
-        checkpointStore: any V3ManifestCheckpointStoring,
-        cache: any V3CheckpointManifestCaching,
-        limits: V3ManifestRepositoryLimits = .standard
-    ) {
-        precondition(isValidV3UUID(vaultID))
-        self.mutationOwner = mutationOwner
-        self.stateLoader = stateLoader
-        stepService = V3DeviceWrappedSameEpochCatchUpStepService(
-            vaultID: vaultID,
-            repositoryObserver: repositoryObserver,
-            source: source,
-            checkpointStore: checkpointStore,
-            cache: cache,
-            limits: limits
-        )
-    }
-
-    func advanceOneStep()
-        throws -> V3DeviceWrappedSameEpochCatchUpStepOutcome
-    {
-        try mutationOwner.perform(.catchUpVault) { _ in
-            let trusted = try stateLoader.authenticatedCheckpoint(
-                reason: "Unlock the vault to check changes to which Macs have access."
-            )
-            let vaultKey = try stateLoader.loadVaultKey(
-                keyID: trusted.envelope.body.keyID
-            )
-            let plan = try stepService.inspect(
-                trusted: trusted,
-                vaultKey: vaultKey
-            )
-            switch plan {
-            case .upToDate:
-                return .upToDate(trusted)
-            case let .multipleHeads(heads):
-                return .multipleHeads(heads)
-            case let .advance(expectedCheckpoint, manifestDigests):
-                guard let nextManifestDigest = manifestDigests.first else {
-                    throw V3DeviceWrappedCatchUpError.recoveryRequired
-                }
-                return .advancedOneStep(try stepService.advance(
-                    trusted: trusted,
-                    vaultKey: vaultKey,
-                    expectedCheckpoint: expectedCheckpoint,
-                    manifestDigest: nextManifestDigest
-                ))
-            }
-        }
-    }
 }
 
 /// Read-only inspection and guarded one-manifest advancement used by the

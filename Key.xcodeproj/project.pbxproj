@@ -118,7 +118,6 @@
 		A2090003A2090003A2090003 /* V3FormatValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2090004A2090004A2090004 /* V3FormatValidation.swift */; };
 		A3010001A3010001A3010001 /* VaultRootDirectoryHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3010002A3010002A3010002 /* VaultRootDirectoryHandle.swift */; };
 		A3020001A3020001A3020001 /* VaultPathResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3020002A3020002A3020002 /* VaultPathResolver.swift */; };
-		A3030001A3030001A3030001 /* VaultProviderNamePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3030002A3030002A3030002 /* VaultProviderNamePolicy.swift */; };
 		A3040001A3040001A3040001 /* VaultContainedMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3040002A3040002A3040002 /* VaultContainedMutation.swift */; };
 		A4010001A4010001A4010001 /* VaultTransactionMutationOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4010002A4010002A4010002 /* VaultTransactionMutationOwner.swift */; };
 		A4030001A4030001A4030001 /* Base64URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4030002A4030002A4030002 /* Base64URL.swift */; };
@@ -143,7 +142,6 @@
 		A5120001A5120001A5120001 /* V3LocalMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5120002A5120002A5120002 /* V3LocalMigration.swift */; };
 		A5130001A5130001A5130001 /* V3ImmutableObjectPublicationFilesystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5130002A5130002A5130002 /* V3ImmutableObjectPublicationFilesystem.swift */; };
 		A5140001A5140001A5140001 /* V3AtomicStagedObjectWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5140002A5140002A5140002 /* V3AtomicStagedObjectWriter.swift */; };
-		A5150001A5150001A5150001 /* V3LocalGenesisBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5150002A5150002A5150002 /* V3LocalGenesisBuilder.swift */; };
 		A5160001A5160001A5160001 /* V3ImmutableObjectPublishing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5160002A5160002A5160002 /* V3ImmutableObjectPublishing.swift */; };
 		A5170001A5170001A5170001 /* V3EnrollmentProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5170002A5170002A5170002 /* V3EnrollmentProtocol.swift */; };
 		A5180001A5180001A5180001 /* V3P256Signature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5180002A5180002A5180002 /* V3P256Signature.swift */; };
@@ -159,16 +157,13 @@
 		A5280001A5280001A5280001 /* V3ManifestAncestryObservation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5280002A5280002A5280002 /* V3ManifestAncestryObservation.swift */; };
 		A5290001A5290001A5290001 /* V3EnrollmentAdoption.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5290002A5290002A5290002 /* V3EnrollmentAdoption.swift */; };
 		A5300001A5300001A5300001 /* V3EnrollmentWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5300002A5300002A5300002 /* V3EnrollmentWorkflow.swift */; };
-		A5310001A5310001A5310001 /* V3ManifestCandidateBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5310002A5310002A5310002 /* V3ManifestCandidateBuilder.swift */; };
-		A5320001A5320001A5320001 /* V3VaultMutationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5320002A5320002A5320002 /* V3VaultMutationService.swift */; };
-		A5330001A5330001A5330001 /* V3VaultRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5330002A5330002A5330002 /* V3VaultRuntime.swift */; };
+		A5320001A5320001A5320001 /* VaultMutationServicing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5320002A5320002A5320002 /* VaultMutationServicing.swift */; };
 		A5340001A5340001A5340001 /* V3EntryResealing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5340002A5340002A5340002 /* V3EntryResealing.swift */; };
-		A5350001A5350001A5350001 /* V3ImmutableTransactionPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5350002A5350002A5350002 /* V3ImmutableTransactionPublisher.swift */; };
+		A5350001A5350001A5350001 /* V3TransactionPublication.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5350002A5350002A5350002 /* V3TransactionPublication.swift */; };
 		A5360001A5360001A5360001 /* V3ImmutableTransactionRecoveryAnchor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5360002A5360002A5360002 /* V3ImmutableTransactionRecoveryAnchor.swift */; };
 		A5370001A5370001A5370001 /* V3ImmutableTransactionRecoveryFilesystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5370002A5370002A5370002 /* V3ImmutableTransactionRecoveryFilesystem.swift */; };
 		A5380001A5380001A5380001 /* V3ImmutableTransactionRecoveryIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5380002A5380002A5380002 /* V3ImmutableTransactionRecoveryIntent.swift */; };
-		A5390001A5390001A5390001 /* V3ImmutableTransactionValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5390002A5390002A5390002 /* V3ImmutableTransactionValidation.swift */; };
-		A5400001A5400001A5400001 /* V3InterruptedTransactionRecoverer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5400002A5400002A5400002 /* V3InterruptedTransactionRecoverer.swift */; };
+		A5390001A5390001A5390001 /* V3EntryObjectKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5390002A5390002A5390002 /* V3EntryObjectKey.swift */; };
 		A5410001A5410001A5410001 /* V3VaultKeyHPKE.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5410002A5410002A5410002 /* V3VaultKeyHPKE.swift */; };
 		A5420001A5420001A5420001 /* V3DeviceWrappedManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5420002A5420002A5420002 /* V3DeviceWrappedManifest.swift */; };
 		A5430001A5430001A5430001 /* V3DeviceWrappedGenesisBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5430002A5430002A5430002 /* V3DeviceWrappedGenesisBuilder.swift */; };
@@ -398,7 +393,6 @@
 		A2090004A2090004A2090004 /* V3FormatValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3FormatValidation.swift; sourceTree = "<group>"; };
 		A3010002A3010002A3010002 /* VaultRootDirectoryHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultRootDirectoryHandle.swift; sourceTree = "<group>"; };
 		A3020002A3020002A3020002 /* VaultPathResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultPathResolver.swift; sourceTree = "<group>"; };
-		A3030002A3030002A3030002 /* VaultProviderNamePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultProviderNamePolicy.swift; sourceTree = "<group>"; };
 		A3040002A3040002A3040002 /* VaultContainedMutation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultContainedMutation.swift; sourceTree = "<group>"; };
 		A4010002A4010002A4010002 /* VaultTransactionMutationOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultTransactionMutationOwner.swift; sourceTree = "<group>"; };
 		A4030002A4030002A4030002 /* Base64URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Base64URL.swift; sourceTree = "<group>"; };
@@ -423,7 +417,6 @@
 		A5120002A5120002A5120002 /* V3LocalMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3LocalMigration.swift; sourceTree = "<group>"; };
 		A5130002A5130002A5130002 /* V3ImmutableObjectPublicationFilesystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableObjectPublicationFilesystem.swift; sourceTree = "<group>"; };
 		A5140002A5140002A5140002 /* V3AtomicStagedObjectWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3AtomicStagedObjectWriter.swift; sourceTree = "<group>"; };
-		A5150002A5150002A5150002 /* V3LocalGenesisBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3LocalGenesisBuilder.swift; sourceTree = "<group>"; };
 		A5160002A5160002A5160002 /* V3ImmutableObjectPublishing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableObjectPublishing.swift; sourceTree = "<group>"; };
 		A5170002A5170002A5170002 /* V3EnrollmentProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3EnrollmentProtocol.swift; sourceTree = "<group>"; };
 		A5180002A5180002A5180002 /* V3P256Signature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3P256Signature.swift; sourceTree = "<group>"; };
@@ -439,16 +432,13 @@
 		A5280002A5280002A5280002 /* V3ManifestAncestryObservation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ManifestAncestryObservation.swift; sourceTree = "<group>"; };
 		A5290002A5290002A5290002 /* V3EnrollmentAdoption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3EnrollmentAdoption.swift; sourceTree = "<group>"; };
 		A5300002A5300002A5300002 /* V3EnrollmentWorkflow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3EnrollmentWorkflow.swift; sourceTree = "<group>"; };
-		A5310002A5310002A5310002 /* V3ManifestCandidateBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ManifestCandidateBuilder.swift; sourceTree = "<group>"; };
-		A5320002A5320002A5320002 /* V3VaultMutationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3VaultMutationService.swift; sourceTree = "<group>"; };
-		A5330002A5330002A5330002 /* V3VaultRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3VaultRuntime.swift; sourceTree = "<group>"; };
+		A5320002A5320002A5320002 /* VaultMutationServicing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultMutationServicing.swift; sourceTree = "<group>"; };
 		A5340002A5340002A5340002 /* V3EntryResealing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3EntryResealing.swift; sourceTree = "<group>"; };
-		A5350002A5350002A5350002 /* V3ImmutableTransactionPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableTransactionPublisher.swift; sourceTree = "<group>"; };
+		A5350002A5350002A5350002 /* V3TransactionPublication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3TransactionPublication.swift; sourceTree = "<group>"; };
 		A5360002A5360002A5360002 /* V3ImmutableTransactionRecoveryAnchor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableTransactionRecoveryAnchor.swift; sourceTree = "<group>"; };
 		A5370002A5370002A5370002 /* V3ImmutableTransactionRecoveryFilesystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableTransactionRecoveryFilesystem.swift; sourceTree = "<group>"; };
 		A5380002A5380002A5380002 /* V3ImmutableTransactionRecoveryIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableTransactionRecoveryIntent.swift; sourceTree = "<group>"; };
-		A5390002A5390002A5390002 /* V3ImmutableTransactionValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3ImmutableTransactionValidation.swift; sourceTree = "<group>"; };
-		A5400002A5400002A5400002 /* V3InterruptedTransactionRecoverer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3InterruptedTransactionRecoverer.swift; sourceTree = "<group>"; };
+		A5390002A5390002A5390002 /* V3EntryObjectKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3EntryObjectKey.swift; sourceTree = "<group>"; };
 		A5410002A5410002A5410002 /* V3VaultKeyHPKE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3VaultKeyHPKE.swift; sourceTree = "<group>"; };
 		A5420002A5420002A5420002 /* V3DeviceWrappedManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3DeviceWrappedManifest.swift; sourceTree = "<group>"; };
 		A5430002A5430002A5430002 /* V3DeviceWrappedGenesisBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V3DeviceWrappedGenesisBuilder.swift; sourceTree = "<group>"; };
@@ -590,14 +580,12 @@
 				31C5D8A7B28E4C5FA4E91D20 /* VaultLocationResolver.swift */,
 				A3010002A3010002A3010002 /* VaultRootDirectoryHandle.swift */,
 				A3020002A3020002A3020002 /* VaultPathResolver.swift */,
-				A3030002A3030002A3030002 /* VaultProviderNamePolicy.swift */,
 				A3040002A3040002A3040002 /* VaultContainedMutation.swift */,
 				A4090002A4090002A4090002 /* VaultObservation.swift */,
 				A50F0002A50F0002A50F0002 /* VaultReadService.swift */,
 				A5120002A5120002A5120002 /* V3LocalMigration.swift */,
 				A5130002A5130002A5130002 /* V3ImmutableObjectPublicationFilesystem.swift */,
 				A5140002A5140002A5140002 /* V3AtomicStagedObjectWriter.swift */,
-				A5150002A5150002A5150002 /* V3LocalGenesisBuilder.swift */,
 				A5160002A5160002A5160002 /* V3ImmutableObjectPublishing.swift */,
 				A5170002A5170002A5170002 /* V3EnrollmentProtocol.swift */,
 				A5180002A5180002A5180002 /* V3P256Signature.swift */,
@@ -613,16 +601,13 @@
 				A5280002A5280002A5280002 /* V3ManifestAncestryObservation.swift */,
 				A5290002A5290002A5290002 /* V3EnrollmentAdoption.swift */,
 				A5300002A5300002A5300002 /* V3EnrollmentWorkflow.swift */,
-				A5310002A5310002A5310002 /* V3ManifestCandidateBuilder.swift */,
-				A5320002A5320002A5320002 /* V3VaultMutationService.swift */,
-				A5330002A5330002A5330002 /* V3VaultRuntime.swift */,
+				A5320002A5320002A5320002 /* VaultMutationServicing.swift */,
 				A5340002A5340002A5340002 /* V3EntryResealing.swift */,
-				A5350002A5350002A5350002 /* V3ImmutableTransactionPublisher.swift */,
+				A5350002A5350002A5350002 /* V3TransactionPublication.swift */,
 				A5360002A5360002A5360002 /* V3ImmutableTransactionRecoveryAnchor.swift */,
 				A5370002A5370002A5370002 /* V3ImmutableTransactionRecoveryFilesystem.swift */,
 				A5380002A5380002A5380002 /* V3ImmutableTransactionRecoveryIntent.swift */,
-				A5390002A5390002A5390002 /* V3ImmutableTransactionValidation.swift */,
-				A5400002A5400002A5400002 /* V3InterruptedTransactionRecoverer.swift */,
+				A5390002A5390002A5390002 /* V3EntryObjectKey.swift */,
 				A5410002A5410002A5410002 /* V3VaultKeyHPKE.swift */,
 				A5420002A5420002A5420002 /* V3DeviceWrappedManifest.swift */,
 				A5430002A5430002A5430002 /* V3DeviceWrappedGenesisBuilder.swift */,
@@ -1110,14 +1095,12 @@
 				A50B0001A50B0001A50B0001 /* V3VaultUXService.swift in Sources */,
 				A3010001A3010001A3010001 /* VaultRootDirectoryHandle.swift in Sources */,
 				A3020001A3020001A3020001 /* VaultPathResolver.swift in Sources */,
-				A3030001A3030001A3030001 /* VaultProviderNamePolicy.swift in Sources */,
 				A3040001A3040001A3040001 /* VaultContainedMutation.swift in Sources */,
 				A4090001A4090001A4090001 /* VaultObservation.swift in Sources */,
 				A50F0001A50F0001A50F0001 /* VaultReadService.swift in Sources */,
 				A5120001A5120001A5120001 /* V3LocalMigration.swift in Sources */,
 				A5130001A5130001A5130001 /* V3ImmutableObjectPublicationFilesystem.swift in Sources */,
 				A5140001A5140001A5140001 /* V3AtomicStagedObjectWriter.swift in Sources */,
-				A5150001A5150001A5150001 /* V3LocalGenesisBuilder.swift in Sources */,
 				A5160001A5160001A5160001 /* V3ImmutableObjectPublishing.swift in Sources */,
 				A5170001A5170001A5170001 /* V3EnrollmentProtocol.swift in Sources */,
 				A5180001A5180001A5180001 /* V3P256Signature.swift in Sources */,
@@ -1133,16 +1116,13 @@
 				A5280001A5280001A5280001 /* V3ManifestAncestryObservation.swift in Sources */,
 				A5290001A5290001A5290001 /* V3EnrollmentAdoption.swift in Sources */,
 				A5300001A5300001A5300001 /* V3EnrollmentWorkflow.swift in Sources */,
-				A5310001A5310001A5310001 /* V3ManifestCandidateBuilder.swift in Sources */,
-				A5320001A5320001A5320001 /* V3VaultMutationService.swift in Sources */,
-				A5330001A5330001A5330001 /* V3VaultRuntime.swift in Sources */,
+				A5320001A5320001A5320001 /* VaultMutationServicing.swift in Sources */,
 				A5340001A5340001A5340001 /* V3EntryResealing.swift in Sources */,
-				A5350001A5350001A5350001 /* V3ImmutableTransactionPublisher.swift in Sources */,
+				A5350001A5350001A5350001 /* V3TransactionPublication.swift in Sources */,
 				A5360001A5360001A5360001 /* V3ImmutableTransactionRecoveryAnchor.swift in Sources */,
 				A5370001A5370001A5370001 /* V3ImmutableTransactionRecoveryFilesystem.swift in Sources */,
 				A5380001A5380001A5380001 /* V3ImmutableTransactionRecoveryIntent.swift in Sources */,
-				A5390001A5390001A5390001 /* V3ImmutableTransactionValidation.swift in Sources */,
-				A5400001A5400001A5400001 /* V3InterruptedTransactionRecoverer.swift in Sources */,
+				A5390001A5390001A5390001 /* V3EntryObjectKey.swift in Sources */,
 				A5410001A5410001A5410001 /* V3VaultKeyHPKE.swift in Sources */,
 				A5420001A5420001A5420001 /* V3DeviceWrappedManifest.swift in Sources */,
 				A5430001A5430001A5430001 /* V3DeviceWrappedGenesisBuilder.swift in Sources */,

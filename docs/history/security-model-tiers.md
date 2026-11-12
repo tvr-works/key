@@ -1,6 +1,8 @@
 # Security Model Tiers
 
-This is a historical design comparison, not current setup guidance. New vaults use device enrollment; see the [README](../README.md). The synchronized-Keychain tier below is not available for creating new keys with Key's required user-presence protection: macOS rejects that combination. Existing synchronized records remain a compatibility/import concern, with the scope recorded in the [release qualification](release.md#existing-synchronized-key-compatibility-2026-10-30).
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
+This comparison predates device enrollment and hardware recovery. References to the "current" model below describe that earlier design. New vaults now use device enrollment; see the [README](../../README.md) and [roadmap](../roadmap.md). The synchronized-Keychain tier below is not available for creating new keys with Key's required user-presence protection: macOS rejects that combination. Existing synchronized records remain a compatibility/import concern, with the scope recorded in the [release qualification](../release.md#existing-synchronized-key-compatibility-2026-10-30).
 
 This document is not a literal product roadmap. It is a transparent description of the security and portability tiers that `key` has today, plus the ones it could plausibly grow into over time.
 
@@ -17,9 +19,9 @@ That narrative order is not the same thing as the recommended order. The compara
 
 ## Current State In Key
 
-Today, `key` stores encrypted secret files on disk and protects them with a single randomly generated 256-bit vault key. The secret files themselves are regular JSON envelopes encrypted with AES-256-GCM, implemented in [VaultCipher.swift](../Sources/KeyCore/VaultCipher.swift). The vault key is not stored in the vault. It lives in Keychain, behind local authentication, and is retrieved through the helper process rather than by the CLI directly.
+Today, `key` stores encrypted secret files on disk and protects them with a single randomly generated 256-bit vault key. The secret files themselves are regular JSON envelopes encrypted with AES-256-GCM, implemented in [VaultCipher.swift](../../Sources/KeyCore/VaultCipher.swift). The vault key is not stored in the vault. It lives in Keychain, behind local authentication, and is retrieved through the helper process rather than by the CLI directly.
 
-That split is not just process architecture. It is part of the security boundary. The user-facing CLI in [Sources/key/main.swift](../Sources/key/main.swift) talks to a short-lived LaunchAgent helper over XPC. The helper loads the vault key from Keychain, decrypts or encrypts as needed, and keeps the unlocked vault key only in memory for a short idle window. The relevant pieces today are [VaultKeyStore.swift](../Sources/KeyCore/VaultKeyStore.swift), [SessionVaultKeyStore.swift](../Sources/KeyCore/SessionVaultKeyStore.swift), and [Sources/KeyLaunchAgentHelper/main.swift](../Sources/KeyLaunchAgentHelper/main.swift).
+That split is not just process architecture. It is part of the security boundary. The user-facing CLI in [Sources/key/main.swift](../../Sources/key/main.swift) talks to a short-lived LaunchAgent helper over XPC. The helper loads the vault key from Keychain, decrypts or encrypts as needed, and keeps the unlocked vault key only in memory for a short idle window. The relevant pieces today are [VaultKeyStore.swift](../../Sources/KeyCore/VaultKeyStore.swift), [SessionVaultKeyStore.swift](../../Sources/KeyCore/SessionVaultKeyStore.swift), and [Sources/KeyLaunchAgentHelper/main.swift](../../Sources/KeyLaunchAgentHelper/main.swift).
 
 The current vault key item is deliberately device-local. It is created with [`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`](https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlockedthisdeviceonly?language=objc), which Apple documents as non-migrating to another device. The helper also uses the macOS data protection keychain via [`kSecUseDataProtectionKeychain`](https://developer.apple.com/documentation/security/ksecusedataprotectionkeychain?changes=__8&language=objc), and the access control requirement is local authentication through [`SecAccessControlCreateFlags.userPresence`](https://developer.apple.com/documentation/security/secaccesscontrolcreateflags/userpresence).
 
@@ -104,7 +106,7 @@ This does not make the model inherently weak. It does make it categorically diff
 A lightweight implementation would likely require:
 
 - a configuration mode that switches vault-key storage from `ThisDeviceOnly` to a synchronizable accessibility class such as [`kSecAttrAccessibleWhenUnlocked`](https://developer.apple.com/documentation/security/ksecattraccessiblewhenunlocked)
-- updated create/read/update/delete queries in [VaultKeyStore.swift](../Sources/KeyCore/VaultKeyStore.swift) to include synchronizable behavior
+- updated create/read/update/delete queries in [VaultKeyStore.swift](../../Sources/KeyCore/VaultKeyStore.swift) to include synchronizable behavior
 - clear UI and CLI messaging that this mode widens the trust boundary
 - migration logic for moving an existing local-only vault key into a synchronizable item only when the user explicitly opts in
 
@@ -155,7 +157,7 @@ A practical implementation would likely add:
 - clear warnings that export creates a portable capability, not just a backup file
 - optional recovery-oriented features such as verifying a bundle before the user needs it
 
-The current Keychain storage path in [VaultKeyStore.swift](../Sources/KeyCore/VaultKeyStore.swift) could remain the steady-state storage model after import. The new work would mostly sit around controlled extraction, wrapping, transfer, and re-ingestion.
+The current Keychain storage path in [VaultKeyStore.swift](../../Sources/KeyCore/VaultKeyStore.swift) could remain the steady-state storage model after import. The new work would mostly sit around controlled extraction, wrapping, transfer, and re-ingestion.
 
 ### Who This Tier Is For
 

@@ -1,19 +1,19 @@
 # Version 3 Vault Implementation Tracker
 
-This is the durable execution record for the file-backed, multi-device vault.
-It records only current decisions, work packages, acceptance gates, and PR
-state.
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
 
-## Current State
+This is the historical implementation record for the original file-backed, multi-device vault through 0.2.0. Its current-state labels and pending work describe that checkpoint. Device setup, hardware recovery and subsequent fixes have since shipped. Use the [roadmap](../roadmap.md) for current work and the [release record](../release.md) for publication and qualification results.
+
+## Recorded state through 0.2.0
 
 | Field | Value |
 |---|---|
 | Status | `v0.2.0` is the current Stable release and has completed local, distribution, migration/rollback, two-device, and post-install qualification; catastrophe recovery remains deferred beyond `0.2.0` |
 | Latest release | `v0.2.0 (19)` at `b1e16fc`; `v0.2.0-beta.1 (17)` remains the isolated Preview release |
 | Selected architecture | Device-wrapped, session-only keys over authenticated content-addressed history |
-| Current device-enrolled profile | [Version 3 device-wrapped key architecture](v3-device-wrapped-key-architecture.md) |
+| Current device-enrolled profile | [Version 3 device-wrapped key architecture](../v3-device-wrapped-key-architecture.md) |
 | Historical alpha.6 format | [Role-bearing version 3 vault storage format](v3-vault-storage-format.md) |
-| Canonical JSON module | [Intent, constraints, and extraction plan](json-canonicalization.md) |
+| Canonical JSON module | [Intent, constraints, and extraction plan](../json-canonicalization.md) |
 | Active work | Review config simplification and explicit v3 initialization; continue triaging Stable findings |
 | Next work | Qualify config compatibility and first-time setup before choosing a release scope |
 
@@ -1936,7 +1936,7 @@ opportunistic evidence rather than a release gate.
   group so authenticated XPC, Keychain, and Secure Enclave execute through the
   real boundaries without macOS resolving a qualification service to Stable,
   Preview, or another qualification install. See
-  [migration qualification](migration-qualification.md).
+  [migration qualification](../migration-qualification.md).
 - [x] On 2026-08-17 the installed harness rejected both preflight and apply for
   a deliberately corrupted encrypted source without selecting v3 or changing
   source/config bytes. It migrated and independently reopened an 8-entry mixed
@@ -2058,7 +2058,7 @@ opportunistic evidence rather than a release gate.
   is gone, with no password, cloud, or support fallback.
 - [x] The README's stale prerelease language is replaced with the current
   isolated Preview channel and links to a dedicated user-facing
-  [security, continuity, and recovery](security-continuity-recovery.md) guide.
+  [security, continuity, and recovery](../security-continuity-recovery.md) guide.
 - [x] The guide explains supported-provider and incomplete-delivery behavior,
   equal enrolled-device authority, the two-device recommendation, invitation
   expiry, revocation key rotation, revoked-device `REJOIN` cleanup and safe
@@ -2217,7 +2217,7 @@ The [feasibility evidence](piv-feasibility-results.md) records the early one-tok
 
 As of 2026-10-29, the implementation stack through PR #85 is merged, including registration, adoption, ordinary writes, rotation, restore/resume, and device/recipient lifecycle commands. Recovery remains disabled in shipping Stable and ordinary Preview. The [PIV plan](piv-recovery-plan.md#remaining-acceptance-matrix) owns the remaining integrated review, independent backup-token, lifecycle, platform, compatibility, and release qualification. Merged implementation does not establish those results.
 
-The [contract](piv-recovery-contract.md) and [review dispositions](piv-recovery-ai-review.md) record the single-approval experimental direction and historical-verification/alternative-lineage limits. This work does not change the released continuity promise or authorize hardware operations, credential changes, real-vault activation, installation, or release.
+The [contract](../piv-recovery-contract.md) and [review dispositions](piv-recovery-ai-review.md) record the single-approval experimental direction and historical-verification/alternative-lineage limits. This work does not change the released continuity promise or authorize hardware operations, credential changes, real-vault activation, installation, or release.
 
 ## Immediate Next Action
 
@@ -2235,11 +2235,11 @@ The merged setup/config and warning work is planned for 0.3.0 after qualificatio
 | `V2-802` | Pending `V2-801` and migration qualification | In a later announced minor, require explicit migration before ordinary v2 content writes. Preserve reads, unlock, diagnostics, and migration preparation. Enforce restrictions in the helper. Qualify both source modes, interruptions, hardware requirements, skipped releases, multi-Mac coordination, and the continuity/recovery decision before cutoff. |
 | `V2-803` | `1.0` target; qualification pending | Remove normal v2 operation and its ordinary config choices while retaining a narrow importer and documented legacy access path. Prove old installations can reach migration without the retired runtime and without source loss. Do not delete source files or Keychain material during an upgrade. |
 
-The [config compatibility design](config-simplification-design.md#v2-retirement-direction) records the warning, read-only, and normal-runtime removal stages, including the implemented terminal warning boundary. Exact versions and cutoffs remain release decisions; no automatic migration or v2 write restriction is implemented yet. Catastrophe recovery, dashboard live status, and the menu-bar surface remain separate work.
+The [config compatibility design](../config-simplification-design.md#v2-retirement-direction) records the warning, read-only, and normal-runtime removal stages, including the implemented terminal warning boundary. Exact versions and cutoffs remain release decisions; no automatic migration or v2 write restriction is implemented yet. Catastrophe recovery, dashboard live status, and the menu-bar surface remain separate work.
 
 Preparation artifacts added on 2026-09-05:
 
-- [Config compatibility design](config-simplification-design.md): `CFG-801` is implemented locally with explicit v2/v3 authority, model-specific config output, retained file compatibility, and regression tests. Review and release qualification remain pending. Persistence cleanup remains `CFG-802`, pending the provenance and old-writer contract.
+- [Config compatibility design](../config-simplification-design.md): `CFG-801` is implemented locally with explicit v2/v3 authority, model-specific config output, retained file compatibility, and regression tests. Review and release qualification remain pending. Persistence cleanup remains `CFG-802`, pending the provenance and old-writer contract.
 
 Baseline checked on 2026-09-05:
 

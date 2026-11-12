@@ -139,9 +139,9 @@ enum CLIHelp {
     static let overview = """
     Use \(KeyProductIdentity.currentProcess.cliExecutableName) init for a new vault, or \(KeyProductIdentity.currentProcess.cliExecutableName) share to join one from another Mac. Run \(KeyProductIdentity.currentProcess.cliExecutableName) <command> --help for options and examples.
 
-    Help, version, and lock work before setup. Most other commands need a configured vault. Joining and Preview recovery have their own setup steps; see \(KeyProductIdentity.currentProcess.cliExecutableName) share --help and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
+    Help, version, and lock work before setup. Most other commands need a configured vault. Joining and recovery have their own setup steps; see \(KeyProductIdentity.currentProcess.cliExecutableName) share --help and \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
 
-    Keep at least two active enrolled Macs. If every enrolled Mac is lost, you cannot recover access from the vault folder alone. There is no password, cloud, or support override. Preview offers separately registered hardware recovery keys; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help.
+    Keep at least two Macs enrolled. Recovery after losing them all needs a hardware key registered beforehand and the complete encrypted vault; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help. There is no password, cloud or support override.
     """
 
     static let initialize = """
@@ -201,7 +201,9 @@ enum CLIHelp {
 
     The folder must already exist. This changes the path, not the vault's ID, and does not move files or join a different vault. Missing vault files or keys are errors; Key will not create replacements.
 
-    For device-enrolled vaults, put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode does not control their synchronization or device access. Key retains that setting for compatibility and omits it from config list for these vaults.
+    Device-enrolled vaults use vault-dir and a managed vault ID. Put the vault folder in iCloud Drive or another file-sync location to synchronize files. keychain-mode applies only to older vaults.
+
+    Saving an older enrolled-vault config removes its obsolete mode field after keeping the original under legacy-configs beside config.toml. Reading settings never rewrites them.
 
     For older vaults, keychain-mode selects an existing local or icloud key. Key cannot create or replace synchronized keys: macOS does not support syncing keys with Key's required approval protection. Existing synchronized keys remain readable and migratable. Use \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help to prepare for migration; afterward, share the vault folder using your preferred file-sync provider.
 
@@ -219,15 +221,15 @@ enum CLIHelp {
 
     Key retains the original files. Keep them while checking the migration. They do not receive later changes from the new vault and cannot restore access to it. Other Macs are not migrated automatically; add them to the new vault using \(KeyProductIdentity.currentProcess.cliExecutableName) share --help after installing a compatible release.
 
-    Keep at least two active enrolled Macs. If all are lost, the new vault's files alone cannot restore access. No password, cloud, or support fallback is currently available.
+    Keep at least two Macs enrolled. Recovery after losing them all needs a hardware recovery key registered beforehand and the complete encrypted vault. Migration does not register recovery keys; see \(KeyProductIdentity.currentProcess.cliExecutableName) recovery --help. There is no password, cloud or support override.
 
-    The older vault format (v2) is deprecated, but reads and writes still work. No removal release has been scheduled. Format numbers describe storage compatibility, not the version of the Key app.
+    Legacy vaults remain readable and writable until Key 1.0. In 1.0, migrate before normal use; explicit migration will remain available, including when upgrading directly from an older release. The storage format number (v2) is separate from the Key app version.
     """
 
     static let status = """
     Check whether your vault is ready to use, has missing files, or needs attention. This does not edit entries or resolve conflicts. Use either --json or --verbose, not both.
 
-    If files are unavailable, check your sync provider before retrying. Local APFS and iCloud Drive were directly validated for Stable 0.2.0. Other ordinary folder-backed providers may work, but are not directly validated. These results do not qualify new setup behavior in later builds.
+    If files are unavailable, check your sync provider before retrying. Local APFS and iCloud Drive have been directly tested. Other file-sync providers require compatible filesystem behavior and have not been directly tested.
 
     Troubleshooting: \(troubleshootingURL)
     """
@@ -257,7 +259,7 @@ enum CLIHelp {
     static let write = """
     Type the secret at the hidden prompt, or pipe it through standard input. Do not put the secret in the command's arguments.
 
-    --totp-secret stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL. The older --totp spelling is deprecated.
+    --totp-secret stores an authenticator setup secret to generate one-time codes. Supply the Base32 secret, not a current code or a full otpauth:// URL.
 
     Examples:
       \(KeyProductIdentity.currentProcess.cliExecutableName) add github/personal

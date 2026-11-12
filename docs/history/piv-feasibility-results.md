@@ -1,5 +1,7 @@
 # PIV feasibility evidence summary
 
+Historical record. Status statements and pending checks below describe their recorded dates. Use the [documentation index](../README.md), [current roadmap](../roadmap.md) and [release record](../release.md) for current guidance.
+
 Recorded experiments: 2026-09-06 through 2026-10-04. One YubiKey 5C NFC
 worked on two Macs with disposable data. This establishes usable primitives
 and a frozen-checkpoint rehearsal, not production recovery qualification.
@@ -82,8 +84,8 @@ that folder is not a backup and is not required to build or understand the repo.
 Already installed private test apps were not changed.
 
 Retained regression evidence includes the
-[HPKE receiver vector/compatibility tests](../Tests/KeyCoreTests/PIVHPKEReceiverTests.swift),
-[public-object framing tests](../Tests/KeyCoreTests/PIVPublicObjectCodecTests.swift),
-[authority comparison tests](../Tests/KeyCoreTests/PIVRecoveryAuthorityDesignTests.swift),
-and [epoch capsule tests](../Tests/KeyCoreTests/V3EpochSigningKeyTests.swift).
+[HPKE receiver vector/compatibility tests](../../Tests/KeyCoreTests/PIVHPKEReceiverTests.swift),
+[public-object framing tests](../../Tests/KeyCoreTests/PIVPublicObjectCodecTests.swift),
+[authority comparison tests](../../Tests/KeyCoreTests/PIVRecoveryAuthorityDesignTests.swift),
+and [epoch capsule tests](../../Tests/KeyCoreTests/V3EpochSigningKeyTests.swift).
 These are software-only checks, not hardware qualification.

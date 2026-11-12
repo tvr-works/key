@@ -8,13 +8,32 @@ Apple-side identifiers, profiles, and notarization prerequisites are documented 
 
 - [apple-setup.md](apple-setup.md)
 
+## 0.5.0 configuration and CLI cleanup (unreleased)
+
+Device-enrolled vault settings now save only the folder and managed vault ID. A save that removes the old Keychain-mode field first keeps an exact private copy under `legacy-configs` beside the config file. Existing configs are not rewritten by reads, app startup or installing an update. The copies retain the original local/iCloud choice and extra fields; they do not contain the vault's entries or recover later changes. See [configuration cleanup](../README.md#configuration-cleanup-unreleased) for the location, privacy and failure guidance.
+
+Two deprecated CLI behaviors change in this candidate:
+
+- `config get keychain-mode` refuses for a device-enrolled vault, with a nonzero exit, empty stdout and an explanation on stderr. Legacy vaults keep their setting.
+- `--totp` is removed. Use `--totp-secret` consistently on add, edit, get and copy. The rejected option points to that spelling without contacting the helper. Ordinary get/copy still return the current one-time code.
+
+Config saves preserve observed filesystem/selection changes and refuse unsafe or changed retained copies. A failure after publication tells the user to inspect the saved settings instead of claiming no change occurred. Interrupted recovery remains resumable with the exact restore config written by 0.4.1; resuming does not rewrite that selected file or accept unrelated configurations.
+
+The shared `tvr-works-notary` profile replaces the project-specific release-tool default. Stable recovery guidance and historical architecture records now distinguish released behavior from earlier plans. No automatic vault migration, legacy write cutoff, hardware-key change or test-data deletion is included. The [roadmap](roadmap.md) owns the remaining path to 1.0. This candidate is local and unshipped; verification limits and remaining release gates must be reviewed before publication.
+
+0.5 announces that normal legacy vault operations will end at 1.0. Legacy reads and writes remain supported until then; there is no intermediate read-only release. 1.0 will retain an explicit migration path, including for users upgrading directly from older versions. The standalone importer still needs implementation and qualification before normal legacy operations can be removed.
+
+Terminal inspection now names the 1.0 cutoff without adding warnings to secret output, JSON or piped output. Migration help and completion explain that recovery after losing every enrolled Mac requires a hardware key registered beforehand and the complete encrypted vault; migration does not register a recovery key. The migration loader can request only an existing source key, and its production adapter always disables key creation.
+
+The wider cleanup removes the unreachable alpha migration engine, unused runtime/catch-up wrappers, an unwired naming policy and a redundant Homebrew helper script. Historical data generators now live only in test support; their compatibility and shared filesystem fault coverage remains. Existing legacy vault readers, key lookup and explicit migration remain supported. The old `experimentalRecoveryEnabled` Swift aliases and `KeyExperimentalRecoveryEnabled` bundle override are retired; maintainers use `recoveryEnabled` and `KeyRecoveryEnabled`. Qualification builds still require an explicit isolated choice and verify both components before any installation. See the [audit record](roadmap.md#repository-cleanup-audit-november-12) and [documentation index](README.md).
+
 ## 0.4.1 entry-name completion fix
 
-The next release candidate is 0.4.1 build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
+[Stable 0.4.1](https://github.com/tvr-works/key/releases/tag/v0.4.1) shipped November 11, 2026, as build 41. Entry-name completion now supports current vaults, including recovery-enabled vaults. It uses the existing device-local manifest cache and never requests authentication, starts Key Agent, or scans the sync provider for current-format suggestions. Names are hints and can lag changes from another Mac until the next vault access; they do not authorize a read. Missing, malformed, oversized, unsupported or unsafe cache files produce no suggestions. Legacy vaults retain filename-based completion.
 
 Argument Parser generates command, flag and filesystem completion from the CLI declarations. Release packaging generates the zsh script from the packaged CLI. CI exercises real Tab keystrokes in an isolated shell, including slash prefixes, source and destination names, spaces, punctuation, Unicode and filesystem arguments. The local signed Preview check also verified a real disposable `key list` → `fzf` → `key copy` workflow, cancellation without copying, and updated suggestions after rename and lock without starting the helper. The test finished locked; Stable, its configuration and the real vault matched the pre-test snapshot. No hardware key was used.
 
-This candidate still requires PR review and CI, shipping-package verification and publication before release.
+[PR #98](https://github.com/tvr-works/key/pull/98) merged after green CI and the completion compatibility fix. Release qualification passed Stable Debug/Release and CodeQL with zero findings. The shipping ZIP passed signature, notarization, Gatekeeper and checksum checks. GitHub publication and the [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/5) completed. The Mini was upgraded and passed exact-value comparison across lock/reopen, with unchanged configuration and encrypted files and both recovery registrations intact. Its installed completion passed an actual Tab check without starting the helper. Open a new terminal tab after upgrading to load the updated completion function. The Air was not upgraded in this work; neither physical key was used or changed.
 
 ## 0.4.0 authenticator setup secrets
 
@@ -46,7 +65,7 @@ The [0.4.0 candidate](#040-authenticator-setup-secrets) adds authenticator setup
 
 ## 0.3.0 release preparation
 
-The [beta readiness record](0.3.0-release-readiness.md) preserves the qualification scope, known limits and signed public package results.
+The [beta readiness record](history/0.3.0-release-readiness.md) preserves the qualification scope, known limits and signed public package results.
 
 ### What users will get
 
@@ -60,7 +79,7 @@ Existing configured vaults do not need init or automatic migration. Legacy reads
 
 ### Beta qualification completed November 10
 
-The [readiness record](0.3.0-release-readiness.md) records the two final live checks and the shipped build. The [release qualification](https://github.com/tvr-works/key/actions/runs/42724653368) and [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/1) passed.
+The [readiness record](history/0.3.0-release-readiness.md) records the two final live checks and the shipped build. The [release qualification](https://github.com/tvr-works/key/actions/runs/42724653368) and [Homebrew update](https://github.com/tvr-works/homebrew-tap/pull/1) passed.
 
 ### Single-Mac checkpoint, 2026-10-29
 
@@ -198,7 +217,7 @@ the operator does not choose the product separately.
 The release tag includes the leading `v`; the app and CLI marketing version do not.
 The historical version 3 prerelease checkpoints and their security boundaries
 are tracked in
-[v3-vault-implementation.md](v3-vault-implementation.md#alpha-release-checkpoints).
+[v3-vault-implementation.md](history/v3-vault-implementation.md#alpha-release-checkpoints).
 
 Following [Homebrew's alternative release channel convention](https://docs.brew.sh/Cask-Cookbook#casks-for-alternative-release-channels),
 prereleases use separate, opt-in casks. Stable tags update `key`, while numbered
@@ -421,5 +440,5 @@ Use `just verify-release ...` after notarization and stapling if you want the fu
 
 ## Notarize and staple
 
-`just build-release <tag>` uses the `key-notary` `notarytool` keychain profile directly.
+`just build-release <tag>` uses the `tvr-works-notary` `notarytool` keychain profile directly.
 See [apple-setup.md](apple-setup.md) for the one-time `notarytool store-credentials` command and where to create the Apple app-specific password.

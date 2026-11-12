@@ -13,12 +13,11 @@ struct CLIParserTests {
     }
 
     @Test(arguments: ["add", "edit"])
-    func canonicalSetupSecretFlagAndDeprecatedAliasHaveTheSameMeaning(operation: String) throws {
+    func canonicalSetupSecretFlagIsTheOnlyWriteSpelling(operation: String) throws {
         let expected: Command = operation == "add"
             ? .add(name: "account/mfa", type: .totp)
             : .edit(name: "account/mfa", type: .totp)
         #expect(try CLIParser.parse(arguments: [operation, "--totp-secret", "account/mfa"]) == expected)
-        #expect(try CLIParser.parse(arguments: [operation, "--totp", "account/mfa"]) == expected)
         #expect(throws: AppError.self) {
             try CLIParser.parse(arguments: [operation, "--totp", "--totp-secret", "account/mfa"])
         }
@@ -293,7 +292,7 @@ struct CLIParserTests {
 
     @Test
     func parsesAddTOTP() throws {
-        let command = try CLIParser.parse(arguments: ["add", "--totp", "api/token"])
+        let command = try CLIParser.parse(arguments: ["add", "--totp-secret", "api/token"])
         #expect(command == .add(name: "api/token", type: .totp))
     }
 
@@ -311,7 +310,7 @@ struct CLIParserTests {
 
     @Test
     func parsesEditTOTPWithOptionAfterName() throws {
-        let command = try CLIParser.parse(arguments: ["edit", "api/token", "--totp"])
+        let command = try CLIParser.parse(arguments: ["edit", "api/token", "--totp-secret"])
         #expect(command == .edit(name: "api/token", type: .totp))
     }
 
@@ -407,7 +406,7 @@ struct CLIParserTests {
             == .rename(source: "old", destination: "new", force: true))
         #expect(try CLIParser.parse(arguments: ["get", "--", "--help"])
             == .get(name: "--help"))
-        #expect(try CLIParser.parse(arguments: ["add", "--totp", "--", "-entry"])
+        #expect(try CLIParser.parse(arguments: ["add", "--totp-secret", "--", "-entry"])
             == .add(name: "-entry", type: .totp))
         #expect(try CLIParser.parse(arguments: ["share", "join", "--name=New Mac", "--vault-dir=Key Vault", "invitation"])
             == .share(.join(invitationID: "invitation", deviceName: "New Mac"), vaultDirectory: "Key Vault"))
@@ -540,13 +539,14 @@ struct CLIParserTests {
         let status = try #require(CLIParser.helpText(for: "status")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         let share = try #require(CLIParser.helpText(for: "share")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(status.contains("Local APFS and iCloud Drive"))
-        #expect(status.contains("directly validated for Stable 0.2.0"))
-        #expect(status.contains("may work, but are not directly validated"))
-        #expect(help.contains("at least two active enrolled Macs"))
+        #expect(status.contains("Local APFS and iCloud Drive have been directly tested"))
+        #expect(status.contains("require compatible filesystem behavior and have not been directly tested"))
+        #expect(help.contains("at least two Macs enrolled"))
         #expect(share.contains("Invitations expire after 10 minutes"))
         #expect(share.contains("lost or revoked Mac rejoins"))
-        #expect(help.contains("cannot recover access from the vault folder alone"))
-        #expect(help.contains("no password, cloud, or support override"))
+        #expect(help.contains("hardware key registered beforehand"))
+        #expect(help.contains("complete encrypted vault"))
+        #expect(help.contains("no password, cloud or support override"))
         #expect(!help.contains("v3"))
         #expect(share.contains("--name identifies this Mac, not the Mac you are inviting"))
         #expect(share.contains("Stop if they differ"))
