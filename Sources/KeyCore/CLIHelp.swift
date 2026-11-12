@@ -223,7 +223,7 @@ enum CLIHelp {
 
     Keep at least two active enrolled Macs. If all are lost, the new vault's files alone cannot restore access. No password, cloud, or support fallback is currently available.
 
-    The older vault format (v2) is deprecated, but reads and writes still work. No removal release has been scheduled. Format numbers describe storage compatibility, not the version of the Key app.
+    Legacy vaults remain readable and writable until Key 1.0. In 1.0, migrate before normal use; explicit migration will remain available, including when upgrading directly from an older release. The storage format number (v2) is separate from the Key app version.
     """
 
     static let status = """

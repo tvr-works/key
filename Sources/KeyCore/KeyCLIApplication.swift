@@ -1044,7 +1044,7 @@ public final class KeyCLIApplication {
     private func writeV2DeprecationWarning() {
         guard io.stdoutIsTTY else { return }
         io.writeStderr(
-            "Warning: older vault format, deprecated but still supported.\nCheck migration readiness: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check\nMigration steps and limits: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help\n"
+            "Warning: legacy vaults will require migration in Key 1.0.\nCheck migration readiness: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --check\nMigration steps and limits: \(KeyProductIdentity.currentProcess.cliExecutableName) migrate --help\n"
         )
     }
 

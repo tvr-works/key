@@ -57,7 +57,7 @@ Warnings must not contaminate secret stdout or machine-readable output, introduc
 
 The warning appears once on stderr for each v2 `key status` (including `--verbose`) or `key config list` invocation whose stdout is a terminal. `status --json` never emits it, even in a terminal. Redirected/piped stdout suppresses the retirement warning. No stored dismissal flag, timer, authentication, or migration operation is added.
 
-The implemented message identifies v2 as deprecated, states that reads and writes remain supported, and points to the read-only `key migrate --check`. It says migration is explicit and asks users to review device enrollment and recovery. It currently gives no cutoff date or release number; the planned 0.5 update will name 1.0. It must not claim that a particular unhealthy vault can be read or changed successfully.
+The terminal warning now says legacy vaults will require migration in Key 1.0 and points to the read-only `key migrate --check` and migration help. Help explains that reads and writes remain supported until 1.0, explicit migration remains available afterward, and users may upgrade directly from older releases. Neither the warning nor help claims that a particular unhealthy vault can be read or changed successfully.
 
 Status uses the helper's reported format without loading local config. Config listing uses one loaded configuration for both values and the warning decision. Missing or malformed payloads/configs keep their existing errors and do not produce an additional retirement warning. Human status health and exit codes remain unchanged.
 

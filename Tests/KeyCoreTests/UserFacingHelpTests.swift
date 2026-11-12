@@ -96,6 +96,10 @@ struct UserFacingHelpTests {
         let read = try #require(CLIParser.helpText(for: "get")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         #expect(read.contains("may be out of date"))
         #expect(read.contains("does not bypass failed security checks"))
+        let migrate = try #require(CLIParser.helpText(for: "migrate")).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(migrate.contains("readable and writable until Key 1.0"))
+        #expect(migrate.contains("explicit migration will remain available"))
+        #expect(migrate.contains("upgrading directly from an older release"))
     }
 
     @Test

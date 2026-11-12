@@ -48,7 +48,7 @@ struct V2DeprecationWarningTests {
                 if !isV3 && terminal && !json {
                     #expect(io.stderr.components(separatedBy: "Warning:").count == 2)
                     #expect(io.stderr.contains("key migrate --check"))
-                    #expect(io.stderr.contains("deprecated but still supported"))
+                    #expect(io.stderr.contains("legacy vaults will require migration in Key 1.0"))
                     #expect(io.stderr.contains("key migrate --help"))
                 } else {
                     #expect(io.stderr.isEmpty)

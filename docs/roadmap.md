@@ -15,7 +15,7 @@ For a device-enrolled vault, the saved configuration should contain only its fol
 | Retire `config get keychain-mode` for device-enrolled vaults | Refuse with a short explanation and no stdout. Legacy vaults retain the ordinary setting until 1.0; explicit migration must still interpret their source mode afterward. |
 | Remove the deprecated `--totp` alias | `--totp-secret` remains the single spelling on add, edit, get and copy. Explain the change in release notes and the rejected-flag error. |
 | Fold in maintenance | Use the verified shared `tvr-works-notary` profile, correct stale release/setup guidance, and record the published 0.4.1 result. |
-| Announce legacy retirement | Name 1.0 as the end of normal legacy vault operations and explain the retained explicit migration path. Update the existing terminal retirement warning and its tests before shipping 0.5; this notice update remains to be implemented. |
+| Announce legacy retirement | The terminal inspection warning names 1.0 as the cutoff. Migration help explains continued explicit migration, including for users who skip releases. Existing warning channels, command behavior and exit codes remain unchanged. |
 
 Installing this release must not migrate a vault, change a recovery registration, administer a hardware key, or delete retained files. Older vaults remain readable and writable. No new persistent service, sync setting, vault format or recovery ceremony is needed.
 
