@@ -239,6 +239,22 @@ struct V3DeviceWrappedGenesisInstallerTests {
         ))
     }
 
+    @Test
+    func blockedPreflightPublishesAndSelectsNothing() throws {
+        let fixture = try Fixture(sources: [.init(plaintext: "value", name: " leading-space", type: .secret)])
+        defer { fixture.remove() }
+        let sourceBefore = try fixture.sourceBytes()
+        #expect(throws: AppError.self) {
+            try fixture.installer().install(operationID: Self.operationID, deviceName: "Test Mac")
+        }
+        #expect(fixture.selector.vaultID == nil)
+        #expect(fixture.checkpointStore.checkpoint(Self.vaultID) == nil)
+        #expect(!fixture.session.hasResidentKey)
+        #expect(fixture.cache.manifestData == nil)
+        #expect(!FileManager.default.fileExists(atPath: fixture.root.appendingPathComponent("manifests").path))
+        #expect(try fixture.sourceBytes() == sourceBefore)
+    }
+
     @Test(.enabled(if: runLargeMigrationQualification))
     func migratesRealisticLargeMixedSnapshotWithoutChangingV2Source() throws {
         let sources = (0 ..< 300).map { index in
@@ -316,8 +332,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
             vaultID: Self.vaultID,
             entryCount: 2,
             secretCount: 1,
-            totpCount: 1,
-            destination: .deviceWrapped
+            totpCount: 1
         ))
         #expect(report.rendered == """
             Migration completed.

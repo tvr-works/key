@@ -4,7 +4,7 @@ import Testing
 
 @testable import KeyCore
 
-struct V3DeviceWrappedSameEpochCatchUpServiceTests {
+struct V3DeviceWrappedSameEpochCatchUpStepServiceTests {
     private static let vaultID =
         "018f4d38-7d5a-7b20-b0f1-97d6e96c84b3"
     private static let transitionID =
@@ -19,10 +19,11 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
     func advancesOneAuthenticatedSameEpochPathWithCheckpointCAS() throws {
         let fixture = try Fixture()
 
-        let outcome = try fixture.service.advanceOneStep()
+        let plan = try fixture.inspect()
+        #expect(plan == .advance(expectedCheckpoint: fixture.base.checkpoint, manifestDigests: [fixture.child.manifestDigest]))
+        let outcome = try fixture.advance()
 
-        #expect(outcome == .advancedOneStep(fixture.childTrusted))
-        #expect(fixture.owner.kinds == [.catchUpVault])
+        #expect(outcome == fixture.childTrusted)
         #expect(fixture.observer.observedKeys == [[Self.vaultKey]])
         #expect(fixture.checkpointStore.checkpoint
             == fixture.childTrusted.checkpoint.canonicalBytes)
@@ -34,10 +35,14 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
     @Test
     func advancesOnlyTheFirstManifestOfALongerContentPath() throws {
         let fixture = try Fixture(includeGrandchild: true)
+        guard case let .advance(_, digests) = try fixture.inspect() else {
+            Issue.record("Expected the authenticated content path")
+            return
+        }
+        #expect(digests.count == 2 && digests.first == fixture.child.manifestDigest)
+        let outcome = try fixture.advance()
 
-        let outcome = try fixture.service.advanceOneStep()
-
-        #expect(outcome == .advancedOneStep(fixture.childTrusted))
+        #expect(outcome == fixture.childTrusted)
         #expect(fixture.checkpointStore.checkpoint
             == fixture.childTrusted.checkpoint.canonicalBytes)
         #expect(fixture.checkpointStore.expectedCheckpoints
@@ -49,7 +54,7 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
     func preservesMultipleHeadsWithoutChangingLocalTrust() throws {
         let fixture = try Fixture(includeFork: true)
 
-        let outcome = try fixture.service.advanceOneStep()
+        let outcome = try fixture.inspect()
 
         #expect(outcome == .multipleHeads(fixture.observation.heads))
         #expect(fixture.checkpointStore.checkpoint
@@ -63,7 +68,7 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
         let fixture = try Fixture(checkpointConflict: true)
 
         #expect(throws: V3DeviceWrappedCatchUpError.checkpointChanged) {
-            _ = try fixture.service.advanceOneStep()
+            _ = try fixture.advance()
         }
 
         #expect(fixture.checkpointStore.checkpoint
@@ -76,7 +81,7 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
         let fixture = try Fixture(manifestRead: .unavailable)
 
         #expect(throws: V3DeviceWrappedCatchUpError.temporaryUnavailable) {
-            _ = try fixture.service.advanceOneStep()
+            _ = try fixture.advance()
         }
 
         #expect(fixture.checkpointStore.checkpoint
@@ -91,7 +96,7 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
         )
 
         #expect(throws: V3DeviceWrappedCatchUpError.recoveryRequired) {
-            _ = try fixture.service.advanceOneStep()
+            _ = try fixture.advance()
         }
 
         #expect(fixture.checkpointStore.checkpoint
@@ -103,9 +108,9 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
     func cacheFailureCannotUndoAnAuthenticatedCheckpointAdvance() throws {
         let fixture = try Fixture(cacheFailure: true)
 
-        let outcome = try fixture.service.advanceOneStep()
+        let outcome = try fixture.advance()
 
-        #expect(outcome == .advancedOneStep(fixture.childTrusted))
+        #expect(outcome == fixture.childTrusted)
         #expect(fixture.checkpointStore.checkpoint
             == fixture.childTrusted.checkpoint.canonicalBytes)
         #expect(fixture.cache.storeAttempts == 1)
@@ -116,11 +121,10 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
         let child: V3DeviceWrappedContentMutationCandidate
         let childTrusted: V3DeviceWrappedTrustedCheckpoint
         let observation: V3DeviceWrappedRepositoryObservation
-        let owner = CatchUpRecordingMutationOwner()
         let observer: CatchUpObservationStub
         let checkpointStore: CatchUpCheckpointStore
         let cache: CatchUpCache
-        let service: V3DeviceWrappedSameEpochCatchUpService
+        let service: V3DeviceWrappedSameEpochCatchUpStepService
 
         init(
             includeFork: Bool = false,
@@ -133,19 +137,19 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
             let genesis = try V3DeviceWrappedGenesisBuilder()
                 .buildPublicationCandidate(
                     vaultID:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests.vaultID,
+                        V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultID,
                     authorityTransitionID:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests
+                        V3DeviceWrappedSameEpochCatchUpStepServiceTests
                             .transitionID,
                     entryIDs: [],
                     sourceEntries: [],
                     vaultKey:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests.vaultKey,
+                        V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey,
                     ownerIdentity: identity
                 ).genesis
             let baseCheckpoint = try V3ManifestCheckpoint(
                 vaultID:
-                    V3DeviceWrappedSameEpochCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultID,
                 envelopeDigest: genesis.manifestDigest
             )
             base = V3DeviceWrappedTrustedCheckpoint(
@@ -157,16 +161,16 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
             child = try V3DeviceWrappedManifestCandidateBuilder().add(
                 to: base,
                 entryID:
-                    V3DeviceWrappedSameEpochCatchUpServiceTests.entryID,
+                    V3DeviceWrappedSameEpochCatchUpStepServiceTests.entryID,
                 name: "qualification/laptop",
                 type: .secret,
                 plaintext: "member value",
                 vaultKey:
-                    V3DeviceWrappedSameEpochCatchUpServiceTests.vaultKey
+                    V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey
             )
             let childCheckpoint = try V3ManifestCheckpoint(
                 vaultID:
-                    V3DeviceWrappedSameEpochCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultID,
                 envelopeDigest: child.manifestDigest
             )
             childTrusted = V3DeviceWrappedTrustedCheckpoint(
@@ -192,13 +196,13 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
                     .add(
                         to: childTrusted,
                         entryID:
-                            V3DeviceWrappedSameEpochCatchUpServiceTests
+                            V3DeviceWrappedSameEpochCatchUpStepServiceTests
                                 .forkEntryID,
                         name: "qualification/second-step",
                         type: .secret,
                         plaintext: "later value",
                         vaultKey:
-                            V3DeviceWrappedSameEpochCatchUpServiceTests.vaultKey
+                            V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey
                     )
                 parents[grandchild.manifestDigest] = [child.manifestDigest]
                 heads = [grandchild.manifestDigest]
@@ -212,13 +216,13 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
                 let fork = try V3DeviceWrappedManifestCandidateBuilder().add(
                     to: base,
                     entryID:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests
+                        V3DeviceWrappedSameEpochCatchUpStepServiceTests
                             .forkEntryID,
                     name: "qualification/desktop",
                     type: .secret,
                     plaintext: "owner value",
                     vaultKey:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests.vaultKey
+                        V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey
                 )
                 parents[fork.manifestDigest] = [
                     baseCheckpoint.envelopeDigest,
@@ -258,20 +262,23 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
                         childEncryptedEntry.canonicalBytes
                 ]
             )
-            service = V3DeviceWrappedSameEpochCatchUpService(
+            service = V3DeviceWrappedSameEpochCatchUpStepService(
                 vaultID:
-                    V3DeviceWrappedSameEpochCatchUpServiceTests.vaultID,
-                mutationOwner: owner,
-                stateLoader: CatchUpStateLoader(
-                    trusted: base,
-                    vaultKey:
-                        V3DeviceWrappedSameEpochCatchUpServiceTests.vaultKey
-                ),
+                    V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultID,
                 repositoryObserver: observer,
                 source: source,
                 checkpointStore: checkpointStore,
                 cache: cache
             )
+        }
+
+        func inspect() throws -> V3DeviceWrappedCatchUpPlan {
+            try service.inspect(trusted: base, vaultKey: V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey)
+        }
+
+        func advance() throws -> V3DeviceWrappedTrustedCheckpoint {
+            try service.advance(trusted: base, vaultKey: V3DeviceWrappedSameEpochCatchUpStepServiceTests.vaultKey,
+                                expectedCheckpoint: base.checkpoint, manifestDigest: child.manifestDigest)
         }
 
         private static func identity() throws
@@ -293,43 +300,6 @@ struct V3DeviceWrappedSameEpochCatchUpServiceTests {
         private static func scalar(_ value: UInt8) -> Data {
             Data(repeating: 0, count: 31) + Data([value])
         }
-    }
-}
-
-private final class CatchUpRecordingMutationOwner:
-    VaultTransactionMutationOwning,
-    @unchecked Sendable
-{
-    private let lock = NSLock()
-    private(set) var kinds: [VaultTransactionMutationKind] = []
-
-    func perform<Result>(
-        _ kind: VaultTransactionMutationKind,
-        _ mutation: (VaultTransactionMutationContext) throws -> Result
-    ) throws -> Result {
-        lock.lock()
-        kinds.append(kind)
-        lock.unlock()
-        return try mutation(VaultTransactionMutationContext(
-            operationID: VaultTransactionOperationID(),
-            kind: kind
-        ))
-    }
-}
-
-private struct CatchUpStateLoader: V3DeviceWrappedMutationStateLoading {
-    let trusted: V3DeviceWrappedTrustedCheckpoint
-    let vaultKey: Data
-
-    func authenticatedCheckpoint(
-        reason _: String
-    ) throws -> V3DeviceWrappedTrustedCheckpoint {
-        trusted
-    }
-
-    func loadVaultKey(keyID: V3VaultKeyID) throws -> Data {
-        #expect(keyID == trusted.envelope.body.keyID)
-        return vaultKey
     }
 }
 

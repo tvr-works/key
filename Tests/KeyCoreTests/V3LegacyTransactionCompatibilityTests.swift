@@ -5,7 +5,7 @@ import JSONCanonicalization
 import Testing
 @testable import KeyCore
 
-struct V3ImmutableTransactionPublisherTests {
+struct V3LegacyTransactionCompatibilityTests {
     fileprivate static let vaultID = "018f4d38-7d5a-7b20-b0f1-97d6e96c44b3"
     fileprivate static let entryA = "018f4d39-930c-735d-8d6f-588e9b0a3a48"
     fileprivate static let entryB = "018f4d3a-a844-72ad-983e-b09a8fc0e924"
@@ -50,7 +50,7 @@ struct V3ImmutableTransactionPublisherTests {
         )
 
         let trusted = try publisher.publish(
-            V3ImmutableTransactionRequest(
+            LegacyTransactionRequestFixture(
                 kind: .addEntry,
                 candidateManifestData: candidate.data,
                 stagedEntries: [sealed],
@@ -213,7 +213,7 @@ struct V3ImmutableTransactionPublisherTests {
 
             #expect(throws: PublicationTestError.interrupted) {
                 _ = try publisher.publish(
-                    V3ImmutableTransactionRequest(
+                    LegacyTransactionRequestFixture(
                         kind: .addEntry,
                         candidateManifestData: candidate.data,
                         stagedEntries: [sealed],
@@ -349,7 +349,7 @@ struct V3ImmutableTransactionPublisherTests {
         )
         #expect(throws: PublicationTestError.interrupted) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -407,7 +407,7 @@ struct V3ImmutableTransactionPublisherTests {
         )
         #expect(throws: PublicationTestError.interrupted) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -455,7 +455,7 @@ struct V3ImmutableTransactionPublisherTests {
                 target: .manifestStaged
             )
         )
-        let request = V3ImmutableTransactionRequest(
+        let request = LegacyTransactionRequestFixture(
             kind: .editEntry,
             candidateManifestData: candidate.data,
             stagedEntries: [],
@@ -573,7 +573,7 @@ struct V3ImmutableTransactionPublisherTests {
         )
 
         let trusted = try publisher.publish(
-            V3ImmutableTransactionRequest(
+            LegacyTransactionRequestFixture(
                 kind: .mergeHeads,
                 candidateManifestData: candidate.data,
                 stagedEntries: [],
@@ -635,7 +635,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ImmutableTransactionError.objectTooLarge) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .addEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [sealed],
@@ -691,7 +691,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ImmutableTransactionError.objectTooLarge) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -751,7 +751,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ImmutableTransactionError.expectedHeadsChanged) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .addEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [sealed],
@@ -806,7 +806,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: PublicationTestError.expected) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .addEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [sealed],
@@ -849,7 +849,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: PublicationTestError.expected) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -890,7 +890,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ManifestCheckpointStoreError.conflict) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -940,7 +940,7 @@ struct V3ImmutableTransactionPublisherTests {
             digest: record.ciphertextDigest
         )) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -993,7 +993,7 @@ struct V3ImmutableTransactionPublisherTests {
             digest: record.ciphertextDigest
         )) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -1060,7 +1060,7 @@ struct V3ImmutableTransactionPublisherTests {
         )
 
         _ = try publisher.publish(
-            V3ImmutableTransactionRequest(
+            LegacyTransactionRequestFixture(
                 kind: .mergeHeads,
                 candidateManifestData: candidate.data,
                 stagedEntries: [],
@@ -1126,7 +1126,7 @@ struct V3ImmutableTransactionPublisherTests {
                 .candidateDoesNotMatchAutomaticMerge
         ) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .mergeHeads,
                     candidateManifestData: incompleteMerge.data,
                     stagedEntries: [],
@@ -1185,7 +1185,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ImmutableTransactionError.unresolvedConflict) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .editEntry,
                     candidateManifestData: left.data,
                     stagedEntries: [leftEntry],
@@ -1232,7 +1232,7 @@ struct V3ImmutableTransactionPublisherTests {
 
         #expect(throws: V3ImmutableTransactionError.invalidStagedEntry) {
             _ = try publisher.publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .addEntry,
                     candidateManifestData: candidate.data,
                     stagedEntries: [unrelatedEntry],
@@ -1280,7 +1280,7 @@ struct V3FilesystemImmutableObjectPublicationTests {
             let fixture = Fixture()
             let base = try fixture.genesis()
             let sealed = try fixture.sealedEntry(
-                id: V3ImmutableTransactionPublisherTests.entryA,
+                id: V3LegacyTransactionCompatibilityTests.entryA,
                 name: "filesystem/recovery",
                 revision: 1,
                 plaintext: "secret"
@@ -1313,19 +1313,19 @@ struct V3FilesystemImmutableObjectPublicationTests {
 
             #expect(throws: PublicationTestError.interrupted) {
                 _ = try publisher.publish(
-                    V3ImmutableTransactionRequest(
+                    LegacyTransactionRequestFixture(
                         kind: .addEntry,
                         candidateManifestData: candidate.data,
                         stagedEntries: [sealed],
                         candidateVaultKey:
-                            V3ImmutableTransactionPublisherTests.vaultKey
+                            V3LegacyTransactionCompatibilityTests.vaultKey
                     )
                 )
             }
             _ = try publisher.recoverInterruptedTransaction(
-                vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+                vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
                 availableVaultKeys: [
-                    V3ImmutableTransactionPublisherTests.vaultKey
+                    V3LegacyTransactionCompatibilityTests.vaultKey
                 ]
             )
 
@@ -1337,12 +1337,12 @@ struct V3FilesystemImmutableObjectPublicationTests {
             #expect(checkpointStore.checkpoint == expectedCheckpoint)
             #expect(
                 recoveryAnchorStore.anchor(
-                    vaultID: V3ImmutableTransactionPublisherTests.vaultID
+                    vaultID: V3LegacyTransactionCompatibilityTests.vaultID
                 ) == nil
             )
             guard case .unavailable = try store.readRecoveryIntent(
                 operationID:
-                    V3ImmutableTransactionPublisherTests.operationID,
+                    V3LegacyTransactionCompatibilityTests.operationID,
                 maximumBytes:
                     V3ImmutableTransactionRecoveryIntent.maximumBytes
             ) else {
@@ -1382,11 +1382,11 @@ struct V3FilesystemImmutableObjectPublicationTests {
             parents: [base.verified],
             entries: []
         )
-        let operationID = V3ImmutableTransactionPublisherTests.operationID
+        let operationID = V3LegacyTransactionCompatibilityTests.operationID
         let intent = try V3ImmutableTransactionRecoveryIntent(
             operationID: operationID,
             kind: .editEntry,
-            vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+            vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
             expectedCheckpoint: V3ManifestCheckpoint(
                 verifiedManifest: base.verified
             ),
@@ -1452,11 +1452,11 @@ struct V3FilesystemImmutableObjectPublicationTests {
             parents: [base.verified],
             entries: []
         )
-        let operationID = V3ImmutableTransactionPublisherTests.operationID
+        let operationID = V3LegacyTransactionCompatibilityTests.operationID
         let intent = try V3ImmutableTransactionRecoveryIntent(
             operationID: operationID,
             kind: .editEntry,
-            vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+            vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
             expectedCheckpoint: V3ManifestCheckpoint(
                 verifiedManifest: base.verified
             ),
@@ -1518,11 +1518,11 @@ struct V3FilesystemImmutableObjectPublicationTests {
             parents: [base.verified],
             entries: []
         )
-        let operationID = V3ImmutableTransactionPublisherTests.operationID
+        let operationID = V3LegacyTransactionCompatibilityTests.operationID
         let intent = try V3ImmutableTransactionRecoveryIntent(
             operationID: operationID,
             kind: .editEntry,
-            vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+            vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
             expectedCheckpoint: V3ManifestCheckpoint(
                 verifiedManifest: base.verified
             ),
@@ -1623,11 +1623,11 @@ struct V3FilesystemImmutableObjectPublicationTests {
             parents: [base.verified],
             entries: []
         )
-        let operationID = V3ImmutableTransactionPublisherTests.operationID
+        let operationID = V3LegacyTransactionCompatibilityTests.operationID
         let intent = try V3ImmutableTransactionRecoveryIntent(
             operationID: operationID,
             kind: .editEntry,
-            vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+            vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
             expectedCheckpoint: V3ManifestCheckpoint(
                 verifiedManifest: base.verified
             ),
@@ -1854,9 +1854,9 @@ private struct Fixture {
             result.data,
             try V3ManifestAuthenticator().verify(
                 result.data,
-                vaultKey: V3ImmutableTransactionPublisherTests.vaultKey,
+                vaultKey: V3LegacyTransactionCompatibilityTests.vaultKey,
                 trustAnchor: .localGenesis(
-                    vaultID: V3ImmutableTransactionPublisherTests.vaultID
+                    vaultID: V3LegacyTransactionCompatibilityTests.vaultID
                 )
             )
         )
@@ -1874,7 +1874,7 @@ private struct Fixture {
             result.data,
             try V3ManifestAuthenticator().verify(
                 result.data,
-                vaultKey: V3ImmutableTransactionPublisherTests.vaultKey,
+                vaultKey: V3LegacyTransactionCompatibilityTests.vaultKey,
                 trustAnchor: .verifiedParents(parents)
             )
         )
@@ -1916,14 +1916,14 @@ private struct Fixture {
         try V3EntryCipher().seal(
             plaintext,
             context: V3EntryAuthenticationContext(
-                vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+                vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
                 entryID: id,
                 name: name,
                 type: .secret,
-                keyID: V3ImmutableTransactionPublisherTests.keyID,
+                keyID: V3LegacyTransactionCompatibilityTests.keyID,
                 revision: revision
             ),
-            vaultKey: V3ImmutableTransactionPublisherTests.vaultKey
+            vaultKey: V3LegacyTransactionCompatibilityTests.vaultKey
         )
     }
 
@@ -1953,11 +1953,11 @@ private struct Fixture {
             MemoryRecoveryAnchorStore(),
         phaseObserver: any V3ImmutableTransactionPhaseObserving =
             TestNoopPhaseObserver()
-    ) -> V3ImmutableTransactionPublisher {
-        V3ImmutableTransactionPublisher(
+    ) -> LegacyTransactionPublisherFixture {
+        LegacyTransactionPublisherFixture(
             mutationOwner: VaultTransactionMutationOwner(
                 makeOperationID: {
-                    V3ImmutableTransactionPublisherTests.operationID
+                    V3LegacyTransactionCompatibilityTests.operationID
                 }
             ),
             ancestryObserver: observer,
@@ -1979,9 +1979,9 @@ private struct Fixture {
         let content = V3ManifestContent(
             parents: parentValues,
             manifest: V3ManifestBody(
-                vaultID: V3ImmutableTransactionPublisherTests.vaultID,
+                vaultID: V3LegacyTransactionCompatibilityTests.vaultID,
                 mode: .local,
-                keyID: V3ImmutableTransactionPublisherTests.keyID,
+                keyID: V3LegacyTransactionCompatibilityTests.keyID,
                 devices: [],
                 wrappedKeys: [],
                 entries: entries.sorted(by: entryPrecedes)
@@ -2005,7 +2005,7 @@ private struct Fixture {
         let tag = try V3ManifestAuthenticator.authenticationTag(
             canonicalContent: canonicalContent,
             vaultID: content.manifest.vaultID,
-            vaultKey: V3ImmutableTransactionPublisherTests.vaultKey
+            vaultKey: V3LegacyTransactionCompatibilityTests.vaultKey
         )
         return CanonicalJSON.encode(.object([
             ("format", .string("key-vault-manifest-envelope")),

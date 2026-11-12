@@ -1,7 +1,8 @@
 import Foundation
-internal import JSONCanonicalization
+import JSONCanonicalization
+@testable import KeyCore
 
-struct V3LocalMigrationCandidate: Sendable {
+struct LegacyManifestFixture: Sendable {
     struct Entry: Sendable {
         let source: V2MigrationSourceEntry
         let manifestEntry: V3ManifestEntry
@@ -15,10 +16,9 @@ struct V3LocalMigrationCandidate: Sendable {
     let entries: [Entry]
 }
 
-/// Pure construction of an authenticated local-mode v3 genesis candidate.
-/// Publication, checkpointing, and device selection remain the migration
-/// service's responsibility.
-struct V3LocalGenesisBuilder: Sendable {
+/// Builds the historical shared-key profile for compatibility/refusal tests.
+/// Shipping migration creates device-wrapped vaults and cannot call this fixture.
+struct LegacyManifestFixtureBuilder: Sendable {
     private let authenticator = V3ManifestAuthenticator()
     private let entryCipher = V3EntryCipher()
 
@@ -27,22 +27,22 @@ struct V3LocalGenesisBuilder: Sendable {
         entryIDs: [String],
         sourceEntries: [V2MigrationSourceEntry],
         vaultKey: Data
-    ) throws -> V3LocalMigrationCandidate {
+    ) throws -> LegacyManifestFixture {
         guard isValidV3UUID(vaultID),
               entryIDs.count == sourceEntries.count,
               entryIDs.allSatisfy(isValidV3UUID)
         else {
-            throw V3LocalMigrationError.invalidGeneratedIdentity
+            throw LegacyManifestFixtureError.invalidGeneratedIdentity
         }
         guard Set(entryIDs).count == entryIDs.count else {
-            throw V3LocalMigrationError.duplicateGeneratedIdentity
+            throw LegacyManifestFixtureError.duplicateGeneratedIdentity
         }
 
         let keyID = try V3VaultKeyID.derive(
             vaultKey: vaultKey,
             vaultID: vaultID
         )
-        var entries: [V3LocalMigrationCandidate.Entry] = []
+        var entries: [LegacyManifestFixture.Entry] = []
         entries.reserveCapacity(sourceEntries.count)
 
         for (source, entryID) in zip(sourceEntries, entryIDs) {
@@ -72,7 +72,7 @@ struct V3LocalGenesisBuilder: Sendable {
             ) else {
                 throw V3EncryptedEntryError.digestMismatch
             }
-            entries.append(V3LocalMigrationCandidate.Entry(
+            entries.append(LegacyManifestFixture.Entry(
                 source: source,
                 manifestEntry: manifestEntry,
                 encryptedEntry: encrypted,
@@ -137,11 +137,16 @@ struct V3LocalGenesisBuilder: Sendable {
             vaultKey: vaultKey,
             trustAnchor: .localGenesis(vaultID: vaultID)
         )
-        return V3LocalMigrationCandidate(
+        return LegacyManifestFixture(
             vaultID: vaultID,
             manifestData: manifestData,
             verifiedManifest: verified,
             entries: entries
         )
     }
+}
+
+private enum LegacyManifestFixtureError: Error {
+    case invalidGeneratedIdentity
+    case duplicateGeneratedIdentity
 }

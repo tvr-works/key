@@ -1,7 +1,8 @@
+@testable import KeyCore
 import Foundation
-internal import JSONCanonicalization
+import JSONCanonicalization
 
-struct V3ManifestCandidate: Sendable {
+struct LegacyManifestCandidate: Sendable {
     let data: Data
     let verified: V3VerifiedManifest
 }
@@ -11,7 +12,7 @@ struct V3ManifestCandidate: Sendable {
 /// Callers remain responsible for choosing parents, authority, entries, and
 /// any owner authorizations. The builder performs no repository access or
 /// publication and verifies its own output before returning it.
-struct V3ManifestCandidateBuilder: Sendable {
+struct LegacyManifestCandidateBuilder: Sendable {
     private let authenticator = V3ManifestAuthenticator()
 
     func build(
@@ -19,7 +20,7 @@ struct V3ManifestCandidateBuilder: Sendable {
         vaultKey: Data,
         trustAnchor: V3ManifestTrustAnchor,
         authorizations: [V3ManifestAuthorization] = []
-    ) throws -> V3ManifestCandidate {
+    ) throws -> LegacyManifestCandidate {
         let contentValue = canonicalContent(content)
         let canonicalContent = CanonicalJSON.encode(contentValue)
         let tag = try V3ManifestAuthenticator.authenticationTag(
@@ -43,7 +44,7 @@ struct V3ManifestCandidateBuilder: Sendable {
                 ])
             }))
         ]))
-        return V3ManifestCandidate(
+        return LegacyManifestCandidate(
             data: data,
             verified: try authenticator.verify(
                 data,

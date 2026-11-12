@@ -822,8 +822,7 @@ struct V3DeviceWrappedMigrationService: V3LocalMigrationServicing {
             vaultID: report.vaultID,
             entryCount: report.entryCount,
             secretCount: report.secretCount,
-            totpCount: report.totpCount,
-            destination: .deviceWrapped
+            totpCount: report.totpCount
         )
     }
 }

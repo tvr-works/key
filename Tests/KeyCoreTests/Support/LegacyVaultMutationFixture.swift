@@ -1,46 +1,8 @@
 import CryptoKit
 import Foundation
+@testable import KeyCore
 
-protocol VaultMutationServicing: Sendable {
-    func add(
-        name: String,
-        secret: String,
-        type: SecretEntryType,
-        operationID: VaultTransactionOperationID
-    ) throws
-
-    func edit(
-        name: String,
-        secret: String,
-        type: SecretEntryType,
-        operationID: VaultTransactionOperationID
-    ) throws
-
-    func copy(
-        source: String,
-        destination: String,
-        overwrite: Bool,
-        operationID: VaultTransactionOperationID
-    ) throws
-
-    func move(
-        source: String,
-        destination: String,
-        overwrite: Bool,
-        operationID: VaultTransactionOperationID
-    ) throws
-
-    func remove(
-        name: String,
-        operationID: VaultTransactionOperationID
-    ) throws
-
-    func resolve(
-        _ resolutions: [VaultConflictResolution],
-        operationID: VaultTransactionOperationID
-    ) throws
-}
-
+/// Historical-profile writer for compatibility fixtures, never shipping dispatch.
 /// Plans and publishes ordinary v3 entry mutations from one freshly
 /// authenticated repository state.
 ///
@@ -48,7 +10,7 @@ protocol VaultMutationServicing: Sendable {
 /// never operates on legacy `.secret` paths: it seals immutable entry objects,
 /// builds an authenticated child manifest, and delegates all expected-head,
 /// staging, durability, and checkpoint work to the transaction publisher.
-struct V3VaultMutationService: VaultMutationServicing, Sendable {
+struct LegacyVaultMutationFixture: VaultMutationServicing, Sendable {
     private struct LinearBase {
         let state: V3VaultRuntimeState
         let proof: V3ManifestAncestryProof
@@ -66,7 +28,7 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
         any V3ImmutableTransactionRecoveryAnchorStoring
     private let limits: V3ManifestRepositoryLimits
     private let entryCipher = V3EntryCipher()
-    private let manifestBuilder = V3ManifestCandidateBuilder()
+    private let manifestBuilder = LegacyManifestCandidateBuilder()
     private let reconciler = V3ManifestReconciler()
     private let observationBuilder = V3VaultObservationBuilder()
 
@@ -392,7 +354,7 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
             trustAnchor: .verifiedParents(proof.heads)
         )
         try publish(
-            V3ImmutableTransactionRequest(
+            LegacyTransactionRequestFixture(
                 kind: .resolveConflict,
                 candidateManifestData: candidate.data,
                 stagedEntries: stagedEntries,
@@ -421,7 +383,7 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
                 trustAnchor: .verifiedParents(proof.heads)
             )
             try publish(
-                V3ImmutableTransactionRequest(
+                LegacyTransactionRequestFixture(
                     kind: .mergeHeads,
                     candidateManifestData: candidate.data,
                     stagedEntries: [],
@@ -521,7 +483,7 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
             trustAnchor: .verifiedParents([base.head])
         )
         try publish(
-            V3ImmutableTransactionRequest(
+            LegacyTransactionRequestFixture(
                 kind: kind,
                 candidateManifestData: candidate.data,
                 stagedEntries: stagedEntries,
@@ -533,7 +495,7 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
     }
 
     private func publish(
-        _ request: V3ImmutableTransactionRequest,
+        _ request: LegacyTransactionRequestFixture,
         state: V3VaultRuntimeState,
         operationID: VaultTransactionOperationID
     ) throws {
@@ -550,8 +512,8 @@ struct V3VaultMutationService: VaultMutationServicing, Sendable {
     private func makePublisher(
         vaultKey: Data,
         operationID: VaultTransactionOperationID
-    ) -> V3ImmutableTransactionPublisher {
-        V3ImmutableTransactionPublisher(
+    ) -> LegacyTransactionPublisherFixture {
+        LegacyTransactionPublisherFixture(
             mutationOwner: DirectVaultTransactionMutationOwner(
                 operationID: operationID
             ),

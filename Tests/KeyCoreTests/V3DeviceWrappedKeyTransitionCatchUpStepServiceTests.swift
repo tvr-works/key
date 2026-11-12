@@ -4,7 +4,7 @@ import Testing
 
 @testable import KeyCore
 
-struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
+struct V3DeviceWrappedKeyTransitionCatchUpStepServiceTests {
     fileprivate static let vaultID =
         "018f4d38-7d5a-7b20-b0f1-97d6e96c94b3"
     private static let genesisTransitionID =
@@ -25,7 +25,6 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
         )
 
         #expect(trusted == fixture.candidateTrusted)
-        #expect(fixture.owner.kinds == [.catchUpVault])
         #expect(fixture.checkpointStore.checkpoint
             == fixture.candidateTrusted.checkpoint.canonicalBytes)
         #expect(fixture.checkpointStore.expectedCheckpoints
@@ -143,12 +142,11 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
         let parent: V3DeviceWrappedTrustedCheckpoint
         let candidate: V3DeviceWrappedEnrollmentTransitionCandidate
         let candidateTrusted: V3DeviceWrappedTrustedCheckpoint
-        let owner = KeyTransitionCatchUpMutationOwner()
         let checkpointStore: KeyTransitionCatchUpCheckpointStore
         let cache: KeyTransitionCatchUpCache
         let session = V3DeviceWrappedVaultKeySessionStore()
         let unlockRuntime: V3DeviceWrappedVaultUnlockRuntime
-        let service: V3DeviceWrappedKeyTransitionCatchUpService
+        let service: V3DeviceWrappedKeyTransitionCatchUpStepService
         let unwrapDidBegin: DispatchSemaphore?
         let unwrapMayContinue: DispatchSemaphore?
 
@@ -171,20 +169,20 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
             let genesis = try V3DeviceWrappedGenesisBuilder()
                 .buildPublicationCandidate(
                     vaultID:
-                        V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
+                        V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                     authorityTransitionID:
-                        V3DeviceWrappedKeyTransitionCatchUpServiceTests
+                        V3DeviceWrappedKeyTransitionCatchUpStepServiceTests
                             .genesisTransitionID,
                     entryIDs: [],
                     sourceEntries: [],
                     vaultKey:
-                        V3DeviceWrappedKeyTransitionCatchUpServiceTests
+                        V3DeviceWrappedKeyTransitionCatchUpStepServiceTests
                             .currentKey,
                     ownerIdentity: ownerDevice.publicIdentity
                 ).genesis
             let parentCheckpoint = try V3ManifestCheckpoint(
                 vaultID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                 envelopeDigest: genesis.manifestDigest
             )
             parent = V3DeviceWrappedTrustedCheckpoint(
@@ -203,20 +201,20 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
                 currentEntries: [:],
                 state: state,
                 currentVaultKey:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.currentKey,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.currentKey,
                 nextVaultKey:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.nextKey,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.nextKey,
                 authorityTransitionID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests
                         .enrollmentTransitionID,
                 owner: ownerDevice,
-                at: V3DeviceWrappedKeyTransitionCatchUpServiceTests
+                at: V3DeviceWrappedKeyTransitionCatchUpStepServiceTests
                     .approvalTime,
                 authorizationReason: "Approve the compared Mac."
             )
             let nextCheckpoint = try V3ManifestCheckpoint(
                 vaultID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                 envelopeDigest: candidate.manifestDigest
             )
             candidateTrusted = V3DeviceWrappedTrustedCheckpoint(
@@ -234,9 +232,9 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
                 failsOnStore: cacheFailure
             )
             try session.install(
-                V3DeviceWrappedKeyTransitionCatchUpServiceTests.currentKey,
+                V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.currentKey,
                 vaultID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                 keyID: parent.envelope.body.keyID
             )
             let didBegin: DispatchSemaphore?
@@ -273,17 +271,16 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
             )
             unlockRuntime = V3DeviceWrappedVaultUnlockRuntime(
                 vaultID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                 checkpointStore: checkpointStore,
                 source: source,
                 cache: cache,
                 identityLoader: KeyTransitionCatchUpIdentityLoader(),
                 session: session
             )
-            service = V3DeviceWrappedKeyTransitionCatchUpService(
+            service = V3DeviceWrappedKeyTransitionCatchUpStepService(
                 vaultID:
-                    V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID,
-                mutationOwner: owner,
+                    V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID,
                 stateManager: unlockRuntime,
                 source: source,
                 cache: cache,
@@ -301,7 +298,7 @@ struct V3DeviceWrappedKeyTransitionCatchUpServiceTests {
                 parentManifestDigest: parent.checkpoint.envelopeDigest,
                 invitingDevice: owner.publicIdentity,
                 nonce: Data(repeating: 0x41, count: 32),
-                expiresAt: V3DeviceWrappedKeyTransitionCatchUpServiceTests
+                expiresAt: V3DeviceWrappedKeyTransitionCatchUpStepServiceTests
                     .approvalTime
             )
             let authenticator = V3EnrollmentMessageAuthenticator()
@@ -338,7 +335,7 @@ private struct KeyTransitionCatchUpDevice:
     V3DeviceWrappedVaultKeyUnwrapping
 {
     let vaultID =
-        V3DeviceWrappedKeyTransitionCatchUpServiceTests.vaultID
+        V3DeviceWrappedKeyTransitionCatchUpStepServiceTests.vaultID
     let publicIdentity: V3EnrollmentDeviceIdentity
     private let signingKey: P256.Signing.PrivateKey
     private let wrappingKey: P256.KeyAgreement.PrivateKey
@@ -413,31 +410,6 @@ private final class KeyTransitionCatchUpIdentity:
             context: context,
             reason: reason
         )
-    }
-}
-
-private final class KeyTransitionCatchUpMutationOwner:
-    VaultTransactionMutationOwning,
-    @unchecked Sendable
-{
-    private let lock = NSLock()
-    private var recordedKinds: [VaultTransactionMutationKind] = []
-
-    var kinds: [VaultTransactionMutationKind] {
-        lock.withLock { recordedKinds }
-    }
-
-    func perform<Result>(
-        _ kind: VaultTransactionMutationKind,
-        _ mutation: (VaultTransactionMutationContext) throws -> Result
-    ) throws -> Result {
-        lock.withLock {
-            recordedKinds.append(kind)
-        }
-        return try mutation(VaultTransactionMutationContext(
-            operationID: VaultTransactionOperationID(),
-            kind: kind
-        ))
     }
 }
 

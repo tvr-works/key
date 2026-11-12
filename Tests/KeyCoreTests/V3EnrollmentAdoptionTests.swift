@@ -63,7 +63,7 @@ struct V3EnrollmentAdoptionTests {
         let parent = fixture.candidate.verifiedManifest
         let parentBody = parent.envelope.content.manifest
         let parentDigest = Base64URL.encode(parent.envelopeDigest)
-        let emptyChild = try V3ManifestCandidateBuilder().build(
+        let emptyChild = try LegacyManifestCandidateBuilder().build(
             content: V3ManifestContent(
                 parents: [parentDigest],
                 manifest: parentBody
@@ -100,7 +100,7 @@ struct V3EnrollmentAdoptionTests {
                 ciphertextDigest: encrypted.ciphertextDigest
             )]
         )
-        let populatedChild = try V3ManifestCandidateBuilder().build(
+        let populatedChild = try LegacyManifestCandidateBuilder().build(
             content: V3ManifestContent(
                 parents: [parentDigest],
                 manifest: populatedBody
@@ -523,7 +523,7 @@ private struct Fixture {
     let identityManager: V3EnrollmentDeviceIdentityManager
 
     init(includeCandidate: Bool = true) throws {
-        let parent = try V3LocalGenesisBuilder().build(
+        let parent = try LegacyManifestFixtureBuilder().build(
             vaultID: V3EnrollmentAdoptionTests.vaultID,
             entryIDs: [],
             sourceEntries: [],
@@ -650,7 +650,7 @@ private struct AdditionalAdoptionFixture {
     let identityManager: V3EnrollmentDeviceIdentityManager
 
     init() throws {
-        let genesis = try V3LocalGenesisBuilder().build(
+        let genesis = try LegacyManifestFixtureBuilder().build(
             vaultID: V3EnrollmentAdoptionTests.vaultID,
             entryIDs: [],
             sourceEntries: [],

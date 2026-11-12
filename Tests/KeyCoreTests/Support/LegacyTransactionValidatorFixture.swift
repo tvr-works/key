@@ -1,16 +1,13 @@
 import CryptoKit
 import Foundation
+@testable import KeyCore
 
-struct V3EntryObjectKey: Hashable, Sendable {
-    let entryID: String
-    let digest: Data
-}
-
+// Historical-profile validation for the legacy publication/recovery fixtures.
 /// Shared validation policy for initial publication and interrupted recovery.
 ///
 /// Keeping these checks in one value prevents the two state machines from
 /// drifting into different authentication, entry, or resource-limit rules.
-struct V3ImmutableTransactionValidator: Sendable {
+struct LegacyTransactionValidatorFixture: Sendable {
     private let objectStore: any V3TransactionArtifactStore
     private let entryCipher: V3EntryCipher
     private let limits: V3ManifestRepositoryLimits
@@ -294,26 +291,6 @@ struct V3ImmutableTransactionValidator: Sendable {
             heads: heads
         )
     }
-}
-
-func entryObjectKey(
-    _ entry: V3ManifestEntry
-) throws -> V3EntryObjectKey {
-    guard let digest = Base64URL.decodeCanonical(entry.ciphertextDigest),
-          digest.count == 32
-    else {
-        throw V3ImmutableTransactionError.invalidStagedEntry
-    }
-    return V3EntryObjectKey(entryID: entry.entryID, digest: digest)
-}
-
-func entryObjectKeyPrecedes(
-    _ lhs: V3EntryObjectKey,
-    _ rhs: V3EntryObjectKey
-) -> Bool {
-    Data(lhs.entryID.utf8).lexicographicallyPrecedes(Data(rhs.entryID.utf8))
-        || (lhs.entryID == rhs.entryID
-            && lhs.digest.lexicographicallyPrecedes(rhs.digest))
 }
 
 private func vaultHeadPrecedes(

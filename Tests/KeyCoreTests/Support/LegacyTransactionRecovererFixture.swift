@@ -1,7 +1,9 @@
+// Historical recovery engine used only by the legacy transaction test fixture.
 import CryptoKit
 import Foundation
+@testable import KeyCore
 
-private struct V3RecoveryEntryValidation {
+private struct LegacyRecoveryEntryFixtureValidation {
     let availableStagedEntries: [V3EntryObjectKey: Data]
     let entriesToPublish: [V3EntryObjectKey: V3EncryptedEntry]
     let entrySizes: [V3EntryObjectKey: Int]
@@ -12,7 +14,7 @@ private struct V3RecoveryEntryValidation {
 /// Shared transaction artifacts have no authority by themselves. Recovery
 /// begins only from the exact device-local anchor, then re-authenticates every
 /// candidate and entry before it can publish or advance a checkpoint.
-struct V3InterruptedTransactionRecoverer: Sendable {
+struct LegacyTransactionRecovererFixture: Sendable {
     private let ancestryObserver: any V3ManifestAncestryObserving
     private let objectStore: any V3TransactionArtifactStore
     private let checkpointStore: any V3ManifestCheckpointStoring
@@ -21,7 +23,7 @@ struct V3InterruptedTransactionRecoverer: Sendable {
     private let authenticator: V3ManifestAuthenticator
     private let reconciler: V3ManifestReconciler
     private let limits: V3ManifestRepositoryLimits
-    private let validator: V3ImmutableTransactionValidator
+    private let validator: LegacyTransactionValidatorFixture
 
     init(
         ancestryObserver: any V3ManifestAncestryObserving,
@@ -31,7 +33,7 @@ struct V3InterruptedTransactionRecoverer: Sendable {
             any V3ImmutableTransactionRecoveryAnchorStoring,
         authenticator: V3ManifestAuthenticator,
         reconciler: V3ManifestReconciler,
-        validator: V3ImmutableTransactionValidator,
+        validator: LegacyTransactionValidatorFixture,
         limits: V3ManifestRepositoryLimits
     ) {
         self.ancestryObserver = ancestryObserver
@@ -403,7 +405,7 @@ struct V3InterruptedTransactionRecoverer: Sendable {
         _ intent: V3ImmutableTransactionRecoveryIntent,
         candidate: V3VerifiedManifest,
         availableVaultKeys: [Data]
-    ) throws -> V3RecoveryEntryValidation? {
+    ) throws -> LegacyRecoveryEntryFixtureValidation? {
         let body = candidate.envelope.content.manifest
         let vaultKey = try recoveryVaultKey(
             for: body.keyID,
@@ -520,7 +522,7 @@ struct V3InterruptedTransactionRecoverer: Sendable {
         guard entrySizes.count == candidateEntries.count else {
             throw invalidRecoveryState(for: intent)
         }
-        return V3RecoveryEntryValidation(
+        return LegacyRecoveryEntryFixtureValidation(
             availableStagedEntries: availableStagedData,
             entriesToPublish: entriesToPublish,
             entrySizes: entrySizes

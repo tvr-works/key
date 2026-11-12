@@ -501,12 +501,6 @@ public struct KeyConfigStore {
         try load().listedValues
     }
 
-    /// Reads the existing configured root without creating config or vault
-    /// state. The running helper uses this as a fail-closed consistency check.
-    func configuredVaultDirectoryURL() throws -> URL {
-        try configuredVaultRuntimeSelection().rootURL
-    }
-
     /// Reads the running helper's complete storage selection without creating
     /// configuration, directories, checkpoints, or vault files.
     func configuredVaultRuntimeSelection()

@@ -7,51 +7,6 @@ protocol V3DeviceWrappedKeyTransitionCatchUpStepServicing: Sendable {
     ) throws -> V3DeviceWrappedTrustedCheckpoint
 }
 
-/// Serializes one exact owner-authorized key-epoch advancement with ordinary
-/// vault mutations.
-///
-/// Candidate discovery remains read-only and outside this type. The reusable
-/// step service performs the trust change after this wrapper acquires the
-/// helper's mutation owner.
-struct V3DeviceWrappedKeyTransitionCatchUpService: Sendable {
-    private let mutationOwner: any VaultTransactionMutationOwning
-    private let stepService: V3DeviceWrappedKeyTransitionCatchUpStepService
-
-    init(
-        vaultID: String,
-        mutationOwner: any VaultTransactionMutationOwning,
-        stateManager: any V3DeviceWrappedKeyTransitionStateManaging,
-        source: any V3ImmutableObjectReading,
-        cache: any V3CheckpointManifestCaching,
-        loadIdentity: @escaping
-            V3DeviceWrappedKeyTransitionCatchUpStepService.IdentityLoader,
-        limits: V3ManifestRepositoryLimits = .standard
-    ) {
-        precondition(isValidV3UUID(vaultID))
-        self.mutationOwner = mutationOwner
-        stepService = V3DeviceWrappedKeyTransitionCatchUpStepService(
-            vaultID: vaultID,
-            stateManager: stateManager,
-            source: source,
-            cache: cache,
-            loadIdentity: loadIdentity,
-            limits: limits
-        )
-    }
-
-    func advanceOneEpoch(
-        manifestData: Data,
-        manifestDigest: Data
-    ) throws -> V3DeviceWrappedTrustedCheckpoint {
-        try mutationOwner.perform(.catchUpVault) { _ in
-            try stepService.advanceOneEpoch(
-                manifestData: manifestData,
-                manifestDigest: manifestDigest
-            )
-        }
-    }
-}
-
 /// Reopens and commits one selected key transition while its caller owns
 /// mutation serialization.
 ///
