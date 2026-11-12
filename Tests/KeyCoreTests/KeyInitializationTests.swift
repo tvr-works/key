@@ -134,6 +134,50 @@ struct KeyInitializationTests {
     }
 
     @Test(arguments: [false, true])
+    func liveMigrationNeverCreatesAMissingSourceKey(empty: Bool) throws {
+        for mode in [KeychainMode.local, .icloud] {
+            let home = try makeHome()
+            defer { try? FileManager.default.removeItem(at: home) }
+            _ = try writeLegacyTestConfiguration(home: home)
+            let config = KeyConfigStore(homeDirectoryURL: home)
+            _ = try config.setValue(mode.rawValue, for: .keychainMode)
+            let selected = try config.load()
+            let originalConfig = try Data(contentsOf: selected.configFileURL)
+            let entries = EntryStore(rootURL: selected.vaultDirectoryURL)
+            if !empty {
+                let encrypted = try VaultCipher().encrypt(
+                    "synthetic source", type: .secret, keyData: Data(repeating: 1, count: 32)
+                )
+                try entries.save(encrypted, as: "test", overwrite: false)
+            }
+            let originalFiles = try FileManager.default.contentsOfDirectory(atPath: entries.rootURL.path)
+            let sourceURL = try entries.url(for: "test")
+            let originalEntry = empty ? nil : try Data(contentsOf: sourceURL)
+            let keys = MemoryVaultKeyStore()
+            // Always stop at source lookup, even if a regression requests creation.
+            keys.error = AppError.entryNotFound("Synthetic missing source key")
+            let handler = try KeyServiceHandler.live(
+                keyStore: keys, keyConfiguration: selected, configStore: config,
+                runtimeConfiguration: RuntimeConfiguration(
+                    productIdentity: KeyProductIdentity.preview.qualificationIdentity(namespace: "migration-loader-test")
+                )
+            )
+
+            #expect(handler.handle(.migrationApply).errorCode == (empty ? .operationRefused : .entryNotFound))
+            #expect(keys.requests.count == 1)
+            #expect(keys.requests.allSatisfy { $0.mode == mode && !$0.createIfMissing })
+            #expect(keys.storeCount == 0)
+            #expect(keys.localKeyData == nil)
+            #expect(keys.iCloudKeyData == nil)
+            #expect(try Data(contentsOf: selected.configFileURL) == originalConfig)
+            #expect(try FileManager.default.contentsOfDirectory(atPath: entries.rootURL.path) == originalFiles)
+            if let originalEntry {
+                #expect(try Data(contentsOf: sourceURL) == originalEntry)
+            }
+        }
+    }
+
+    @Test(arguments: [false, true])
     func unavailableRunningVaultRefusesBeforeKeyAccess(replace: Bool) throws {
         let home = try makeHome()
         defer { try? FileManager.default.removeItem(at: home) }

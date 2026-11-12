@@ -525,11 +525,11 @@ public final class KeyServiceHandler {
                 ),
                 keyOperations: V3SecureEnclaveEnrollmentDeviceKeyOperations()
             ),
-            loadV2VaultKey: { reason, createIfMissing in
+            loadExistingV2VaultKey: { reason in
                 try keyStore.loadKey(
                     mode: keyConfiguration.requireStoredKeychainMode(),
                     reason: reason,
-                    createIfMissing: createIfMissing
+                    createIfMissing: false
                 )
             },
             selectVault: { vaultID in

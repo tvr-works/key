@@ -52,7 +52,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         #expect(try config.configuredVaultRuntimeSelection().vaultID == Self.vaultID)
         #expect(try config.configuredVaultRuntimeSelection().rootURL.standardizedFileURL == root.standardizedFileURL)
         let completed = try #require(fixture)
-        #expect(completed.v2KeyProvider.creationFlags.isEmpty)
+        #expect(completed.v2KeyProvider.loadCount == 0)
         #expect(completed.session.hasResidentKey)
         let manifest = try V3DeviceWrappedManifestEnvelopeCodec().parse(#require(completed.cache.manifestData))
         #expect(manifest.body.entries.isEmpty)
@@ -66,7 +66,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
     func newVaultInstallsAnEmptyVerifiedGenesisWithoutALegacyKey() throws {
         let (fixture, directory) = try Self.newVaultFixture()
         defer { fixture.remove() }
-        let report = try fixture.installer(loadV2VaultKey: { _, _ in
+        let report = try fixture.installer(loadExistingV2VaultKey: { _ in
             Issue.record("New vault creation must not access a v2 key")
             throw AppError.entryNotFound("No v2 key")
         }).installNewVault(
@@ -81,7 +81,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         #expect(fixture.selector.checkpointWasInstalled)
         #expect(fixture.selector.cacheWasInstalled)
         #expect(fixture.selector.sessionWasInstalled)
-        #expect(fixture.v2KeyProvider.creationFlags.isEmpty)
+        #expect(fixture.v2KeyProvider.loadCount == 0)
         let envelope = try V3DeviceWrappedManifestEnvelopeCodec().parse(
             #require(fixture.cache.manifestData)
         )
@@ -116,7 +116,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
             }
             #expect(fixture.selector.vaultID == nil)
             #expect(!fixture.session.hasResidentKey)
-            #expect(fixture.v2KeyProvider.creationFlags.isEmpty)
+            #expect(fixture.v2KeyProvider.loadCount == 0)
             let identitiesBefore = fixture.identityCreator.createdVaultIDs
             #expect(throws: AppError.self) {
                 try fixture.installer().installNewVault(
@@ -140,7 +140,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
             )
         }
         #expect(fixture.identityCreator.createdVaultIDs.isEmpty)
-        #expect(fixture.v2KeyProvider.creationFlags.isEmpty)
+        #expect(fixture.v2KeyProvider.loadCount == 0)
         #expect(fixture.selector.vaultID == nil)
     }
 
@@ -159,7 +159,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         }
         #expect(fixture.selector.vaultID == nil)
         #expect(!fixture.session.hasResidentKey)
-        #expect(fixture.v2KeyProvider.creationFlags.isEmpty)
+        #expect(fixture.v2KeyProvider.loadCount == 0)
         #expect(try Data(contentsOf: fixture.root.appendingPathComponent(".unexpected"))
             == Data("delivered after creation".utf8))
     }
@@ -176,7 +176,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
             )
         }
         #expect(other.identityCreator.createdVaultIDs.isEmpty)
-        #expect(other.v2KeyProvider.creationFlags.isEmpty)
+        #expect(other.v2KeyProvider.loadCount == 0)
     }
 
     private static func newVaultFixture() throws -> (Fixture, V3NewVaultDirectory) {
@@ -209,7 +209,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         #expect(fixture.cache.manifestData != nil)
         #expect(fixture.session.hasResidentKey)
         #expect(try fixture.sourceBytes() == sourceBefore)
-        #expect(fixture.v2KeyProvider.creationFlags == [false])
+        #expect(fixture.v2KeyProvider.loadCount == 1)
         #expect(fixture.identityCreator.createdVaultIDs == [Self.vaultID])
 
         let checkpoint = try #require(
@@ -287,7 +287,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         #expect(report.totpCount == 60)
         #expect(fixture.selector.vaultID == Self.vaultID)
         #expect(try fixture.sourceBytes() == sourceBefore)
-        #expect(fixture.v2KeyProvider.creationFlags == [false])
+        #expect(fixture.v2KeyProvider.loadCount == 1)
         #expect(!FileManager.default.fileExists(
             atPath: fixture.root.appendingPathComponent(".transactions").path
         ))
@@ -442,7 +442,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
         )
 
         #expect(report.entryCount == 0)
-        #expect(fixture.v2KeyProvider.creationFlags == [false])
+        #expect(fixture.v2KeyProvider.loadCount == 1)
         #expect(fixture.selector.vaultID == Self.vaultID)
         let manifest = try V3DeviceWrappedManifestEnvelopeCodec().parse(
             #require(fixture.cache.manifestData)
@@ -464,7 +464,7 @@ struct V3DeviceWrappedGenesisInstallerTests {
                 deviceName: "Empty Mac"
             )
         }
-        #expect(fixture.v2KeyProvider.creationFlags == [false])
+        #expect(fixture.v2KeyProvider.loadCount == 1)
         #expect(fixture.identityCreator.createdVaultIDs.isEmpty)
         #expect(fixture.selector.vaultID == nil)
         #expect(fixture.checkpointStore.checkpoint(Self.vaultID) == nil)
@@ -485,12 +485,12 @@ struct V3DeviceWrappedGenesisInstallerTests {
         )
 
         #expect(throws: V3DeviceWrappedGenesisInstallError.sourceChanged) {
-            try fixture.installer(loadV2VaultKey: provider.load).install(
+            try fixture.installer(loadExistingV2VaultKey: provider.load).install(
                 operationID: Self.operationID,
                 deviceName: "Empty Mac"
             )
         }
-        #expect(provider.creationFlags == [false])
+        #expect(provider.loadCount == 1)
         #expect(try fixture.entryStore.exists("mail/arrived"))
         #expect(fixture.identityCreator.createdVaultIDs.isEmpty)
         #expect(fixture.selector.vaultID == nil)
@@ -664,8 +664,8 @@ private extension V3DeviceWrappedGenesisInstallerTests {
             vaultKey: Data = newVaultKey,
             identityManager:
                 (any V3DeviceWrappedGenesisIdentityManaging)? = nil,
-            loadV2VaultKey:
-                V3DeviceWrappedGenesisInstaller.V2VaultKeyProvider? = nil,
+            loadExistingV2VaultKey:
+                V3DeviceWrappedGenesisInstaller.ExistingV2VaultKeyLoader? = nil,
             selectVault: ((String) throws -> Void)? = nil,
             phaseObserver: any V3DeviceWrappedGenesisInstallPhaseObserving =
                 InstallNoopObserver()
@@ -678,7 +678,7 @@ private extension V3DeviceWrappedGenesisInstallerTests {
                 cache: cache,
                 session: session,
                 identityManager: identityManager ?? self.identityCreator,
-                loadV2VaultKey: loadV2VaultKey ?? v2KeyProvider.load,
+                loadExistingV2VaultKey: loadExistingV2VaultKey ?? v2KeyProvider.load,
                 selectVault: selectVault ?? selector.select,
                 makeUUID: InstallUUIDSequence([
                     vaultID, transitionID,
@@ -842,20 +842,20 @@ private final class InstallUUIDSequence: @unchecked Sendable {
 private final class InstallV2KeyProvider: @unchecked Sendable {
     private let lock = NSLock()
     private let key: Data
-    private var flags: [Bool] = []
+    private var calls = 0
     var error: Error?
 
-    var creationFlags: [Bool] {
-        lock.withLock { flags }
+    var loadCount: Int {
+        lock.withLock { calls }
     }
 
     init(key: Data) {
         self.key = key
     }
 
-    func load(reason _: String, createIfMissing: Bool) throws -> Data {
+    func load(reason _: String) throws -> Data {
         try lock.withLock {
-            flags.append(createIfMissing)
+            calls += 1
             if let error {
                 throw error
             }
@@ -869,9 +869,9 @@ private final class DeliveringInstallV2KeyProvider: @unchecked Sendable {
     private let destination: URL
     private let data: Data
     private let key: Data
-    private var flags: [Bool] = []
+    private var calls = 0
 
-    var creationFlags: [Bool] { lock.withLock { flags } }
+    var loadCount: Int { lock.withLock { calls } }
 
     init(destination: URL, data: Data, key: Data) {
         self.destination = destination
@@ -879,9 +879,9 @@ private final class DeliveringInstallV2KeyProvider: @unchecked Sendable {
         self.key = key
     }
 
-    func load(reason _: String, createIfMissing: Bool) throws -> Data {
+    func load(reason _: String) throws -> Data {
         try lock.withLock {
-            flags.append(createIfMissing)
+            calls += 1
             try FileManager.default.createDirectory(
                 at: destination.deletingLastPathComponent(),
                 withIntermediateDirectories: true
